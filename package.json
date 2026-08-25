@@ -4,7 +4,12 @@
     "build": "next build",
     "dev": "next dev --turbopack",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "node --env-file=.env node_modules/drizzle-kit/bin.cjs generate",
+    "db:migrate": "node --env-file=.env node_modules/drizzle-kit/bin.cjs migrate",
+    "db:studio": "node --env-file=.env node_modules/drizzle-kit/bin.cjs studio",
+    "db:seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -12,12 +17,14 @@
     "autoprefixer": "10.4.20",
     "bcrypt": "^5.1.1",
     "clsx": "^2.1.1",
-    "next": "latest",
+    "drizzle-orm": "^0.45.2",
+    "next": "16.3.2",
     "next-auth": "5.0.0-beta.32",
     "postcss": "8.5.1",
     "postgres": "^3.4.6",
-    "react": "latest",
-    "react-dom": "latest",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
     "tailwindcss": "3.4.17",
     "typescript": "5.7.3",
     "use-debounce": "^10.0.6",
@@ -28,6 +35,7 @@
     "@types/node": "22.10.7",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.2"
   }

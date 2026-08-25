@@ -4,13 +4,15 @@ import { authConfig } from './auth.config';
 import { z } from 'zod';
 import type { User } from '@/app/lib/definitions';
 import bcrypt from 'bcrypt';
-import postgres from 'postgres';
- 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
- 
+import { sql } from '@/db';
+
 async function getUser(email: string): Promise<User | undefined> {
   try {
-    const user = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
+    // Select explicitly rather than `SELECT *` — the row is handed to NextAuth
+    // below, and `*` would carry the bcrypt hash into the session object.
+    const user = await sql<User[]>`
+      SELECT id, name, email, password FROM users WHERE email = ${email}
+    `;
     return user[0];
   } catch (error) {
     console.error('Failed to fetch user:', error);
@@ -32,7 +34,10 @@ export const { auth, signIn, signOut } = NextAuth({
           const user = await getUser(email);
           if (!user) return null;
           const passwordsMatch = await bcrypt.compare(password, user.password);
-          if (passwordsMatch) return user
+          // Strip the hash before it reaches the JWT / session payload.
+          if (passwordsMatch) {
+            return { id: user.id, name: user.name, email: user.email };
+          }
         }
  
         return null;

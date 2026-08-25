@@ -1,4 +1,3 @@
-import postgres from 'postgres';
 import {
   CustomerField,
   CustomersTableType,
@@ -8,20 +7,11 @@ import {
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
-
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+import { sql } from '@/db';
 
 export async function fetchRevenue() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    console.log('Fetching revenue data...');
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const data = await sql<Revenue[]>`SELECT * FROM revenue`;
-
-    console.log('Data fetch completed after 3 seconds.');
+    const data = await sql<Revenue[]>`SELECT month, revenue FROM revenue`;
 
     return data;
   } catch (error) {
@@ -85,12 +75,16 @@ export async function fetchCardData() {
   }
 }
 
-const ITEMS_PER_PAGE = 6;
+export const ITEMS_PER_PAGE = 6;
+
 export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+  // A hand-edited `?page=-5` would otherwise reach Postgres as a negative
+  // OFFSET and raise a 500.
+  const page = Math.max(1, Math.floor(currentPage) || 1);
+  const offset = (page - 1) * ITEMS_PER_PAGE;
 
   try {
     const invoices = await sql<InvoicesTable[]>`

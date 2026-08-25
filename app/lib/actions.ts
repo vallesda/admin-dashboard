@@ -2,13 +2,12 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import postgres from 'postgres';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
- 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
- 
+import { sql } from '@/db';
+import { requireSession } from '@/app/lib/auth-guard';
+
 const FormSchema = z.object({
   id: z.string(),
   customerId: z.string({
@@ -35,8 +34,13 @@ export type State = {
   message?: string | null;
 };
  
-export async function createInvoice(prevState: State, formData: FormData) {
-  const validatedFields = CreateInvoice.parse({
+export async function createInvoice(
+  prevState: State,
+  formData: FormData,
+): Promise<State> {
+  await requireSession();
+
+  const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
@@ -50,9 +54,10 @@ export async function createInvoice(prevState: State, formData: FormData) {
   }
 
   const { customerId, amount, status } = validatedFields.data;
-  const amountInCents = amount * 100;
+  // Round explicitly: 19.99 * 100 is 1998.9999999999998 in floating point.
+  const amountInCents = Math.round(amount * 100);
   const date = new Date().toISOString().split('T')[0];
- 
+
   try {
     await sql`
       INSERT INTO invoices (customer_id, amount, status, date)
@@ -74,7 +79,9 @@ export async function updateInvoice(
   id: string,
   prevState: State,
   formData: FormData,
-) {
+): Promise<State> {
+  await requireSession();
+
   const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -89,8 +96,8 @@ export async function updateInvoice(
   }
  
   const { customerId, amount, status } = validatedFields.data;
-  const amountInCents = amount * 100;
- 
+  const amountInCents = Math.round(amount * 100);
+
   try {
     await sql`
       UPDATE invoices
@@ -98,6 +105,7 @@ export async function updateInvoice(
       WHERE id = ${id}
     `;
   } catch (error) {
+    console.error(error);
     return { message: 'Database Error: Failed to Update Invoice.' };
   }
  
@@ -106,6 +114,8 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(id: string) {
+  await requireSession();
+
   await sql`DELETE FROM invoices WHERE id = ${id}`;
   revalidatePath('/dashboard/invoices');
 }
