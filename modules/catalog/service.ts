@@ -26,6 +26,7 @@ import {
   isUniqueViolation,
 } from '@/lib/errors';
 import { initializeInventory } from '@/modules/inventory/service';
+import { deleteBlobQuietly } from '@/lib/blob';
 import {
   slugify,
   type CreateCategoryInput,
@@ -272,6 +273,15 @@ export async function updateProduct(
   if (await productSkuExists(input.sku, id)) throw SKU_TAKEN();
   if (await productSlugExists(input.slug, id)) throw PRODUCT_SLUG_TAKEN();
 
+  // Read the outgoing image before overwriting it, so a replaced or cleared
+  // photo can be removed from Blob afterwards. Without this every edit would
+  // leave a file nobody references and nobody pays attention to.
+  const [previous] = await db
+    .select({ imageUrl: products.imageUrl })
+    .from(products)
+    .where(eq(products.id, id))
+    .limit(1);
+
   try {
     const [row] = await db
       .update(products)
@@ -292,6 +302,12 @@ export async function updateProduct(
       .returning();
 
     if (!row) throw new NotFoundError('el producto', id);
+
+    // After the row is safely written, not before: losing the old file while
+    // the update fails would leave a product pointing at nothing.
+    if (previous?.imageUrl && previous.imageUrl !== row.imageUrl) {
+      await deleteBlobQuietly(previous.imageUrl);
+    }
 
     return row;
   } catch (error) {

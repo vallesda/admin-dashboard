@@ -326,18 +326,38 @@ No buscar 100% coverage. Buscar protección de dinero, stock y estados.
 
 ---
 
-## 12. Deuda técnica
+## 12. Deuda técnica y backlog
 
-| ID | Deuda | Impacto | Fase objetivo |
+Estado a cierre de F4.
+
+### Resuelta
+
+| ID | Deuda | Cerrada en |
+|---|---|---|
+| `DT-001` | `app/lib/actions.ts` global del tutorial | F4 — borrado; `authenticate` vive en `modules/identity` |
+| `DT-002` | `app/lib/data.ts` global | F4 — borrado; cada contexto tiene su `queries.ts` |
+| `DT-003` | `app/lib/definitions.ts` duplica formas manuales | F4 — borrado; los tipos salen del schema Drizzle |
+| `DT-004` | `invoices` domina navegación y dashboard | F4 — UI retirada, tabla dropeada |
+| `DT-005` | tabla `revenue` es dato derivable | F4 — dropeada; las métricas salen de Orders |
+| `DT-007` | roles no persistidos | F0 — `admin_users.role` + `requireRole` real |
+
+### Pendiente
+
+| ID | Deuda | Impacto | Prioridad |
 |---|---|---|---|
-| `DT-001` | `app/lib/actions.ts` global del tutorial | crecería como god-file | F0/F1 |
-| `DT-002` | `app/lib/data.ts` global | mezcla read models de dominios | F0/F1 |
-| `DT-003` | `app/lib/definitions.ts` duplica formas manuales | deriva respecto a Drizzle | F1 |
-| `DT-004` | `invoices` domina navegación y dashboard | lenguaje equivocado | F4 |
-| `DT-005` | tabla `revenue` es dato derivable | doble fuente de verdad | F4 |
-| `DT-006` | customers legacy tiene forma de demo | no representa comprador real | F3/F4 |
-| `DT-007` | roles todavía no persistidos en el modelo legacy | autorización incompleta | F0 |
-| `DT-008` | tests de dominio inexistentes | riesgo al agregar stock/orders | F2/F3 |
+| `DT-008` | **Sin tests ni CI** | nada impide una regresión; los bugs silenciosos de F3/F4 volverían sin aviso | 🔴 alta |
+| `DT-009` | **La UI no respeta roles** | un `staff` ve botones de `admin` que le devuelven error al pulsarlos | 🔴 alta |
+| `DT-006` | 5 clientes del tutorial sin usar, con `phone = 'SIN TELEFONO'` | ensucian la lista de clientes reales | 🟡 media |
+| `DT-010` | `RF-IAM-004`: el owner no puede dar de alta usuarios desde la UI | alta de personal solo por SQL | 🟡 media |
+| `DT-011` | `backfillInventory()` existe pero nada lo invoca | reparación masiva sin punto de entrada | 🟢 baja |
+| `DT-012` | Un pedido no se puede corregir tras crearlo | cambiar una cantidad obliga a cancelar y rehacer | 🟡 media |
+| `DT-013` | Navegación en `/dashboard`, no en `/admin` (`F1.07`) | desvío respecto a la estructura objetivo | 🟢 baja |
+
+**Notas de contexto**
+
+`DT-006` — uno de los seis clientes del tutorial (`Evil Rabbit`) **tiene un pedido real**, así que no se pueden borrar en bloque: hay que conservar los que estén referenciados.
+
+`DT-008` — los bugs que aparecieron operando (`itemCount` siempre 0, la categoría que se borraba al editar, el producto invisible sin inventario) **fallaban en silencio**. Ese es exactamente el tipo que un test de dominio atrapa y una revisión manual no.
 
 ---
 

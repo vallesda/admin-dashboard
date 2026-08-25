@@ -6,7 +6,6 @@ import {
   TagIcon,
   LinkIcon,
   CurrencyDollarIcon,
-  PhotoIcon,
   ScaleIcon,
   HashtagIcon,
 } from '@heroicons/react/24/outline';
@@ -17,6 +16,7 @@ import type { ProductRow } from '@/db/schema/catalog';
 import { createProduct, updateProduct } from '../actions';
 import { emptyProductFormState, type ProductFormState } from '../form-state';
 import type { CategoryOption } from '../queries';
+import ImagePicker from './image-picker';
 
 type Props = {
   categories: CategoryOption[];
@@ -330,21 +330,10 @@ export default function ProductForm({ categories, product }: Props) {
 
         {/* Imagen */}
         <div className="mb-4">
-          <label htmlFor="imageUrl" className="mb-2 block text-sm font-medium">
-            URL de la imagen <span className="text-gray-500">(opcional)</span>
-          </label>
-          <div className="relative">
-            <input
-              id="imageUrl"
-              name="imageUrl"
-              type="url"
-              defaultValue={product?.imageUrl ?? ''}
-              placeholder="https://…"
-              aria-describedby="imageUrl-error"
-              className={inputClass}
-            />
-            <PhotoIcon className={iconClass} />
-          </div>
+          <span className="mb-2 block text-sm font-medium">
+            Imagen <span className="text-gray-500">(opcional)</span>
+          </span>
+          <ImagePicker name="imageUrl" defaultValue={product?.imageUrl} />
           <FieldError id="imageUrl-error" messages={state.errors?.imageUrl} />
         </div>
 
