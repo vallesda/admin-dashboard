@@ -23,27 +23,16 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
+// `customers` now lives in its own bounded context (CLI); `invoices` still
+// references it until F4 retires the tutorial tables.
+import { customers } from './customers';
+
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   email: text('email').notNull().unique(),
   password: text('password').notNull(),
 });
-
-export const customers = pgTable(
-  'customers',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    name: varchar('name', { length: 255 }).notNull(),
-    email: varchar('email', { length: 255 }).notNull(),
-    imageUrl: varchar('image_url', { length: 255 }).notNull(),
-  },
-  (table) => [
-    // Both columns are ORDER BY / ILIKE targets in app/lib/data.ts.
-    index('customers_name_idx').on(table.name),
-    index('customers_email_idx').on(table.email),
-  ],
-);
 
 export const invoices = pgTable(
   'invoices',

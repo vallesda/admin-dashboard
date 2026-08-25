@@ -7,5 +7,7 @@
  */
 export * from './legacy';
 export * from './identity';
+export * from './customers';
+export * from './sales';
 export * from './catalog';
 export * from './inventory';

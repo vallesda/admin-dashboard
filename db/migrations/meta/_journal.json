@@ -29,6 +29,27 @@
       "when": 1787686931868,
       "tag": "0003_magical_exiles",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787688464978,
+      "tag": "0004_cuddly_marten_broadcloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787689940588,
+      "tag": "0005_loud_romulus",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787690074287,
+      "tag": "0006_sharp_genesis",
+      "breakpoints": true
     }
   ]
 }
