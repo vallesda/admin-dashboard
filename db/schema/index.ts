@@ -6,3 +6,4 @@
  * separate files re-exported from here.
  */
 export * from './legacy';
+export * from './catalog';
