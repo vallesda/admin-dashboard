@@ -19,3 +19,24 @@ export const emptyCategoryFormState: CategoryFormState = {
   errors: {},
   message: null,
 };
+
+export type ProductFormState = {
+  errors?: {
+    sku?: string[];
+    name?: string[];
+    slug?: string[];
+    description?: string[];
+    categoryId?: string[];
+    priceCents?: string[];
+    costCents?: string[];
+    imageUrl?: string[];
+    unitType?: string[];
+    netWeightGrams?: string[];
+  };
+  message?: string | null;
+};
+
+export const emptyProductFormState: ProductFormState = {
+  errors: {},
+  message: null,
+};

@@ -1,46 +1,62 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { authConfig } from './auth.config';
-import { z } from 'zod';
-import type { User } from '@/app/lib/definitions';
-import bcrypt from 'bcrypt';
-import { sql } from '@/db';
 
-async function getUser(email: string): Promise<User | undefined> {
-  try {
-    // Select explicitly rather than `SELECT *` — the row is handed to NextAuth
-    // below, and `*` would carry the bcrypt hash into the session object.
-    const user = await sql<User[]>`
-      SELECT id, name, email, password FROM users WHERE email = ${email}
-    `;
-    return user[0];
-  } catch (error) {
-    console.error('Failed to fetch user:', error);
-    throw new Error('Failed to fetch user.');
-  }
-}
- 
+import { authConfig } from './auth.config';
+import { credentialsSchema } from '@/modules/identity/validators';
+import {
+  verifyCredentials,
+  getSessionUserById,
+} from '@/modules/identity/service';
+
+// Session/JWT shapes are augmented in types/next-auth.d.ts.
+
 export const { auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  callbacks: {
+    ...authConfig.callbacks,
+
+    /**
+     * Copies id and role into the token at sign-in.
+     *
+     * On later requests the role is re-read from the database rather than
+     * trusted from the token: a JWT issued before a demotion would otherwise
+     * keep its old privileges until it expired, and revoking access has to take
+     * effect on the next request. It also drops the session when a user is
+     * deactivated (INV-USR-02).
+     */
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id as string;
+        token.role = user.role;
+        return token;
+      }
+
+      if (token.id) {
+        const current = await getSessionUserById(token.id);
+        if (!current) return null;
+        token.role = current.role;
+        token.name = current.name;
+        token.email = current.email;
+      }
+
+      return token;
+    },
+
+    async session({ session, token }) {
+      session.user.id = token.id;
+      session.user.role = token.role;
+      return session;
+    },
+  },
   providers: [
     Credentials({
       async authorize(credentials) {
-        const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
-          .safeParse(credentials);
- 
-        if (parsedCredentials.success) {
-          const { email, password } = parsedCredentials.data;
-          const user = await getUser(email);
-          if (!user) return null;
-          const passwordsMatch = await bcrypt.compare(password, user.password);
-          // Strip the hash before it reaches the JWT / session payload.
-          if (passwordsMatch) {
-            return { id: user.id, name: user.name, email: user.email };
-          }
-        }
- 
-        return null;
+        const parsed = credentialsSchema.safeParse(credentials);
+        if (!parsed.success) return null;
+
+        const { email, password } = parsed.data;
+
+        return await verifyCredentials(email, password);
       },
     }),
   ],

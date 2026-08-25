@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { sql } from '@/db';
-import { requireSession } from '@/app/lib/auth-guard';
+import { requireSession } from '@/lib/auth/guard';
 
 const FormSchema = z.object({
   id: z.string(),

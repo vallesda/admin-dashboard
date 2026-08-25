@@ -18,18 +18,24 @@ import {
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
-async function seedUsers() {
+async function seedAdminUsers() {
   const rows = await Promise.all(
     users.map(async (user) => ({
-      ...user,
-      password: await bcrypt.hash(user.password, 10),
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      password_hash: await bcrypt.hash(user.password, 10),
+      // The seeded account is the one that bootstraps the system, so it needs
+      // to be able to create the others.
+      role: 'owner',
+      active: true,
     })),
   );
 
   // One multi-row INSERT rather than one round-trip per user.
   await sql`
-    INSERT INTO users ${sql(rows, 'id', 'name', 'email', 'password')}
-    ON CONFLICT (id) DO NOTHING
+    INSERT INTO admin_users ${sql(rows, 'id', 'name', 'email', 'password_hash', 'role', 'active')}
+    ON CONFLICT (email) DO NOTHING
   `;
 
   return rows.length;
@@ -83,7 +89,7 @@ async function main() {
   // A real transaction this time: the original passed a callback that ignored
   // its scoped `sql` argument, so nothing actually ran transactionally.
   await sql.begin(async () => {
-    console.log(`  users:     ${await seedUsers()}`);
+    console.log(`  admin_users: ${await seedAdminUsers()}`);
     console.log(`  customers: ${await seedCustomers()}`);
     console.log(`  invoices:  ${await seedInvoices()}`);
     console.log(`  revenue:   ${await seedRevenue()}`);

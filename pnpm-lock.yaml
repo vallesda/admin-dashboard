@@ -60,6 +60,9 @@ importers:
         specifier: ^3.25.17
         version: 3.25.76
     devDependencies:
+      '@auth/core':
+        specifier: 0.41.3
+        version: 0.41.3
       '@types/bcrypt':
         specifier: ^5.0.2
         version: 5.0.2
