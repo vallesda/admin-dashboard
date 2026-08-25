@@ -1,119 +1,164 @@
-# Documentación del proyecto — Pescadería en línea
+# Documentación del proyecto — Ecommerce de pescadería
 
-Panel de administración y tienda para venta de **pescado y marisco fresco** con
-entrega local, en **México**, en **español**.
+Panel de administración primero; tienda pública después. El objetivo es construir un **MVP vendible, desplegable y extensible** sin convertir el primer release en una plataforma genérica de ecommerce.
+
+La arquitectura sigue un enfoque **Domain-Driven Design pragmático** sobre un **modular monolith** en Next.js. DDD aquí significa: vocabulario explícito, bounded contexts claros, reglas de negocio cerca del dominio, transacciones bien definidas y dependencias controladas. **No** significa microservicios ni capas ceremoniosas.
+
+## Principios del proyecto
+
+1. **Deploy primero.** Cada fase termina en `typecheck`, `lint`, `build` y una versión desplegable.
+2. **Admin primero.** Catálogo e inventario deben funcionar antes del storefront.
+3. **Un SKU = un Product en el MVP.** No hay `ProductVariant`; “Salmón 500 g” y “Salmón 1 kg” son productos vendibles distintos.
+4. **Peso y precio fijos.** El MVP vende piezas o paquetes estandarizados. Catch-weight queda fuera.
+5. **Dinero en centavos enteros.** Nunca `float`.
+6. **Inventario auditable.** Se mantiene una proyección rápida (`inventory`) y un historial de cambios (`inventory_movements`).
+7. **Pedidos históricos son snapshots.** Cambiar un producto no reescribe una venta pasada.
+8. **Estado operativo y estado de pago son independientes.**
+9. **Server Actions son adaptadores, no el dominio.** Autorizan, validan y delegan a servicios.
+10. **No borrar historia de negocio.** Productos vendidos se archivan; pedidos no se eliminan.
+11. **Storefront y admin comparten el mismo dominio.** No son dos backends.
+12. **Agregar complejidad solo cuando aparezca una necesidad real.**
+
+---
 
 ## Los documentos
 
 | Archivo | Qué contiene | Cambia cuando… |
 |---|---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | El **presente**: lo que ya está construido y funcionando | se completa una fase |
-| [GLOSARIO.md](GLOSARIO.md) | Vocabulario normativo: término ↔ identificador en código | aparece un concepto nuevo del dominio |
-| [SRS.md](SRS.md) | Requisitos `RF-*`, `RNF-*` y reglas de negocio `RN-*` | cambia el alcance o una regla del negocio |
-| [MODELO-DATOS.md](MODELO-DATOS.md) | Entidades, columnas, FK, índices, invariantes y la máquina de estados | cambia el esquema |
-| [FLUJOS.md](FLUJOS.md) | Flujos del MVP: actor, disparador, pasos, errores | cambia una operación |
-| [HISTORIAS.md](HISTORIAS.md) | Backlog `HU-*` con criterios de aceptación | se planifica trabajo |
-| [PLAN.md](PLAN.md) | Roadmap, features, deuda técnica y matriz de trazabilidad | cada semana |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Arquitectura actual, arquitectura objetivo y límites de los bounded contexts | cambia una decisión estructural |
+| [GLOSARIO.md](GLOSARIO.md) | Lenguaje ubicuo: términos del negocio ↔ identificadores de código | aparece o cambia un concepto |
+| [SRS.md](SRS.md) | Alcance, requisitos funcionales/no funcionales y reglas de negocio | cambia el producto o una regla |
+| [MODELO-DATOS.md](MODELO-DATOS.md) | Agregados, entidades, columnas, relaciones, invariantes y estados | cambia el modelo persistente |
+| [FLUJOS.md](FLUJOS.md) | Casos de uso end-to-end y fronteras transaccionales | cambia una operación |
+| [HISTORIAS.md](HISTORIAS.md) | Backlog priorizado con criterios de aceptación | se planifica implementación |
+| [PLAN.md](PLAN.md) | Roadmap de fases/PRs, Definition of Done, deuda y trazabilidad | cambia el orden de construcción |
 
-**Por qué siete archivos y no uno.** Se separan por **ritmo de cambio**, no por
-temática. El modelo de datos cambia con cada migración, el alcance con cada
-conversación de negocio, el roadmap cada semana. En un solo archivo, el
-historial de git se vuelve ilegible y revisar un cambio de alcance obliga a leer
-un diff de esquema.
+La separación es por **ritmo de cambio**. El SRS dice *qué debe hacer*; el modelo dice *qué debe ser verdad en datos*; los flujos dicen *cómo ocurre*; las historias dicen *qué implementamos ahora*.
+
+---
+
+## Bounded contexts
+
+| Código | Bounded context | Responsabilidad | MVP admin |
+|---|---|---|:--:|
+| `IAM` | Identity & Access | usuarios administrativos, sesión y roles | ✅ |
+| `CAT` | Catalog | categorías y productos vendibles | ✅ |
+| `INV` | Inventory | existencias, reservas y movimientos | ✅ |
+| `CLI` | Customers | identidad comercial/contacto del comprador | ✅ al construir pedidos |
+| `SAL` | Sales | pedidos, líneas, estados, totales | ✅ |
+| `ADM` | Admin Read Models | métricas y vistas operativas; no posee datos de dominio | ✅ |
+| `TDA` | Storefront | superficie pública que orquesta CAT/INV/SAL | después del admin |
+| `PAG` | Payments | integración con proveedor de pago | después del storefront |
+| `DEL` | Delivery | logística/ventanas/rutas | extensión futura |
+
+`ADM` y `TDA` son **capas de aplicación/read-models**, no dueños de las entidades centrales. No deben duplicar reglas de negocio.
+
+### Dependencias permitidas
+
+```text
+IAM
+
+CAT ───────────────┐
+                   │
+INV ───── depends on CAT
+                   │
+CLI ───────────────┤
+                   ▼
+                 SAL
+                  │
+          ┌───────┴────────┐
+          ▼                ▼
+         ADM              TDA
+                           │
+                           ▼
+                          PAG
+
+DEL  ← extensión futura de SAL/TDA
+```
+
+Regla: una dependencia apunta hacia un contexto que posee el dato; no se crean ciclos entre módulos.
+
+---
 
 ## Convención de identificadores
 
-Todo elemento trazable tiene un ID estable y *greppable*.
-
-| Prefijo | Qué es | Se **define** en |
+| Prefijo | Qué es | Se define en |
 |---|---|---|
-| `RF-<MOD>-<NNN>` | Requisito funcional | SRS.md |
+| `RF-<CTX>-<NNN>` | Requisito funcional | SRS.md |
 | `RNF-<CAT>-<NNN>` | Requisito no funcional | SRS.md |
 | `RN-<NNN>` | Regla de negocio transversal | SRS.md |
-| `E-<Entidad>` | Entidad de datos | MODELO-DATOS.md |
-| `INV-<ENT>-<NN>` | Invariante de datos | MODELO-DATOS.md |
-| `ST-PED-<nombre>` | Estado del pedido | MODELO-DATOS.md |
-| `TR-PED-<NN>` | Transición legal | MODELO-DATOS.md |
-| `FLU-<MOD>-<NN>` | Flujo | FLUJOS.md |
-| `HU-<MOD>-<NNN>` | Historia de usuario | HISTORIAS.md |
-| `CA-<HU>-<N>` | Criterio de aceptación | HISTORIAS.md |
-| `F<fase>.<NN>` | Feature del roadmap | PLAN.md |
+| `E-<Nombre>` | Entidad/agregado persistente | MODELO-DATOS.md |
+| `INV-<ENT>-<NN>` | Invariante | MODELO-DATOS.md |
+| `ST-ORD-<estado>` | Estado de pedido | MODELO-DATOS.md |
+| `TR-ORD-<NN>` | Transición legal de pedido | MODELO-DATOS.md |
+| `FLU-<CTX>-<NN>` | Flujo/caso de uso | FLUJOS.md |
+| `HU-<CTX>-<NNN>` | Historia de usuario | HISTORIAS.md |
+| `F<fase>.<NN>` | Feature de roadmap | PLAN.md |
 | `DT-<NNN>` | Deuda técnica | PLAN.md |
 
-**Módulos (`MOD`)** — cerrados: `CAT` catálogo · `INV` inventario y lotes ·
-`PED` pedidos · `ENT` entrega · `CLI` clientes · `PAG` pagos · `FIS` fiscal ·
-`ADM` administración · `TDA` tienda · `REP` reportes.
+### Categorías RNF
 
-**Categorías de RNF (`CAT`)** — elegidas por lo que puede matar este negocio:
-`FRIO` cadena de frío · `TIEMPO` corte y concurrencia · `CAD` caducidad y FEFO ·
-`REND` rendimiento · `A11Y` accesibilidad · `SEG` seguridad · `DAT` integridad y
-respaldo · `DISPO` disponibilidad · `OBS` observabilidad.
+`SEG` seguridad · `DAT` integridad/transacciones · `REND` rendimiento · `A11Y` accesibilidad · `DEV` calidad de desarrollo/deploy · `OBS` observabilidad.
 
-### Reglas de gobierno
+---
 
-1. **Numeración perpetua.** Los números se asignan por orden de creación. Nunca
-   se reordenan ni se reutilizan. Un requisito muerto se marca `OBSOLETO` con su
-   motivo y su fila se queda. Renumerar rompe todo enlace externo: commits, PRs,
-   comentarios en código.
-2. **Cada ID se define en exactamente un archivo.** En los demás solo se
-   referencia. Así `grep -rn "RF-PED-004" DOCS/` es un informe de impacto completo.
-3. **Los `RF` son la columna vertebral.** El modelo, los flujos, las historias y
-   las features apuntan *hacia arriba*. Un `RF` nunca lista sus historias en
-   línea: se desincronizaría. La vista inversa se genera en un solo sitio, la
-   matriz de `PLAN.md`.
-4. **Los `RNF` se enganchan a la Definición de Hecho, no a features.** Un RNF no
-   se "implementa una vez": se verifica en cada fase.
-5. **La deuda técnica entra en el mismo grafo.** `DT-001..009` tienen fase
-   asignada. Deja de ser una lista de lamentos y pasa a ser trabajo planificado.
+## Lenguaje del código
 
-### Anclaje al código
+**Decisión:** interfaz y documentación en español; identificadores de código y base de datos en **inglés**.
 
-- Toda migración y toda server action nueva citan en su cabecera los IDs que
-  realizan: `// RF-INV-003, INV-MOV-01`.
-- Todo mensaje de commit cita la feature: `F2.03: recepción de mercancía con lote y caducidad`.
+Ejemplos:
 
-Con eso, `git log --grep=RF-INV-003` contesta *"quién construyó esto y cuándo"* —
-la pregunta que un SRS sin anclaje al código nunca puede responder.
+- Producto → `Product`, tabla `products`
+- Pedido → `Order`, tabla `orders`
+- Movimiento de inventario → `InventoryMovement`, tabla `inventory_movements`
 
-## Verificación de la trazabilidad
+Motivo: el repo, Next.js, Drizzle y la base heredada ya están en inglés; mantener el dominio técnico en inglés reduce traducciones entre capas y hace el código más estándar. Los conceptos mexicanos específicos que aparezcan después —por ejemplo CFDI— se modelarán explícitamente en su contexto de integración, sin forzar el MVP a resolverlos ahora.
 
-Un SRS sin estas comprobaciones es decoración. Las cuatro se ejecutan con `grep`:
+---
 
-Ejecutar desde `DOCS/`.
+## Reglas de gobierno
 
-```bash
-# 1. Huérfanos hacia arriba — ninguna historia sin requisito citado.
-#    Debe imprimir "ninguna".
-python3 -c "
-import re
-b=re.split(r'\n(?=### HU-)',open('HISTORIAS.md').read())
-o=[re.match(r'### (HU-[A-Z]+-\d{3})',x).group(1) for x in b
-   if re.match(r'### HU-',x) and not re.search(r'(RF|RNF|RN)-[A-Z0-9]',x)]
-print('huérfanas:', o or 'ninguna')"
+1. Un concepto de negocio tiene **un nombre canónico** en [GLOSARIO.md](GLOSARIO.md).
+2. Una regla que cambia dinero, stock o estado vive en un `service.ts` del contexto propietario, no en un componente React.
+3. Toda mutación:
+   - verifica sesión/rol en servidor;
+   - valida input;
+   - ejecuta reglas del dominio;
+   - usa transacción si toca más de un agregado/proyección;
+   - revalida solo las rutas afectadas.
+4. Las queries pueden cruzar contexts para read-models del admin; las mutaciones no deben escribir datos ajenos sin pasar por el servicio propietario.
+5. Drizzle schema es la fuente de verdad de tipos persistentes. Evitar un `definitions.ts` global duplicando entidades.
+6. Un requisito nuevo entra al SRS antes de provocar nuevas tablas.
+7. Una feature terminada se refleja en `ARCHITECTURE.md`; `PLAN.md` describe lo que falta.
+8. La deuda técnica debe tener `DT-*`, impacto y fase objetivo.
 
-# 2. Referencias rotas — todo ID citado existe en su archivo de definición.
-#    Cada comando debe imprimir vacío.
-comm -13 <(grep -oE 'RF-[A-Z]+-[0-9]{3}'  SRS.md          | sort -u) <(grep -ohE 'RF-[A-Z]+-[0-9]{3}'  *.md | sort -u)
-comm -13 <(grep -oE 'RNF-[A-Z]+-[0-9]{3}' SRS.md          | sort -u) <(grep -ohE 'RNF-[A-Z]+-[0-9]{3}' *.md | sort -u)
-comm -13 <(grep -oE 'INV-[A-Z]+-[0-9]{2}' MODELO-DATOS.md | sort -u) <(grep -ohE 'INV-[A-Z]+-[0-9]{2}' *.md | sort -u)
-comm -13 <(grep -oE 'TR-PED-[0-9]{2}'     MODELO-DATOS.md | sort -u) <(grep -ohE 'TR-PED-[0-9]{2}'     *.md | sort -u)
+---
 
-# 3. Cobertura de requisitos — qué RF aún no tiene historia.
-#    NO debe estar vacío hoy: ver la nota de cobertura en HISTORIAS.md.
-comm -23 \
-  <(grep -oE 'RF-[A-Z]+-[0-9]{3}' SRS.md       | sort -u) \
-  <(grep -oE 'RF-[A-Z]+-[0-9]{3}' HISTORIAS.md | sort -u)
+## Qué deliberadamente NO forma parte del MVP
 
-# 4. Inventario de IDs definidos
-for f in RF RNF RN INV TR FLU; do printf "%-4s " $f; done; echo
-```
+- `ProductVariant`
+- lotes, FEFO y caducidad por lote
+- proveedores y órdenes de compra
+- múltiples almacenes
+- catch-weight / peso variable
+- customer accounts
+- direcciones guardadas
+- descuentos/cupones
+- suscripciones
+- motor fiscal/CFDI
+- múltiples monedas
+- marketplace/multi-tenant
+- event bus / microservicios
+- Elasticsearch/Redis
+- sistema completo de devoluciones
+- logística con rutas y ventanas
 
-> La comprobación 3 se hace **contra `HISTORIAS.md`, no contra `PLAN.md`**: la
-> matriz de trazabilidad usa rangos (`RF-CAT-001…015`) para ser legible, así que
-> compararla por ID suelto daría falsos positivos en todos los requisitos
-> intermedios.
+Ninguno está prohibido para siempre. Solo requiere evidencia de negocio antes de entrar al núcleo.
 
-## Estado
+---
 
-Fase 0 completada (ver [ARCHITECTURE.md](ARCHITECTURE.md) §4). El desarrollo del
-ecommerce arranca en la **Fase 1**; ver [PLAN.md](PLAN.md).
+## Estado de partida
+
+El repo parte del dashboard de Next.js Learn, ya modernizado con Next.js 16, React 19, Auth.js, PostgreSQL, Drizzle, Zod y Server Actions. Las tablas `users`, `customers`, `invoices` y `revenue` son **legacy del tutorial** y sirven como referencia de UI/CRUD mientras aterriza el dominio ecommerce.
+
+El siguiente trabajo es **Fase 1: foundation + catálogo**, definido en [PLAN.md](PLAN.md).

@@ -1,307 +1,420 @@
-# Flujos del MVP
+# Flujos
 
-Cada flujo con actor, disparador, camino normal, caminos alternos y errores.
-Los requisitos que realiza se citan entre paréntesis.
-
-Índice de IDs en [README.md](README.md).
-
----
-
-## 1. Tienda y cliente
-
-### `FLU-TDA-01` — Comprobar cobertura por código postal
-**Actor:** Visitante · **Disparador:** entra al sitio o teclea su CP
-*Realiza:* `RF-ENT-003`, `RF-TDA-001`
-
-1. El sitio pide el CP antes de que el visitante invierta tiempo navegando.
-2. Se busca el CP en `zonas_cp`.
-3. **Cubierto:** se guarda la zona en la sesión; se muestran tarifa, mínimo de pedido y próximas ventanas.
-4. **No cubierto:** "Aún no llegamos a tu zona", con el CP repetido para que vea que se leyó bien, y captura opcional de correo para avisar.
-
-> Va primero deliberadamente. En entrega local, dejar que alguien llene un
-> carrito y descubra en el checkout que no hay cobertura es la peor experiencia
-> posible y la principal fuente de abandono.
-
-**Errores:** CP con formato inválido (`INV-DIR-01`) → mensaje inmediato sin recargar.
+Cada flujo declara actor, disparador, reglas y frontera transaccional.  
+Requisitos: [SRS.md](SRS.md).  
+Modelo: [MODELO-DATOS.md](MODELO-DATOS.md).
 
 ---
 
-### `FLU-TDA-02` — Explorar catálogo y buscar
-**Actor:** Visitante · **Disparador:** navegación o búsqueda
-*Realiza:* `RF-CAT-009`, `RF-TDA-002`
+## 1. Identity & Access
 
-1. Listado por categoría, paginado.
-2. La búsqueda usa el **patrón ya existente**: `useDebouncedCallback` de 300 ms, reset de `page=1`, estado en la URL (`app/ui/search.tsx`). **Reutilizar, no reimplementar** (`RNF-REND-004`).
-3. Coincidencia parcial sobre nombre y especie vía índice trigram (`RNF-REND-002`).
-4. Los productos sin existencias se muestran marcados como agotados, no se ocultan: enseñan que el catálogo es real y varía por temporada.
+### `FLU-IAM-01` — Login administrativo
 
----
+**Actor:** staff/admin/owner  
+**Disparador:** envía email/password  
+**Realiza:** `RF-IAM-001`, `RNF-SEG-001`, `RNF-SEG-002`
 
-### `FLU-TDA-03` — Ver ficha de producto
-**Actor:** Visitante · **Disparador:** clic en una tarjeta
-*Realiza:* `RF-CAT-003`, `RF-CAT-006`, `RF-TDA-003`
+1. Zod valida formato.
+2. Se busca `AdminUser` por email.
+3. `active=false` → rechazo.
+4. bcrypt compara password.
+5. Session/JWT recibe únicamente `id`, `name`, `email`, `role`.
+6. Se redirige a `/admin`.
 
-Muestra especie, nombre científico, origen, zona FAO, método de producción y arte
-de pesca (`RF-CAT-003`); presentación, estado de conservación, peso neto; precio
-del paquete **y precio por kilogramo** (`RF-CAT-006`); imágenes con texto
-alternativo; disponibilidad y próxima ventana de entrega.
-
----
-
-### `FLU-TDA-04` — Añadir al carrito
-**Actor:** Visitante · **Disparador:** botón "Añadir"
-*Realiza:* `RF-TDA-004`
-
-1. Se valida disponibilidad **en el servidor** en el momento de añadir.
-2. El carrito **no reserva existencias**: la reserva ocurre en el checkout (`TR-PED-01`).
-
-> Reservar al añadir al carrito bloquearía producto fresco durante horas por
-> carritos abandonados. En perecedero, eso es merma directa.
-
-**Errores:** sin existencias suficientes → mensaje con la cantidad realmente disponible.
+**Errores**
+- credenciales inválidas → mensaje genérico;
+- usuario inactivo → no sesión;
+- hash nunca se serializa.
 
 ---
 
-### `FLU-TDA-05` — Checkout
-**Actor:** Cliente · **Disparador:** "Finalizar compra"
-*Realiza:* `RF-PED-001`, `RF-PED-002`, `RF-ENT-006`, `RF-ENT-007`, `RF-TDA-005`, `RF-TDA-006`
+## 2. Catalog
 
-1. **Dirección** — elegir o crear; se valida que el CP esté cubierto (`RF-CLI-005`).
-2. **Slot** — solo se ofrecen slots abiertos, con corte no vencido y capacidad libre (`RF-ENT-006`).
-3. **Resumen** — subtotal, impuestos calculados por la clase de cada línea (`RN-003`), envío y mínimo de pedido de la zona.
-4. **Pago** — método y confirmación.
-5. **Transacción única** (`RNF-TIEMPO-003`): bloqueo del slot, incremento de `reservados`, movimientos de `reserva` en el ledger, creación del pedido y de sus líneas con **snapshot completo**, y `TR-PED-01`.
+### `FLU-CAT-01` — Crear Product
 
-**Caminos alternos**
-- Slot ocupado entre el paso 2 y el 5 → error accionable y vuelta a elegir slot. Nunca sobreventa (`INV-SLOT-01`).
-- Corte vencido durante el proceso → el slot deja de ser válido; se revalida **en servidor** (`RNF-TIEMPO-002`).
-- Existencias insuficientes → se indica la línea concreta.
-- Por debajo del mínimo de pedido → se bloquea con el importe que falta.
+**Actor:** admin/owner  
+**Disparador:** “Nuevo producto”  
+**Realiza:** `RF-CAT-002`, `RF-CAT-003`, `RF-CAT-008`, `RN-001`, `RN-002`
 
----
+1. Form: SKU, nombre, slug, descripción, categoría, precio, costo opcional, unidad/peso, imagen.
+2. `createProductAction` verifica `requireRole('admin')`.
+3. Zod valida input.
+4. Catalog service convierte precio de UI a centavos de forma segura.
+5. DB valida SKU/slug únicos y precio > 0.
+6. Se crea Product como `draft`.
+7. Se crea/asegura su fila Inventory en cero.
+8. `revalidatePath('/admin/products')`.
+9. Redirect al detalle/lista.
 
-### `FLU-TDA-06` — Seguimiento del pedido
-**Actor:** Cliente · **Disparador:** enlace del correo de confirmación
-*Realiza:* `RF-PED-016`, `RF-TDA-007`
+**Errores**
+- SKU/slug duplicado;
+- precio <= 0;
+- categoría inexistente.
 
-Línea de tiempo derivada de `pedido_eventos` — la misma fuente que la auditoría
-interna, filtrando los metadatos que no son del cliente.
+### `FLU-CAT-02` — Editar Product
 
----
+**Actor:** admin/owner  
+**Realiza:** `RF-CAT-002`, `RF-CAT-003`
 
-### `FLU-TDA-07` — Cancelación por el cliente
-**Actor:** Cliente · **Disparador:** "Cancelar pedido"
-*Realiza:* `RF-PED-011`, `RN-007`
+Se pueden cambiar datos actuales del catálogo. Nada toca OrderItems históricos.
 
-1. Solo disponible **antes de la hora de corte** del slot.
-2. `TR-PED-03` o `TR-PED-04` según haya pago.
-3. Libera plaza del slot y existencias; si estaba pagado, reembolso total.
+### `FLU-CAT-03` — Publicar/archivar
 
-**Errores:** pasado el corte, el botón desaparece y la acción se rechaza también
-en el servidor, con explicación de por qué (el producto ya está comprometido).
+**Actor:** admin/owner  
+**Realiza:** `RF-CAT-005`, `RF-CAT-006`, `RF-CAT-007`, `RN-007`
 
----
+- `draft → active`: producto vendible.
+- `active/draft → archived`: deja de venderse.
+- nunca `DELETE` de un Product con historia.
 
-### `FLU-CLI-01` — Alta e inicio de sesión
-**Actor:** Visitante · **Disparador:** checkout o "Mi cuenta" · *Realiza:* `RF-CLI-001`
+### `FLU-CAT-04` — Buscar y paginar
 
-### `FLU-CLI-02` — Gestión de direcciones
-**Actor:** Cliente · **Disparador:** "Mis direcciones" · *Realiza:* `RF-CLI-002`, `RF-CLI-003`
+**Actor:** staff/admin/owner  
+**Realiza:** `RF-CAT-004`, `RNF-REND-003`
 
-Con **referencias visuales destacadas** en el formulario, no escondidas en un
-campo opcional al final.
-
----
-
-### `FLU-FIS-01` — Solicitar factura
-**Actor:** Cliente · **Disparador:** marca "Requiero factura" en el checkout
-*Realiza:* `RF-FIS-001`
-
-Captura de RFC, razón social, régimen fiscal y CP fiscal — **los cuatro juntos**
-(`INV-FIS-02`). Si no los proporciona, el pedido continúa y se timbrará a público
-en general (`RN-008`). **La venta nunca se bloquea.**
+1. `Search` actualiza `?query=`.
+2. Debounce y reset de `page=1`.
+3. Server Component recibe `searchParams`.
+4. `catalog/queries.ts` consulta página + total.
+5. URL es compartible/reproducible.
 
 ---
 
-### `FLU-PAG-01` — Confirmación asíncrona de pago
-**Actor:** Sistema (webhook) · **Disparador:** notificación del proveedor
-*Realiza:* `RF-PAG-004`, `RNF-SEG-004`
+## 3. Inventory
 
-1. Verificación de firma.
-2. Idempotencia por `UNIQUE (proveedor, referencia_externa)`.
-3. `TR-PED-02` si es aprobación; `TR-PED-03` si es rechazo.
-4. Correo al cliente.
+### `FLU-INV-01` — Recibir stock
 
-> Con SPEI y OXXO esto ocurre **horas** después del checkout. Es la razón por la
-> que la máquina del dinero es independiente de la del cumplimiento (§4.1 del
-> modelo de datos).
+**Actor:** staff/admin/owner  
+**Disparador:** llega producto o se registra entrada  
+**Realiza:** `RF-INV-003`, `RN-009`
 
-### `FLU-PAG-02` — Vencimiento de referencia sin pago
-**Actor:** Sistema (job) · **Disparador:** se cumple el plazo o llega el corte
-*Realiza:* `RF-PAG-005` · Job idempotente (`RNF-TIEMPO-004`).
+Transacción:
 
----
+```text
+BEGIN
+  lock inventory row
+  inventory.onHand += quantity
+  insert movement(receive, +quantity, 0)
+COMMIT
+```
 
-## 2. Catálogo
+**Errores**
+- cantidad <= 0;
+- Product inexistente/archivado si negocio decide bloquear recepción;
+- fallo de DB → no existe movimiento sin proyección ni viceversa.
 
-### `FLU-CAT-01` — Alta y edición de producto y variantes
-**Actor:** admin · **Disparador:** producto nuevo o cambio de precio
-*Realiza:* `RF-CAT-002` … `RF-CAT-008`, `RF-CAT-012`, `RF-CAT-014`
+### `FLU-INV-02` — Ajuste manual
 
-1. Identidad: nombre, descripción, categoría, slug.
-2. Etiquetado de pesca: especie, científico, origen, zona FAO, método, arte.
-3. Variantes: SKU, presentación, conservación.
-4. Unidad y peso: `unidad_venta`, `peso_neto_g`, `precio_por_kg`, tolerancia.
-5. Frío: rango de temperatura y vida útil.
-6. **Fiscal: clase de impuesto (obligatoria, sin valor por defecto), clave ProdServ, clave de unidad.**
-7. Imágenes con texto alternativo obligatorio.
+**Actor:** admin/owner  
+**Realiza:** `RF-INV-004`, `RN-009`
 
-**Errores:** guardar sin clase de impuesto → error visible por campo
-(`INV-VAR-02`); sin `alt` → rechazo (`INV-IMG-01`).
+1. Se captura nueva cantidad o delta y **nota obligatoria**.
+2. Service calcula el cambio.
+3. Si el resultado produce `onHand < reserved`, se rechaza.
+4. Se actualiza Inventory.
+5. Se inserta `adjustment`.
 
-### `FLU-CAT-02` — Publicar, despublicar y ordenar
-**Actor:** admin · **Disparador:** temporada, veda o falta de suministro
-*Realiza:* `RF-CAT-010`. Nunca borra: soft delete, para no romper pedidos históricos.
+Nunca se edita un movimiento anterior para “corregirlo”.
 
----
+### `FLU-INV-03` — Consultar inventario
 
-## 3. Inventario
+**Actor:** staff/admin/owner  
+**Realiza:** `RF-INV-001`, `RF-INV-002`, `RF-INV-008`
 
-### `FLU-INV-01` — Recepción de mercancía
-**Actor:** staff · **Disparador:** llega el proveedor
-*Realiza:* `RF-INV-001`, `RF-INV-003`
+Lista:
 
-1. Selección de variante y proveedor.
-2. Código de lote, fecha de captura, **caducidad**, **temperatura de recepción**, cantidad y coste unitario.
-3. Se crea el lote y un movimiento `recepcion` (`INV-MOV-03`).
-4. Se actualiza la proyección de existencias.
+```text
+Product | SKU | onHand | reserved | available | threshold | status
+```
 
-**Errores:** temperatura fuera de rango → exige motivo de excepción registrado
-(`RNF-FRIO-001`); caducidad anterior a la recepción → rechazo (`INV-LOT-03`).
+Filtro de bajo stock:
 
-### `FLU-INV-02` — Registro de merma
-**Actor:** staff · **Disparador:** caducidad, rotura de frío, daño, descarte
-*Realiza:* `RF-INV-004`, `RN-006`
-
-Motivo **obligatorio** del catálogo cerrado (`INV-MOV-02`). Una merma por rotura
-de cadena de frío genera alerta en el panel del día (`RNF-FRIO-003`).
-
-### `FLU-INV-03` — Ajuste por conteo físico
-**Actor:** admin · **Disparador:** conteo de cierre · *Realiza:* `RF-INV-005`
-Genera un movimiento `ajuste` compensatorio. **Nunca se edita el ledger** (`INV-MOV-01`).
-
-### `FLU-INV-04` — Retención y retirada sanitaria de un lote
-**Actor:** owner · **Disparador:** alerta del proveedor o de la autoridad
-*Realiza:* `RF-INV-010`, `RF-INV-011`, `RNF-CAD-004`
-
-1. El lote pasa a `retenido`: deja de ser asignable de inmediato (`INV-LOT-04`).
-2. Barrido `pedido_item_lotes → pedido_items → pedidos → clientes` por el índice `(lote_id)`.
-3. Lista de clientes afectados con teléfono y pedido, separando entregados de no entregados.
-4. Los no entregados se cancelan con merma; a los entregados se les contacta.
-5. El lote pasa a `retirado` y sus existencias se mermanan con motivo trazable.
-
-> **Este es el flujo que justifica toda la arquitectura de lotes.** Si el sistema
-> no puede ejecutarlo en minutos, no es apto para producto fresco de origen
-> animal. El resto del diseño de inventario existe para que este flujo sea
-> posible.
+```text
+available <= lowStockThreshold
+```
 
 ---
 
-## 4. Pedidos y operación
+## 4. Customers
 
-### `FLU-PED-01` — Cierre de corte y hoja de surtido
-**Actor:** Sistema + staff · **Disparador:** se alcanza la hora de corte
-*Realiza:* `RF-ENT-008`, `RF-ENT-011`, `RF-PED-007`
+### `FLU-CLI-01` — Crear/seleccionar Customer
 
-1. El job cierra el slot (`INV-SLOT-02`).
-2. Los pedidos `pagado` pasan a `en_preparacion` (`TR-PED-05`).
-3. Los `pendiente_pago` se cancelan y liberan (`TR-PED-03`).
-4. Se genera la hoja de surtido agrupada por variante y ordenada por ruta.
+**Actor:** staff/admin/owner  
+**Realiza:** `RF-CLI-001`, `RF-CLI-002`
 
-Idempotente: ejecutarlo dos veces no duplica nada (`RNF-TIEMPO-004`).
+Durante pedido manual:
 
-### `FLU-PED-02` — Surtido con asignación FEFO
-**Actor:** staff · **Disparador:** abre el pedido en preparación
-*Realiza:* `RF-INV-006`, `RF-PED-007`, `RN-004`
-
-1. Por cada línea, se toman lotes por **FEFO estricto** vía el índice parcial (`RNF-CAD-001`).
-2. Se excluyen retenidos, retirados y los que caducan antes de la entrega (`RNF-CAD-002`).
-3. Se escribe `pedido_item_lotes` y movimientos `venta` (`INV-MOV-04`).
-4. La reserva se convierte en venta — **única transición que lo hace** (`TR-PED-05`).
-5. Empaque y `TR-PED-06` con temperatura de cámara.
-
-**Errores:** faltante real → `TR-PED-07` con reembolso y merma o devolución a stock según si se manipuló.
-
-### `FLU-PED-03` — Reprogramación tras no-entrega
-**Actor:** admin · **Disparador:** decisión sobre un pedido no entregado
-*Realiza:* `RF-ENT-014`, `TR-PED-12`
-
-Solo si el producto se mantuvo en frío y `ahora + tránsito < caducidad`. Libera el
-slot viejo y ocupa uno nuevo. Si no es reprogramable → `TR-PED-13`: merma con
-motivo `no_entregado` y reembolso.
-
-### `FLU-PED-04` — Cancelación administrativa
-**Actor:** admin · **Disparador:** faltante, lote retenido, calidad
-*Realiza:* `RF-PED-012` · Reembolso + merma o liberación según el estado del producto.
-
-### `FLU-PED-05` — Pedido telefónico
-**Actor:** staff · **Disparador:** llamada del cliente
-*Realiza:* `RF-PED-013`
-
-Mismo motor que el checkout público: misma reserva atómica, mismos snapshots,
-misma máquina de estados. **Canal distinto, reglas idénticas.**
+1. buscar por nombre/teléfono/email;
+2. seleccionar existente o crear uno;
+3. Customer solo necesita nombre + teléfono;
+4. no se crea password ni cuenta.
 
 ---
 
-## 5. Entrega
+## 5. Sales
 
-### `FLU-ENT-01` — Salida a ruta
-**Actor:** staff / repartidor · **Disparador:** carga del vehículo
-*Realiza:* `RF-ENT-012`, `RNF-FRIO-001`
+### `FLU-SAL-01` — Crear pedido manual
 
-Registro de temperatura. **Si está fuera de rango, `TR-PED-08` se bloquea** y
-exige motivo de excepción, que queda en el evento.
+**Actor:** staff/admin/owner  
+**Disparador:** venta por teléfono, WhatsApp o mostrador  
+**Realiza:** `RF-SAL-001`…`RF-SAL-006`, `RN-003`…`RN-005`, `RN-008`
 
-### `FLU-ENT-02` — Entrega o no-entrega
-**Actor:** Repartidor · **Disparador:** llegada al domicilio
-*Realiza:* `RF-ENT-013`
+Input:
 
-- **Entrega:** `TR-PED-10`, evidencia, `entregado_en`, disparo de CFDI si se solicitó.
-- **No-entrega:** `TR-PED-11` con **motivo obligatorio** y evidencia. Entra en la cola urgente de `FLU-PED-03`.
+```text
+customerId
+items: [{ productId, quantity }]
+fulfillmentType
+deliveryAddress?
+notes?
+```
 
-### `FLU-ENT-03` — Gestión de zonas, CP, ventanas y capacidad
-**Actor:** admin / owner · **Disparador:** planificación semanal
-*Realiza:* `RF-ENT-001`, `RF-ENT-002`, `RF-ENT-004`, `RF-ENT-005`
+El formulario **no envía precios autoritativos**.
 
-### `FLU-ENT-04` — Cierre o cancelación de un slot concreto
-**Actor:** admin · **Disparador:** mal tiempo, no llegó el producto
-*Realiza:* `RF-ENT-009`
+Transacción:
 
-Afecta **solo a esa fecha**, no a la ventana ni al mismo día de la semana
-siguiente. Los pedidos afectados se cancelan o reprograman con aviso al cliente.
+```text
+BEGIN
+
+1. validar Customer
+2. cargar Products
+3. validar status=active
+4. lock Inventory de todos los Products
+5. validar available >= quantity
+6. calcular snapshots y totales desde Product
+7. crear Order
+8. crear OrderItems
+9. inventory.reserved += quantity
+10. insertar movement reserve por línea
+
+COMMIT
+```
+
+Resultado:
+
+- Order creado;
+- stock físico igual;
+- `reserved` aumenta;
+- `available` disminuye;
+- OrderItem conserva precio/nombre/SKU.
+
+**Errores**
+- Product archivado/draft;
+- cantidad <= 0;
+- stock insuficiente;
+- Customer inexistente;
+- delivery sin dirección;
+- concurrencia: solo una transacción puede ganar la última disponibilidad.
+
+### `FLU-SAL-02` — Ver lista/detalle
+
+**Actor:** staff/admin/owner  
+**Realiza:** `RF-SAL-007`
+
+Lista paginada por fecha con búsqueda por:
+
+- order number;
+- customer name;
+- phone;
+- status.
+
+Detalle contiene:
+
+- customer snapshot;
+- items snapshot;
+- totales;
+- estado;
+- payment status;
+- notas.
+
+### `FLU-SAL-03` — Avanzar estado operativo
+
+**Actor:** staff/admin/owner  
+**Realiza:** `RF-SAL-008`
+
+El service valida la tabla `TR-ORD-*`.
+
+Ejemplo:
+
+```text
+pending → confirmed → preparing → ready → completed
+```
+
+No se permite saltar de `pending` a `completed`.
+
+### `FLU-SAL-04` — Completar pedido
+
+**Actor:** staff/admin/owner  
+**Realiza:** `RF-SAL-009`, `RN-004`
+
+Transacción:
+
+```text
+BEGIN
+  validar ready → completed
+
+  por cada OrderItem:
+    lock inventory
+    onHand -= quantity
+    reserved -= quantity
+    movement sale(-quantity, -quantity)
+
+  Order.status = completed
+  Order.completedAt = now()
+COMMIT
+```
+
+Si el stock reservado no existe, falla la operación completa: indica corrupción/inconsistencia que debe investigarse.
+
+### `FLU-SAL-05` — Cancelar pedido
+
+**Actor:** admin/owner  
+**Realiza:** `RF-SAL-010`, `RN-004`, `RN-006`
+
+Transacción:
+
+```text
+BEGIN
+  validar estado no terminal
+
+  por cada OrderItem reservado:
+    inventory.reserved -= quantity
+    movement release(0, -quantity)
+
+  Order.status = cancelled
+  Order.cancelledAt = now()
+COMMIT
+```
+
+`paymentStatus` no cambia automáticamente.
+
+Si estaba `paid`, el admin trata el reembolso por separado.
+
+### `FLU-SAL-06` — Marcar pago manual
+
+**Actor:** admin/owner  
+**Realiza:** `RF-SAL-011`, `RN-006`
+
+- `unpaid → paid`
+- `paid → refunded`
+
+No mueve Inventory.
 
 ---
 
-## 6. Fiscal y administración
+## 6. Admin dashboard
 
-### `FLU-FIS-02` — Timbrado y cancelación de CFDI
-**Actor:** Sistema / admin · **Disparador:** entrega confirmada
-*Realiza:* `RF-FIS-002` … `RF-FIS-007`
+### `FLU-ADM-01` — Dashboard operativo
 
-1. Se construye el comprobante con las **tasas congeladas por línea** — un mismo CFDI puede mezclar 0 % y 16 % (`RF-FIS-004`).
-2. Timbrado con el PAC.
-3. Sin datos fiscales → público en general (`RN-008`).
-4. Se cuadra el total con el del pedido al centavo (`INV-CFD-02`).
-5. Envío de XML y PDF; conservación 5 años (`RNF-DAT-003`).
+**Actor:** staff/admin/owner  
+**Realiza:** `RF-ADM-001`…`RF-ADM-003`
 
-**Errores:** rechazo del PAC → estado `error` con el mensaje, reintento manual; la
-entrega **no se revierte** por un fallo de timbrado.
+Read-models derivados:
 
-### `FLU-ADM-01` — Alta de usuario administrativo
-**Actor:** owner · **Disparador:** nueva contratación · *Realiza:* `RF-ADM-001`
+```text
+Open orders
+Sales today
+Low stock products
+Recent orders
+```
 
-### `FLU-REP-01` — Panel del día
-**Actor:** admin · **Disparador:** apertura de jornada · *Realiza:* `RF-REP-001`
+Definiciones:
 
-Pedidos por slot y estado · merma del día por motivo · faltantes detectados en
-surtido · alertas de cadena de frío · lotes que caducan hoy y mañana.
+- open orders = no `completed/cancelled`;
+- sales today = suma de `totalCents` de Orders `completed` hoy;
+- low stock = `available <= threshold`.
+
+No se escribe en una tabla `revenue`.
+
+---
+
+## 7. Storefront — después del admin
+
+### `FLU-TDA-01` — Explorar productos
+
+**Actor:** visitante  
+**Realiza:** `RF-TDA-001`, `RF-TDA-002`
+
+Lee Catalog y disponibilidad de Inventory. Solo Products `active`.
+
+### `FLU-TDA-02` — Añadir al carrito
+
+**Actor:** visitante  
+**Realiza:** `RF-TDA-003`, `RF-TDA-006`
+
+El carrito no reserva stock.
+
+Puede mostrar disponibilidad observada, pero no la considera garantía hasta checkout.
+
+### `FLU-TDA-03` — Checkout
+
+**Actor:** comprador  
+**Realiza:** `RF-TDA-004`, `RF-TDA-005`
+
+1. datos de cliente;
+2. pickup/delivery + dirección si aplica;
+3. items;
+4. servidor revalida Products, precios e Inventory;
+5. llama al **mismo Sales service** de `FLU-SAL-01`;
+6. reserva stock al crear Order.
+
+No se duplica lógica “createStoreOrder” que calcule precios distinto al admin.
+
+---
+
+## 8. Payments — extensión
+
+### `FLU-PAG-01` — Confirmación por webhook
+
+**Actor:** proveedor de pago  
+**Realiza:** `RF-PAG-001`…`RF-PAG-003`
+
+Route Handler:
+
+1. verifica firma;
+2. asegura idempotencia por provider payment id;
+3. persiste Payment;
+4. llama al comando de Sales para cambiar `paymentStatus`;
+5. devuelve 2xx.
+
+Reenviar el mismo webhook no duplica efecto.
+
+### `FLU-PAG-02` — Reembolso
+
+Payment registra la operación externa; Sales cambia `paymentStatus = refunded`. Order operativo conserva su estado.
+
+---
+
+## 9. Flujo de error normativo
+
+Toda mutación debe distinguir:
+
+**ValidationError**
+: input inválido; error por campo.
+
+**AuthorizationError**
+: sesión/rol insuficiente.
+
+**DomainError**
+: transición inválida, stock insuficiente, Product no vendible.
+
+**InfrastructureError**
+: DB/provider inesperado; log técnico y mensaje genérico al usuario.
+
+No se expone SQL ni stacktrace en UI.
+
+---
+
+## 10. Fronteras transaccionales resumidas
+
+| Operación | Transacción |
+|---|:--:|
+| create/edit Product | una escritura simple |
+| receive stock | Inventory + Movement |
+| adjust stock | Inventory + Movement |
+| create Order | Order + Items + Inventory + Movements |
+| update Order status no terminal | Order |
+| complete Order | Order + Inventory + Movements |
+| cancel Order | Order + Inventory + Movements |
+| mark paid/refunded manual | Order |
+| dashboard | read-only |
