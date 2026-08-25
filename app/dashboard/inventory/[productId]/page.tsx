@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 
-import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
+import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
 import { getInventoryWithProduct } from '@/modules/inventory/queries';
 import MovementHistory from '@/modules/inventory/components/movement-history';
 import {

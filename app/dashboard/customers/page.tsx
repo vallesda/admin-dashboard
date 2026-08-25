@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 
 import { lusitana } from '@/app/ui/fonts';
-import Search from '@/app/ui/search';
-import Pagination from '@/app/ui/invoices/pagination';
+import Search from '@/app/ui/shared/search';
+import Pagination from '@/app/ui/shared/pagination';
 import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import CustomerTable from '@/modules/customers/components/customer-table';
 import { CreateCustomer } from '@/modules/customers/components/buttons';

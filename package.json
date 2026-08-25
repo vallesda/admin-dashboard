@@ -9,8 +9,8 @@
     "db:generate": "node --env-file=.env node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file=.env node_modules/drizzle-kit/bin.cjs migrate",
     "db:studio": "node --env-file=.env node_modules/drizzle-kit/bin.cjs studio",
-    "db:seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts",
-    "tsx": "node --env-file=.env --experimental-strip-types --conditions=react-server --import ./scripts/alias-loader-register.mjs"
+    "tsx": "node --env-file=.env --experimental-strip-types --conditions=react-server --import ./scripts/alias-loader-register.mjs",
+    "db:seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

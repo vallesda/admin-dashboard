@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
+import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
 import { formatCentavos } from '@/lib/money';
 import { getOrderById } from '@/modules/sales/queries';
 import {

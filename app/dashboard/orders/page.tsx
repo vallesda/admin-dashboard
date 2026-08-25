@@ -4,8 +4,8 @@ import clsx from 'clsx';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
 import { lusitana } from '@/app/ui/fonts';
-import Search from '@/app/ui/search';
-import Pagination from '@/app/ui/invoices/pagination';
+import Search from '@/app/ui/shared/search';
+import Pagination from '@/app/ui/shared/pagination';
 import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import OrderTable from '@/modules/sales/components/order-table';
 import { listOrders } from '@/modules/sales/queries';

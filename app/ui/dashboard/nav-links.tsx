@@ -3,7 +3,6 @@
 import {
   UserGroupIcon,
   HomeIcon,
-  DocumentDuplicateIcon,
   TagIcon,
   CubeIcon,
   ArchiveBoxIcon,
@@ -13,20 +12,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 
-// Map of links to display in the side navigation.
-// Depending on the size of the application, this would be stored in a database.
+// Sidebar navigation. The order follows the operator's day: what you sell,
+// how it is filed, what you have, what was ordered, and who ordered it.
 const links = [
-  { name: 'Home', href: '/dashboard', icon: HomeIcon },
-  {
-    name: 'Invoices',
-    href: '/dashboard/invoices',
-    icon: DocumentDuplicateIcon,
-  },
-  { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
-  { name: 'Categorías', href: '/dashboard/categories', icon: TagIcon },
+  { name: 'Panel', href: '/dashboard', icon: HomeIcon },
   { name: 'Productos', href: '/dashboard/products', icon: CubeIcon },
+  { name: 'Categorías', href: '/dashboard/categories', icon: TagIcon },
   { name: 'Inventario', href: '/dashboard/inventory', icon: ArchiveBoxIcon },
   { name: 'Pedidos', href: '/dashboard/orders', icon: ClipboardDocumentListIcon },
+  { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
 ];
 
 export default function NavLinks() {

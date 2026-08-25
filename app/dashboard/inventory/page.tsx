@@ -3,8 +3,8 @@ import Link from 'next/link';
 import clsx from 'clsx';
 
 import { lusitana } from '@/app/ui/fonts';
-import Search from '@/app/ui/search';
-import Pagination from '@/app/ui/invoices/pagination';
+import Search from '@/app/ui/shared/search';
+import Pagination from '@/app/ui/shared/pagination';
 import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import InventoryTable from '@/modules/inventory/components/inventory-table';
 import { listInventory, countLowStock } from '@/modules/inventory/queries';

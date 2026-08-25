@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 
 import { lusitana } from '@/app/ui/fonts';
-import Search from '@/app/ui/search';
-import Pagination from '@/app/ui/invoices/pagination';
+import Search from '@/app/ui/shared/search';
+import Pagination from '@/app/ui/shared/pagination';
 import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import ProductTable from '@/modules/catalog/components/product-table';
 import { CreateProduct } from '@/modules/catalog/components/product-buttons';

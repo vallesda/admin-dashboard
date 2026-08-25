@@ -1,11 +1,10 @@
 /**
  * Barrel for the Drizzle schema.
  *
- * Each domain owns a file. Phase 0 only models what already exists in the
- * database (the tutorial tables); the ecommerce domains land in later phases as
- * separate files re-exported from here.
+ * One file per bounded context. The tutorial's tables (`users`, `invoices`,
+ * `revenue`) were dropped in F4; `customers` survived and moved to its own
+ * context.
  */
-export * from './legacy';
 export * from './identity';
 export * from './customers';
 export * from './sales';

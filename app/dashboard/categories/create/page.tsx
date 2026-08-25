@@ -1,4 +1,4 @@
-import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
+import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
 import CategoryForm from '@/modules/catalog/components/category-form';
 
 export const metadata = { title: 'Crear categoría' };

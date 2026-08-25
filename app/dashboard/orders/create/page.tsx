@@ -1,4 +1,4 @@
-import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
+import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
 import OrderForm from '@/modules/sales/components/order-form';
 import { listRecentCustomers } from '@/modules/customers/queries';
 import { listSellableWithStock } from '@/modules/inventory/queries';

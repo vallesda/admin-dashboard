@@ -1,4 +1,4 @@
-import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
+import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
 import CustomerForm from '@/modules/customers/components/customer-form';
 
 export const metadata = { title: 'Crear cliente' };

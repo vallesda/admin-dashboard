@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
+import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
 import ProductForm from '@/modules/catalog/components/product-form';
 import { getProductById, listCategoryOptions } from '@/modules/catalog/queries';
 

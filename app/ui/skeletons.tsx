@@ -198,7 +198,7 @@ export function InvoicesTableSkeleton() {
                   scope="col"
                   className="relative pb-4 pl-3 pr-6 pt-2 sm:pr-6"
                 >
-                  <span className="sr-only">Edit</span>
+                  <span className="sr-only">Editar</span>
                 </th>
               </tr>
             </thead>
