@@ -210,3 +210,44 @@ export async function countLowStock(): Promise<number> {
 
   return row?.n ?? 0;
 }
+
+/**
+ * Every `active` product with its live availability, for the order form.
+ *
+ * Lives in Inventory because availability is Inventory's to compute; Sales asks
+ * for it rather than joining the stock tables itself.
+ *
+ * It used to filter out anything with `available <= 0`, on the theory that
+ * offering an unfillable line wastes the operator's time. That was wrong: a
+ * shop whose stock has not been received yet saw an EMPTY picker and no reason
+ * why, which is far more confusing than seeing the product marked "sin stock".
+ * The form shows them disabled; the service still rejects them (RF-CAT-007),
+ * so nothing can actually be oversold.
+ *
+ * LEFT JOIN so an active product whose inventory row is missing also appears —
+ * it reads as 0 and can be fixed from the inventory screen.
+ */
+export async function listSellableWithStock(): Promise<
+  {
+    id: string;
+    sku: string;
+    name: string;
+    priceCents: number;
+    available: number;
+  }[]
+> {
+  return db
+    .select({
+      id: products.id,
+      sku: products.sku,
+      name: products.name,
+      priceCents: products.priceCents,
+      available: sql<number>`coalesce(${inventory.onHand}, 0) - coalesce(${inventory.reserved}, 0)`.mapWith(
+        Number,
+      ),
+    })
+    .from(products)
+    .leftJoin(inventory, eq(inventory.productId, products.id))
+    .where(eq(products.status, 'active'))
+    .orderBy(products.name);
+}

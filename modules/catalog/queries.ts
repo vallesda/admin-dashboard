@@ -25,7 +25,7 @@ export type CategoryListItem = Pick<
 >;
 
 /** Option shape for the Product form's category selector (HU-CAT-001). */
-export type CategoryOption = Pick<CategoryRow, 'id' | 'name'>;
+export type CategoryOption = Pick<CategoryRow, 'id' | 'name' | 'active'>;
 
 /**
  * Every category, active first by explicit order.
@@ -60,16 +60,29 @@ export async function getCategoryById(
 }
 
 /**
- * Categories selectable when creating or editing a Product.
+ * Categories for the Product form's selector, active flag included.
  *
- * Only `active` ones: an inactive category must not be assignable to new
- * products, otherwise deactivating it would mean nothing.
+ * This used to filter to `active` only, which caused two problems the caller
+ * could not see:
+ *
+ *   1. Editing a product filed under a category that had since been
+ *      deactivated silently dropped it — the select had no matching option, so
+ *      it fell back to "Sin categoría" and saving wiped the assignment.
+ *   2. With every category deactivated, the form said "no hay categorías"
+ *      when several existed, sending the user off to create a duplicate.
+ *
+ * The filtering is now the form's job: it offers the active ones, keeps an
+ * inactive one visible when it is the product's current category, and can say
+ * how many are inactive.
  */
 export async function listCategoryOptions(): Promise<CategoryOption[]> {
   return db
-    .select({ id: categories.id, name: categories.name })
+    .select({
+      id: categories.id,
+      name: categories.name,
+      active: categories.active,
+    })
     .from(categories)
-    .where(eq(categories.active, true))
     .orderBy(asc(categories.sortOrder), asc(categories.name));
 }
 

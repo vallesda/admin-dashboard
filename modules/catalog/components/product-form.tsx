@@ -37,6 +37,14 @@ type Props = {
 export default function ProductForm({ categories, product }: Props) {
   const isEdit = product !== undefined;
 
+  // Offer the active categories, plus the product's current one even if it has
+  // since been deactivated: without it the select would fall back to "Sin
+  // categoría" and saving would silently unassign the product.
+  const selectable = categories.filter(
+    (c) => c.active || c.id === product?.categoryId,
+  );
+  const inactiveCount = categories.length - categories.filter((c) => c.active).length;
+
   const action = isEdit ? updateProduct.bind(null, product.id) : createProduct;
 
   const [state, formAction, isPending] = useActionState<
@@ -139,15 +147,16 @@ export default function ProductForm({ categories, product }: Props) {
             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-3 text-sm outline-2"
           >
             <option value="">Sin categoría</option>
-            {categories.map((category) => (
+            {selectable.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
+                {category.active ? '' : ' (inactiva)'}
               </option>
             ))}
           </select>
           {categories.length === 0 ? (
             <p className="mt-1 text-xs text-gray-500">
-              No hay categorías activas.{' '}
+              Todavía no hay categorías.{' '}
               <Link
                 href="/dashboard/categories/create"
                 className="text-blue-600 underline"
@@ -155,6 +164,21 @@ export default function ProductForm({ categories, product }: Props) {
                 Crea una
               </Link>{' '}
               si quieres clasificar este producto.
+            </p>
+          ) : selectable.length === 0 ? (
+            /* Categories exist but none can be offered — say so instead of
+               implying there are none, which invites creating a duplicate. */
+            <p className="mt-1 text-xs text-amber-700">
+              Tienes {inactiveCount}{' '}
+              {inactiveCount === 1 ? 'categoría inactiva' : 'categorías inactivas'} y
+              ninguna activa.{' '}
+              <Link
+                href="/dashboard/categories"
+                className="text-blue-600 underline"
+              >
+                Actívala
+              </Link>{' '}
+              para poder asignarla.
             </p>
           ) : null}
           <FieldError

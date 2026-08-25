@@ -16,8 +16,20 @@ import { db } from '@/db';
 import { products } from '@/db/schema/catalog';
 import { customers } from '@/db/schema/customers';
 import { inventory, inventoryMovements } from '@/db/schema/inventory';
-import { orders, orderItems, type OrderRow } from '@/db/schema/sales';
+import {
+  orders,
+  orderItems,
+  type OrderRow,
+  type OrderStatus,
+  type PaymentStatus,
+} from '@/db/schema/sales';
 import { DomainError, NotFoundError } from '@/lib/errors';
+import {
+  canTransition,
+  canTransitionPayment,
+  ORDER_STATUS_LABEL,
+  PAYMENT_STATUS_LABEL,
+} from './state-machine';
 import type { CreateOrderInput } from './validators';
 
 /**
@@ -171,4 +183,202 @@ export async function createOrder(
 
     return order;
   });
+}
+
+// ---------------------------------------------------------------------------
+// State transitions
+// ---------------------------------------------------------------------------
+
+/**
+ * Moves an order to `next`, applying that transition's effect on Inventory.
+ *
+ * One entry point for all eight transitions rather than a method per verb: the
+ * legality check, the stock effect and the timestamp then live together and
+ * cannot drift apart. Everything runs in one transaction (RN-004).
+ *
+ * Effects (DOCS §8):
+ *   completed → each reservation becomes a sale
+ *   cancelled → each reservation is released
+ *   everything else → status only
+ */
+export async function changeOrderStatus(
+  orderId: string,
+  next: OrderStatus,
+  actorId: string | null,
+): Promise<OrderRow> {
+  return db.transaction(async (tx) => {
+    // Lock the order first: two staff members clicking "Completar" at the same
+    // moment must not both convert the same reservation into a sale.
+    const [order] = await tx
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .for('update')
+      .limit(1);
+
+    if (!order) throw new NotFoundError('el pedido', orderId);
+
+    if (order.status === next) {
+      // Idempotent: re-confirming a confirmed order is not an error, and it
+      // must not run the stock effect a second time.
+      return order;
+    }
+
+    if (!canTransition(order.status, next)) {
+      throw new DomainError(
+        'order.illegal_transition',
+        `Un pedido ${ORDER_STATUS_LABEL[order.status].toLowerCase()} no puede pasar a ${ORDER_STATUS_LABEL[next].toLowerCase()}.`,
+      );
+    }
+
+    if (next === 'completed') {
+      await convertReservationsToSale(tx, order.id, actorId);
+    } else if (next === 'cancelled') {
+      await releaseReservations(tx, order.id, actorId);
+    }
+
+    const [updated] = await tx
+      .update(orders)
+      .set({
+        status: next,
+        updatedAt: new Date(),
+        // The CHECK constraints require timestamp and status to agree
+        // (INV-ORD-05, INV-ORD-06), so they are set in the same statement.
+        completedAt: next === 'completed' ? new Date() : null,
+        cancelledAt: next === 'cancelled' ? new Date() : null,
+      })
+      .where(eq(orders.id, order.id))
+      .returning();
+
+    return updated;
+  });
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * `ready → completed`: the goods leave (RF-INV-007).
+ *
+ * One `sale` movement per line, carrying both deltas: `on_hand` drops because
+ * the fish physically left, and `reserved` drops because the promise was kept.
+ * The ledger CHECK requires them to be equal and negative (INV-MOV-05).
+ */
+async function convertReservationsToSale(
+  tx: Tx,
+  orderId: string,
+  actorId: string | null,
+): Promise<void> {
+  const lines = await tx
+    .select({
+      productId: orderItems.productId,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+
+  for (const line of lines) {
+    await tx
+      .update(inventory)
+      .set({
+        onHand: raw`${inventory.onHand} - ${line.quantity}`,
+        reserved: raw`${inventory.reserved} - ${line.quantity}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(inventory.productId, line.productId));
+
+    await tx.insert(inventoryMovements).values({
+      productId: line.productId,
+      type: 'sale',
+      onHandDelta: -line.quantity,
+      reservedDelta: -line.quantity,
+      orderId,
+      createdBy: actorId,
+    });
+  }
+}
+
+/**
+ * Cancelling an open order gives the units back (RF-INV-006).
+ *
+ * Only `reserved` moves: nothing ever left the cold room, so `on_hand` is
+ * untouched. Cancelling is only reachable from a state that still holds a
+ * reservation, which is why there is no "was it already sold?" branch here —
+ * `completed` has no outgoing transition at all.
+ */
+async function releaseReservations(
+  tx: Tx,
+  orderId: string,
+  actorId: string | null,
+): Promise<void> {
+  const lines = await tx
+    .select({
+      productId: orderItems.productId,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+
+  for (const line of lines) {
+    await tx
+      .update(inventory)
+      .set({
+        reserved: raw`${inventory.reserved} - ${line.quantity}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(inventory.productId, line.productId));
+
+    await tx.insert(inventoryMovements).values({
+      productId: line.productId,
+      type: 'release',
+      onHandDelta: 0,
+      reservedDelta: -line.quantity,
+      orderId,
+      createdBy: actorId,
+    });
+  }
+}
+
+/**
+ * Moves the payment machine, which is independent of the operational one
+ * (RN-006, INV-ORD-07).
+ *
+ * Marking an order paid does not advance it, and completing it does not claim
+ * it was charged. Touching Inventory from here would be a category error: money
+ * moving is not goods moving.
+ */
+export async function changePaymentStatus(
+  orderId: string,
+  next: PaymentStatus,
+): Promise<OrderRow> {
+  const [order] = await db
+    .select({ id: orders.id, paymentStatus: orders.paymentStatus })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  if (!order) throw new NotFoundError('el pedido', orderId);
+
+  if (order.paymentStatus === next) {
+    const [row] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+    return row;
+  }
+
+  if (!canTransitionPayment(order.paymentStatus, next)) {
+    throw new DomainError(
+      'order.illegal_payment_transition',
+      `Un pago ${PAYMENT_STATUS_LABEL[order.paymentStatus].toLowerCase()} no puede pasar a ${PAYMENT_STATUS_LABEL[next].toLowerCase()}.`,
+    );
+  }
+
+  const [updated] = await db
+    .update(orders)
+    .set({ paymentStatus: next, updatedAt: new Date() })
+    .where(eq(orders.id, orderId))
+    .returning();
+
+  return updated;
 }
