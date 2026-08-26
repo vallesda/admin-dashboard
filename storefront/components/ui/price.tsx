@@ -1,5 +1,5 @@
 import { formatMoney, formatUnit } from '@/lib/format';
-import type { Money } from '@/lib/commerce';
+import type { Money } from '@/lib/commerce/types';
 
 /**
  * Price display.

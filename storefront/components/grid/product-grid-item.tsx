@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import type { Product } from '@/lib/commerce';
+import type { Product } from '@/lib/commerce/types';
 import Price from '@/components/ui/price';
 
 /**

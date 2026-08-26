@@ -1,4 +1,5 @@
-import { LOCALE, CURRENCY, type Money } from './commerce';
+import { LOCALE, CURRENCY } from './commerce/constants';
+import type { Money } from './commerce/types';
 
 const formatter = new Intl.NumberFormat(LOCALE, {
   style: 'currency',

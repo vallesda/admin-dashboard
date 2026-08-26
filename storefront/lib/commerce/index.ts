@@ -9,6 +9,12 @@ import 'server-only';
  *
  * The function names follow the vercel/commerce convention so the architecture
  * reads the way the reference does.
+ *
+ * SERVER ONLY. This module reaches the API and therefore carries the service
+ * token, so it must never be pulled into a client bundle. Client components
+ * import shapes from `./types` and configuration from `./constants` — both
+ * plain modules with no server dependency — and receive their data as props
+ * from a Server Component.
  */
 import { api } from './api-client';
 import type { Collection, Paginated, Product } from './types';

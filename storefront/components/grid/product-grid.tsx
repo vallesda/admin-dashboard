@@ -1,4 +1,4 @@
-import type { Product } from '@/lib/commerce';
+import type { Product } from '@/lib/commerce/types';
 import ProductGridItem from './product-grid-item';
 
 /** 2 columns on mobile, 3 on tablet, 4 on desktop — one grid, every collection. */

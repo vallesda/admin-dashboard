@@ -1,10 +1,10 @@
 {
   "app": {
-    "[project]/storefront/app/_not-found/page": [
+    "[project]/storefront/app/page": [
       "static/media/5f402bd2d8eef81a-s.p.40bho2kviej2o.woff2",
       "static/media/f06bf9da926bae75-s.p.2874ccu1_u7jf.woff2"
     ],
-    "[project]/storefront/app/page": [
+    "[project]/storefront/app/product/[handle]/page": [
       "static/media/5f402bd2d8eef81a-s.p.40bho2kviej2o.woff2",
       "static/media/f06bf9da926bae75-s.p.2874ccu1_u7jf.woff2"
     ]

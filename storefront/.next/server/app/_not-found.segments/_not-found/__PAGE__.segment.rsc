@@ -1,0 +1,22 @@
+1:"$Sreact.fragment"
+2:I[27707,["/_next/static/chunks/2w4_h6mhcq07q.js","/_next/static/chunks/31p9379teks7h.js"],""]
+3:I[66643,["/_next/static/chunks/2w4_h6mhcq07q.js"],"OutletBoundary"]
+4:"$Sreact.suspense"
+8:I[66643,["/_next/static/chunks/2w4_h6mhcq07q.js"],"ViewportBoundary"]
+9:I[66643,["/_next/static/chunks/2w4_h6mhcq07q.js"],"MetadataBoundary"]
+b:I[43888,["/_next/static/chunks/2w4_h6mhcq07q.js"],"default"]
+c:I[15351,["/_next/static/chunks/2w4_h6mhcq07q.js"],"default"]
+:HL["/_next/static/chunks/2fyocvm4tj41c.css","style"]
+7:X
+e:X
+e:C
+0:{"buildId":"G3PH1VS5HhN_af8j38N0m","data":[{"rsc":["$","$1","c",{"children":[["$","main",null,{"className":"mx-auto flex max-w-container flex-col items-start gap-6 px-4 py-24 md:px-8","children":[["$","h1",null,{"className":"text-5xl","children":"No encontramos esa página"}],["$","p",null,{"className":"max-w-[48ch] text-lg text-muted","children":"Puede que el producto ya no esté disponible o que la dirección haya cambiado."}],["$","$L2",null,{"href":"/","children":["$","button",null,{"className":"inline-flex items-center justify-center gap-2 rounded px-6 py-3 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 bg-brand text-background hover:bg-brand-dark  ","children":"Ver todos los productos"}]}]]}],[["$","script","script-0",{"src":"/_next/static/chunks/31p9379teks7h.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":"$@6","staleTime":"$7","varyParams":null},{"rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L8",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L9",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Amor a Mar — Pescados y mariscos frescos"}],["$","meta","1",{"name":"description","content":"Selección fresca de pescados y mariscos, preparada para ti y entregada en refrigeración."}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"isPartial":"$@a","staleTime":"$7","varyParams":null},{"rsc":["$","$1","c",{"children":[null,["$","$Lb",null,{"parallelRouterKey":"children","template":["$","$Lc",null,{}]}]]}],"isPartial":"$@d","staleTime":"$7","varyParams":"$e"},{"rsc":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2fyocvm4tj41c.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/2w4_h6mhcq07q.js","async":true}]],["$","html",null,{"lang":"es-MX","className":"newsreader_ed6cb59f-module__9otaqa__variable instrument_sans_dd0ece85-module__hccXaq__variable","children":["$","body",null,{"className":"font-sans antialiased","children":["$","$Lb",null,{"parallelRouterKey":"children","template":["$","$Lc",null,{}],"notFound":[["$","main",null,{"className":"mx-auto flex max-w-container flex-col items-start gap-6 px-4 py-24 md:px-8","children":[["$","h1",null,{"className":"text-5xl","children":"No encontramos esa página"}],["$","p",null,{"className":"max-w-[48ch] text-lg text-muted","children":"Puede que el producto ya no esté disponible o que la dirección haya cambiado."}],["$","$L2",null,{"href":"/","children":["$","button",null,{"className":"inline-flex items-center justify-center gap-2 rounded px-6 py-3 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 bg-brand text-background hover:bg-brand-dark  ","children":"Ver todos los productos"}]}]]}],[]]}]}]}]]}],"isPartial":"$@f","staleTime":"$7","varyParams":null}],"isUpgradeableISRFallback":false,"a":"$@10","rootVaryParams":null,"needsRuntimeRequest":"$@11"}
+5:null
+7:300
+11:true
+7:C
+10:0
+a:"$undefined"
+d:"$undefined"
+f:"$undefined"
+6:"$undefined"

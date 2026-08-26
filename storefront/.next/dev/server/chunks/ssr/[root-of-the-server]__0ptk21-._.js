@@ -483,6 +483,12 @@ __turbopack_context__.s([
  *
  * The function names follow the vercel/commerce convention so the architecture
  * reads the way the reference does.
+ *
+ * SERVER ONLY. This module reaches the API and therefore carries the service
+ * token, so it must never be pulled into a client bundle. Client components
+ * import shapes from `./types` and configuration from `./constants` — both
+ * plain modules with no server dependency — and receive their data as props
+ * from a Server Component.
  */ var __TURBOPACK__imported__module__$5b$project$5d2f$storefront$2f$lib$2f$commerce$2f$api$2d$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/storefront/lib/commerce/api-client.ts [app-rsc] (ecmascript)");
 ;
 ;
@@ -534,7 +540,6 @@ __turbopack_context__.s([
     "formatUnit",
     ()=>formatUnit
 ]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$storefront$2f$lib$2f$commerce$2f$index$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/storefront/lib/commerce/index.ts [app-rsc] (ecmascript) <locals>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$storefront$2f$lib$2f$commerce$2f$constants$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/storefront/lib/commerce/constants.ts [app-rsc] (ecmascript)");
 ;
 const formatter = new Intl.NumberFormat(__TURBOPACK__imported__module__$5b$project$5d2f$storefront$2f$lib$2f$commerce$2f$constants$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["LOCALE"], {
