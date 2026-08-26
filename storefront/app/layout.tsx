@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Newsreader, Instrument_Sans } from 'next/font/google';
 
 import './globals.css';
+import { getProducts } from '@/lib/commerce';
 import { CartProvider } from '@/components/cart/cart-context';
 import CartDrawer from '@/components/cart/cart-drawer';
 import AnnouncementBar from '@/components/layout/announcement-bar';
@@ -39,12 +40,20 @@ export const metadata: Metadata = {
  *
  * No marketing lives here. The homepage owns its own sections, so a collection
  * or product page inherits navigation and cart without inheriting a hero.
+ *
+ * The catalogue is fetched once here for the cart's suggestions. It is a small,
+ * cached list, and the failure is swallowed on purpose: suggestions are a
+ * nicety, and a catalogue hiccup must not blank out every page of the site.
  */
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const catalogue = await getProducts()
+    .then((page) => page.items)
+    .catch(() => []);
+
   return (
     <html lang="es-MX" className={`${display.variable} ${sans.variable}`}>
       <body className="font-sans antialiased">
@@ -53,7 +62,7 @@ export default function RootLayout({
           <Navbar />
           <main>{children}</main>
           <Footer />
-          <CartDrawer />
+          <CartDrawer catalogue={catalogue} />
         </CartProvider>
       </body>
     </html>

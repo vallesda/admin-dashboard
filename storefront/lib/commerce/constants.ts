@@ -16,10 +16,3 @@ export const FREE_SHIPPING_THRESHOLD_CENTS: number | null = null;
 
 export const CURRENCY = 'MXN' as const;
 export const LOCALE = 'es-MX' as const;
-
-/** Taxonomy shown in the navbar, in display order. */
-export const NAV_COLLECTIONS = [
-  { handle: 'pescados', title: 'Pescados' },
-  { handle: 'mariscos', title: 'Mariscos' },
-  { handle: 'de-temporada', title: 'De temporada' },
-] as const;

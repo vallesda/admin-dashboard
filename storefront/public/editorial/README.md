@@ -17,6 +17,13 @@ con el nombre exacto de su `handle`:
 
 `hero-barco.jpg` es el hero de la home.
 
+`nosotros.jpg` es la fotografía de la sección **About** (`components/merchandising/about.tsx`).
+Debe mostrar el oficio, no el producto: barco, muelle, pescadores, manos
+trabajando. Vertical 4:5, igual que las ocasiones.
+
+**Esta sí se comprueba antes de renderizar** (`existsSync`): sin el archivo, la
+sección muestra solo el texto sobre verde de marca, sin romperse.
+
 ## Cómo funciona
 
 `OccasionGrid` es un Server Component: comprueba si el archivo existe y solo

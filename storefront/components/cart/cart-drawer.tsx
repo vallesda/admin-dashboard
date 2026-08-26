@@ -4,11 +4,14 @@ import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+import type { Product } from '@/lib/commerce/types';
 import { formatMoney } from '@/lib/format';
 import { CURRENCY } from '@/lib/commerce/constants';
 import Button from '@/components/ui/button';
 import IconButton from '@/components/ui/icon-button';
 import { useCart } from './cart-context';
+import CrossSells from './cross-sells';
+import ShippingProgress from './shipping-progress';
 
 /**
  * Cart drawer.
@@ -17,10 +20,15 @@ import { useCart } from './cart-context';
  * trapping, Escape-to-close and inertness of the page behind for free, and all
  * three are things a custom implementation gets subtly wrong.
  *
- * Contents are intentionally minimal for this phase — lines, quantity, subtotal.
- * Cross-sells and shipping progress come with the cart phase.
+ * `catalogue` is passed down from the root layout rather than fetched here: the
+ * drawer is a Client Component and the cart lives in localStorage, so the
+ * filtering has to happen on the client — but the data does not.
  */
-export default function CartDrawer() {
+export default function CartDrawer({
+  catalogue,
+}: {
+  catalogue: Product[];
+}) {
   const { cart, subtotalCents, isOpen, close, setQuantity, remove } = useCart();
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -117,7 +125,11 @@ export default function CartDrawer() {
               ))}
             </ul>
 
+            <CrossSells catalogue={catalogue} cart={cart} />
+
             <footer className="border-t border-border px-5 py-4">
+              <ShippingProgress subtotalCents={subtotalCents} />
+
               <div className="mb-4 flex items-baseline justify-between">
                 <span className="text-sm text-muted">Subtotal</span>
                 <span className="text-xl tabular-nums">

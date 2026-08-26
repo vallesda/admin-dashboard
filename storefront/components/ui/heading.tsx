@@ -8,11 +8,14 @@
 export default function Heading({
   as: Tag = 'h2',
   size = 'section',
+  id,
   children,
   className = '',
 }: {
   as?: 'h1' | 'h2' | 'h3';
   size?: 'hero' | 'section' | 'sub';
+  /** For sections labelled with `aria-labelledby`. */
+  id?: string;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -22,5 +25,9 @@ export default function Heading({
     sub: 'text-xl md:text-2xl',
   }[size];
 
-  return <Tag className={`${scale} ${className}`}>{children}</Tag>;
+  return (
+    <Tag id={id} className={`${scale} ${className}`}>
+      {children}
+    </Tag>
+  );
 }

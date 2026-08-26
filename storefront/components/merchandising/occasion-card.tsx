@@ -1,26 +1,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+import type { Occasion } from '@/lib/occasions';
+
 /**
  * One shopping intent.
  *
- * When the catalogue has photography for the occasion it leads; when it does
- * not, the card falls back to a brand surface with the name set large. That is
- * deliberate — a grey rectangle labelled "Sashimi" reads as broken, while a
- * confident green tile reads as designed until the photograph arrives.
+ * Photography leads; the scrim underneath is what keeps the title legible over
+ * a bright plate rather than a decorative flourish.
  */
-export type Occasion = {
-  handle: string;
-  title: string;
-  description: string;
-  /**
-   * Optional so a category can supply it later without changing this type.
-   * The alt text describes the dish, not the section — a screen reader should
-   * hear the food, not "imagen de sashimi".
-   */
-  image?: { url: string; altText: string } | null;
-};
-
 export default function OccasionCard({ occasion }: { occasion: Occasion }) {
   return (
     <Link
