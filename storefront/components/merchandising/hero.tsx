@@ -1,8 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { getFeaturedProducts } from '@/lib/commerce';
-import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
 import Button from '@/components/ui/button';
 
@@ -14,31 +12,28 @@ import Button from '@/components/ui/button';
  * angled edge — forcing the desktop diagonal into a narrow viewport turns a
  * composition into a wedge of nothing.
  *
- * The photograph is a real product image from the catalogue rather than a stock
- * placeholder: it is the freshest seafood photography the shop actually has,
- * and it changes as the catalogue does.
+ * The photograph is the shop's own: a boat at dawn rather than a plated dish.
+ * It says where the product comes from before a single word does, which is the
+ * one thing a seafood hero has to establish.
+ *
+ * No data fetching here — the hero is the first thing painted, and making it
+ * wait on the catalogue would delay the whole page for an image that never
+ * changes.
  */
-export default async function Hero() {
-  const featured = await getFeaturedProducts(1);
-  const image = featured[0]?.featuredImage ?? null;
-
+export default function Hero() {
   return (
     <section className="relative bg-background">
       <div className="grid grid-cols-1 md:grid-cols-[5fr_7fr]">
         {/* Photography */}
         <div className="relative order-1 aspect-[4/3] md:order-2 md:aspect-auto md:min-h-[34rem]">
-          {image ? (
-            <Image
-              src={image.url}
-              alt={image.altText}
-              fill
-              priority
-              sizes="(min-width: 768px) 58vw, 100vw"
-              className="object-cover"
-            />
-          ) : (
-            <div className="h-full w-full bg-sand" />
-          )}
+          <Image
+            src="/editorial/hero-barco.jpg"
+            alt="Barco pesquero navegando al amanecer"
+            fill
+            priority
+            sizes="(min-width: 768px) 58vw, 100vw"
+            className="object-cover"
+          />
         </div>
 
         {/* Brand surface. The diagonal lives on this block so the photograph

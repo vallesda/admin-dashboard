@@ -13,6 +13,11 @@ export type Occasion = {
   handle: string;
   title: string;
   description: string;
+  /**
+   * Optional so a category can supply it later without changing this type.
+   * The alt text describes the dish, not the section — a screen reader should
+   * hear the food, not "imagen de sashimi".
+   */
   image?: { url: string; altText: string } | null;
 };
 
