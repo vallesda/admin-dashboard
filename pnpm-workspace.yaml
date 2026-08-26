@@ -1,5 +1,9 @@
 packages:
+  # El admin vive en la raíz. Moverlo a apps/admin es lo canónico, pero tocaría
+  # cada ruta, script y config de una app que ya funciona; se puede hacer más
+  # tarde y es mecánico.
   - .
+  - storefront
 allowBuilds:
   bcrypt: true
   esbuild: true

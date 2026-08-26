@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens.
+ *
+ * Declared as RGB triplets so Tailwind can apply opacity (`bg-brand/10`).
+ * Every colour in the storefront comes from here; no component holds a hex.
+ *
+ * `--brand` is the Amor a Mar logo green (#024F55). The supporting tones hold
+ * its hue (~184°) and drop saturation as they lighten, so the pale steps read
+ * as the same colour rather than as washed-out cyan.
+ *
+ * The intended ratio is roughly 65–70% warm cream, 20–25% brand green, the
+ * rest neutrals and photography. The green is a surface and an accent, not a
+ * background.
+ */
+:root {
+  --brand: 2 79 85;
+  --brand-dark: 1 56 60;
+  --brand-soft: 218 239 241;
+
+  /* Warm cream, not white: the photography sits on it and needs warmth. */
+  --background: 250 247 241;
+  --surface: 255 253 249;
+  --foreground: 12 28 29;
+  --muted: 106 120 118;
+  --sand: 233 224 209;
+  --border: 224 216 203;
+
+  --container: 1360px;
+  --radius: 4px;
+  --motion: 180ms;
+}
+
+/* 8px rhythm; anything else is a deliberate exception, not a habit. */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), Georgia, serif;
+    text-wrap: balance;
+  }
+
+  /* Never remove the focus ring; make it belong to the brand. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand));
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

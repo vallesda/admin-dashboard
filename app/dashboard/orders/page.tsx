@@ -57,7 +57,7 @@ export default async function Page(props: {
         />
         <Link
           href="/dashboard/orders/create"
-          className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+          className="flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-500"
         >
           <span className="hidden md:block">Registrar pedido</span>
           <PlusIcon className="h-5 md:ml-4" />

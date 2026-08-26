@@ -46,8 +46,14 @@ export const categories = pgTable(
 export type CategoryRow = typeof categories.$inferSelect;
 export type NewCategoryRow = typeof categories.$inferInsert;
 
-/** How the product is sold. `pack` carries a net weight; `piece` need not. */
-export const unitTypeEnum = pgEnum('unit_type', ['piece', 'pack']);
+/**
+ * How the product is sold.
+ *
+ * `pack` carries a net weight; `piece` need not. `kg` was added for the
+ * storefront: seafood is routinely priced per kilo, and forcing it into `pack`
+ * would mean inventing a package that does not exist.
+ */
+export const unitTypeEnum = pgEnum('unit_type', ['piece', 'pack', 'kg']);
 
 /**
  * Lifecycle of a sellable product.
@@ -86,6 +92,23 @@ export const products = pgTable(
     costCents: integer('cost_cents'),
 
     imageUrl: text('image_url'),
+
+    // ---- Storefront presentation ----
+    //
+    // Added for the public catalogue (RF-TDA-002): the product page has to
+    // answer "what is it, how is it cut, where is it from" above the fold, and
+    // none of that was expressible before. All nullable — the admin can fill
+    // them in gradually, and a product without them still sells.
+    shortDescription: text('short_description'),
+    /** Where it was caught or farmed: "Ensenada, B.C." */
+    origin: text('origin'),
+    /** How it is cut: "Filete sin piel", "Entero limpio". */
+    presentation: text('presentation'),
+    storageInstructions: text('storage_instructions'),
+    preparationSuggestions: text('preparation_suggestions').array(),
+    /** Merchandising flags the storefront reads; not business rules. */
+    isFeatured: boolean('is_featured').notNull().default(false),
+    isSeasonal: boolean('is_seasonal').notNull().default(false),
     unitType: unitTypeEnum('unit_type').notNull(),
     netWeightGrams: integer('net_weight_grams'),
 

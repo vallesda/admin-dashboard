@@ -107,7 +107,7 @@ export default async function OrderTable({
                   <td className="whitespace-nowrap py-3 pl-6 pr-3 font-medium tabular-nums">
                     <Link
                       href={`/dashboard/orders/${order.id}`}
-                      className="text-blue-600 hover:underline"
+                      className="text-brand-600 hover:underline"
                     >
                       #{order.orderNumber}
                     </Link>

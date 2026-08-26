@@ -57,6 +57,13 @@
       "when": 1787694191536,
       "tag": "0007_flat_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787773155612,
+      "tag": "0008_chunky_meltdown",
+      "breakpoints": true
     }
   ]
 }

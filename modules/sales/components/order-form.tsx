@@ -94,7 +94,7 @@ export default function OrderForm({
               No hay clientes.{' '}
               <Link
                 href="/dashboard/customers/create"
-                className="text-blue-600 underline"
+                className="text-brand-600 underline"
               >
                 Crea uno
               </Link>{' '}
@@ -222,7 +222,7 @@ export default function OrderForm({
           {products.length === 0 ? (
             <p className="mt-2 text-xs text-gray-500">
               No hay productos activos.{' '}
-              <Link href="/dashboard/products" className="text-blue-600 underline">
+              <Link href="/dashboard/products" className="text-brand-600 underline">
                 Activa uno
               </Link>{' '}
               para poder registrar pedidos.
@@ -230,7 +230,7 @@ export default function OrderForm({
           ) : products.every((p) => p.available <= 0) ? (
             <p className="mt-2 text-xs text-amber-700">
               Ningún producto activo tiene existencias.{' '}
-              <Link href="/dashboard/inventory" className="text-blue-600 underline">
+              <Link href="/dashboard/inventory" className="text-brand-600 underline">
                 Recibe mercancía
               </Link>{' '}
               antes de registrar el pedido.

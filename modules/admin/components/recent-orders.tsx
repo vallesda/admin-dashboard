@@ -29,7 +29,7 @@ export default async function RecentOrders() {
             Todavía no hay pedidos.{' '}
             <Link
               href="/dashboard/orders/create"
-              className="text-blue-600 underline"
+              className="text-brand-600 underline"
             >
               Registra el primero
             </Link>

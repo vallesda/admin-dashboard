@@ -159,7 +159,7 @@ export default function ProductForm({ categories, product }: Props) {
               Todavía no hay categorías.{' '}
               <Link
                 href="/dashboard/categories/create"
-                className="text-blue-600 underline"
+                className="text-brand-600 underline"
               >
                 Crea una
               </Link>{' '}
@@ -174,7 +174,7 @@ export default function ProductForm({ categories, product }: Props) {
               ninguna activa.{' '}
               <Link
                 href="/dashboard/categories"
-                className="text-blue-600 underline"
+                className="text-brand-600 underline"
               >
                 Actívala
               </Link>{' '}

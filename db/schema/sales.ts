@@ -59,6 +59,16 @@ export const orders = pgTable(
       .generatedAlwaysAsIdentity()
       .notNull(),
 
+    /**
+     * Opaque handle for the public order-confirmation page.
+     *
+     * `orderNumber` is sequential, so a confirmation URL built on it would let
+     * anyone iterate 1, 2, 3… and read every customer's name, phone and
+     * address. The number stays the thing people say out loud; this is the
+     * thing that goes in a URL.
+     */
+    publicToken: uuid('public_token').notNull().defaultRandom().unique(),
+
     customerId: uuid('customer_id')
       .notNull()
       .references(() => customers.id, { onDelete: 'restrict' }),
