@@ -1,36 +1,30 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
+# Dependencias y salidas de compilación.
+#
+# Sin barra inicial a propósito: `/node_modules` solo ancla a la raíz del repo,
+# y cuando esto se volvió monorepo `storefront/node_modules` y `storefront/.next`
+# quedaron fuera del patrón y acabaron versionados (~195 MB).
+node_modules/
+.next/
+out/
+build/
+.pnp
 .pnp.js
+*.tsbuildinfo
+next-env.d.ts
 
-# testing
-/coverage
+# Pruebas
+coverage/
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
+# Secretos. `.env.example` sí se versiona: documenta las variables sin valores.
+.env
+.env*.local
 *.pem
 
-# debug
+# Plataforma
+.vercel
+
+# Sistema operativo y logs
+.DS_Store
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# local env files
-.env*.local
-.env
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts

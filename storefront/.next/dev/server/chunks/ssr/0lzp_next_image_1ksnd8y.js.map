@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 3, "column": 0}, "map": {"version":3,"sources":["file:///Users/dvalles/Projects/admin-dashboard/node_modules/.pnpm/next@16.3.2_@babel+core@7.29.7_supports-color@7.2.0__@types+node@22.10.7_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/next/image.js"],"sourcesContent":["module.exports = require('./dist/shared/lib/image-external')\n"],"names":["module","exports"],"mappings":"AAAAA,OAAOC,OAAO","ignoreList":[0]}}]
-}
