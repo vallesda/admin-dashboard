@@ -3,38 +3,44 @@
 @tailwind utilities;
 
 /**
- * Design tokens.
+ * Amor a Mar design tokens.
  *
  * Declared as RGB triplets so Tailwind can apply opacity (`bg-brand/10`).
- * Every colour in the storefront comes from here; no component holds a hex.
+ * Every colour in the storefront resolves from here; no component holds a hex.
  *
- * `--brand` is the Amor a Mar logo green (#024F55). The supporting tones hold
- * its hue (~184°) and drop saturation as they lighten, so the pale steps read
- * as the same colour rather than as washed-out cyan.
+ * --brand is the logo's dark green. Sampling the logo returns #084858 as its
+ * most frequent opaque colour, which confirms the brand value #024F55.
  *
- * The intended ratio is roughly 65–70% warm cream, 20–25% brand green, the
- * rest neutrals and photography. The green is a surface and an accent, not a
- * background.
+ * --gold came out of that same sampling: #F8C808 covers almost as much of the
+ * logo as the green does. It is part of the identity, not an invention, and it
+ * gives the palette a warm accent that belongs with cream — so featured and
+ * seasonal markers use it instead of importing a foreign colour.
+ *
+ * Intended balance: ~65–70% warm cream, ~20–25% green, the rest neutrals,
+ * gold and the photography's own coral/shell tones.
  */
 :root {
   --brand: 2 79 85;
-  --brand-dark: 1 56 60;
+  --brand-dark: 1 42 46;
   --brand-soft: 218 239 241;
 
-  /* Warm cream, not white: the photography sits on it and needs warmth. */
-  --background: 250 247 241;
+  --gold: 214 168 8;
+  --gold-soft: 250 240 209;
+
+  /* Warm off-white, never pure white: the photography sits on it. */
+  --background: 250 246 239;
   --surface: 255 253 249;
   --foreground: 12 28 29;
-  --muted: 106 120 118;
-  --sand: 233 224 209;
-  --border: 224 216 203;
+  --muted: 104 118 116;
+  --sand: 234 225 210;
+  --border: 223 214 199;
 
+  --radius-sm: 4px;
+  --radius-md: 8px;
   --container: 1360px;
-  --radius: 4px;
   --motion: 180ms;
 }
 
-/* 8px rhythm; anything else is a deliberate exception, not a habit. */
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
@@ -49,13 +55,42 @@
   h2,
   h3 {
     font-family: var(--font-display), Georgia, serif;
+    font-weight: 400;
     text-wrap: balance;
+    letter-spacing: -0.015em;
   }
 
-  /* Never remove the focus ring; make it belong to the brand. */
+  /* Never removed, and it belongs to the brand rather than the browser. */
   :focus-visible {
     outline: 2px solid rgb(var(--brand));
     outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /*
+   * The diagonal that separates a brand surface from what is above it.
+   *
+   * A clip-path rather than a rotated pseudo-element: it never overflows, needs
+   * no overflow-hidden on the parent, and the angle can shrink on small screens
+   * without the composition falling apart.
+   */
+  .edge-top {
+    clip-path: polygon(0 4vw, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .edge-bottom {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4vw), 0 100%);
+  }
+
+  @media (max-width: 767px) {
+    /* Mobile keeps a hint of the angle instead of the full desktop geometry. */
+    .edge-top {
+      clip-path: polygon(0 24px, 100% 0, 100% 100%, 0 100%);
+    }
+    .edge-bottom {
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 24px), 0 100%);
+    }
   }
 }
 

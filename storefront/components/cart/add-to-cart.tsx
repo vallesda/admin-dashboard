@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import type { Product } from '@/lib/commerce/types';
-import { addLine, readCart, writeCart } from '@/lib/cart';
+import { addLine, getCartSnapshot, writeCart } from '@/lib/cart';
 import Button from '@/components/ui/button';
 import { CheckIcon } from '@/components/product/icons';
 
@@ -35,7 +35,7 @@ export default function AddToCart({
   }
 
   function handleAdd() {
-    writeCart(addLine(readCart(), product, quantity));
+    writeCart(addLine(getCartSnapshot(), product, quantity));
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
   }

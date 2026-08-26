@@ -10,6 +10,8 @@ const config: Config = {
         brand: 'rgb(var(--brand) / <alpha-value>)',
         'brand-dark': 'rgb(var(--brand-dark) / <alpha-value>)',
         'brand-soft': 'rgb(var(--brand-soft) / <alpha-value>)',
+        gold: 'rgb(var(--gold) / <alpha-value>)',
+        'gold-soft': 'rgb(var(--gold-soft) / <alpha-value>)',
         background: 'rgb(var(--background) / <alpha-value>)',
         surface: 'rgb(var(--surface) / <alpha-value>)',
         foreground: 'rgb(var(--foreground) / <alpha-value>)',

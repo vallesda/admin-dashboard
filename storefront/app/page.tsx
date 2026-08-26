@@ -1,48 +1,60 @@
 import { Suspense } from 'react';
 
 import { getProducts } from '@/lib/commerce';
+import Container from '@/components/ui/container';
+import Heading from '@/components/ui/heading';
 import ProductGrid from '@/components/grid/product-grid';
+import Hero from '@/components/merchandising/hero';
+import BestSellers from '@/components/merchandising/best-sellers';
+import OccasionGrid from '@/components/merchandising/occasion-grid';
+import CatchOfTheWeek from '@/components/merchandising/catch-of-the-week';
+import TrustStrip from '@/components/merchandising/trust-strip';
 
 /**
- * Home — commerce-first.
+ * Home — commerce first.
  *
- * This is the foundation slice: real products from the admin API, through the
- * `lib/commerce` seam. The editorial hero, occasion grid and merchandising
- * blocks come next; what matters first is that the chain works end to end.
+ * The colour rhythm is deliberate: cream carries most of the page so the two
+ * green surfaces (hero, catch of the week) keep their weight. Making every
+ * section green would cost the brand exactly the impact it is meant to have.
+ *
+ * A shopper meets a purchasable product immediately after the hero, before any
+ * storytelling.
  */
 export default function Page() {
   return (
-    <main>
-      {/* Announcement bar — the brand green as a surface, not a background. */}
-      <div className="bg-brand px-4 py-2 text-center text-sm text-background">
-        Entrega refrigerada · Producto fresco seleccionado diariamente
-      </div>
+    <>
+      <Hero />
 
-      <header className="mx-auto max-w-container px-4 py-10 md:px-8 md:py-16">
-        <p className="font-sans text-sm uppercase tracking-[0.18em] text-muted">
-          Amor a Mar
-        </p>
-        <h1 className="mt-4 max-w-[14ch] text-5xl leading-[0.95] md:text-7xl">
-          Pescado extraordinario, del mar a tu mesa.
-        </h1>
-        <p className="mt-6 max-w-[48ch] text-lg text-muted">
-          Selección fresca · Preparado para ti · Entrega refrigerada
-        </p>
-      </header>
+      <Suspense fallback={null}>
+        <BestSellers />
+      </Suspense>
 
-      <section className="mx-auto max-w-container px-4 pb-24 md:px-8">
-        <h2 className="mb-8 text-3xl md:text-4xl">Producto fresco</h2>
-        <Suspense fallback={<GridSkeleton />}>
-          <Catalogue />
-        </Suspense>
+      <section id="producto-fresco" className="scroll-mt-24 pb-16 md:pb-24">
+        <Container>
+          <Heading className="mb-3">Producto fresco</Heading>
+          <p className="mb-10 max-w-[52ch] text-muted">
+            Todo lo que está disponible hoy, con su presentación y su origen.
+          </p>
+          <Suspense fallback={<GridSkeleton />}>
+            <Catalogue />
+          </Suspense>
+        </Container>
       </section>
-    </main>
+
+      <OccasionGrid />
+
+      <Suspense fallback={null}>
+        <CatchOfTheWeek />
+      </Suspense>
+
+      <TrustStrip />
+    </>
   );
 }
 
 async function Catalogue() {
   const { items } = await getProducts();
-  return <ProductGrid products={items} />;
+  return <ProductGrid products={items.slice(0, 8)} />;
 }
 
 function GridSkeleton() {
@@ -53,9 +65,9 @@ function GridSkeleton() {
     >
       {Array.from({ length: 8 }).map((_, i) => (
         <li key={i}>
-          <div className="aspect-[4/5] animate-pulse rounded bg-sand" />
-          <div className="mt-3 h-4 w-3/4 animate-pulse rounded bg-sand" />
-          <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-sand" />
+          <div className="aspect-[4/5] animate-pulse rounded-sm bg-sand" />
+          <div className="mt-3 h-4 w-3/4 animate-pulse rounded-sm bg-sand" />
+          <div className="mt-2 h-3 w-1/2 animate-pulse rounded-sm bg-sand" />
         </li>
       ))}
     </ul>

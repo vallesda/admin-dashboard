@@ -1,5 +1,5 @@
 import type { Product } from '@/lib/commerce/types';
-import ProductGridItem from './product-grid-item';
+import ProductCard from './product-card';
 
 /** 2 columns on mobile, 3 on tablet, 4 on desktop — one grid, every collection. */
 export default function ProductGrid({ products }: { products: Product[] }) {
@@ -15,7 +15,7 @@ export default function ProductGrid({ products }: { products: Product[] }) {
     <ul className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
       {products.map((product) => (
         <li key={product.id}>
-          <ProductGridItem product={product} />
+          <ProductCard product={product} />
         </li>
       ))}
     </ul>

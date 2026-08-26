@@ -63,7 +63,7 @@ export default async function Page({ params }: Props) {
   if (!product) notFound();
 
   return (
-    <main className="mx-auto max-w-container px-4 py-8 md:px-8 md:py-12">
+    <div className="mx-auto max-w-container px-5 py-8 md:px-8 md:py-12">
       <ProductJsonLd product={product} />
 
       <nav aria-label="Ruta de navegación" className="mb-8 text-sm text-muted">
@@ -87,7 +87,7 @@ export default async function Page({ params }: Props) {
       <Suspense fallback={null}>
         <RelatedProducts handle={product.handle} />
       </Suspense>
-    </main>
+    </div>
   );
 }
 

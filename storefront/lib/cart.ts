@@ -48,14 +48,59 @@ export function readCart(): Cart {
 export function writeCart(cart: Cart): void {
   if (typeof window === 'undefined') return;
 
+  snapshot = cart;
+
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
-    // Lets the provider react without prop-drilling through every component.
-    window.dispatchEvent(new CustomEvent('amoramar:cart', { detail: cart }));
   } catch {
-    // Storage unavailable. The line is lost, which is visible and recoverable —
-    // better than a thrown error mid-purchase.
+    // Storage unavailable (private window, blocked site data). The cart still
+    // works for this page view; it just will not survive a reload.
   }
+
+  // Notifies subscribers whether or not the write itself succeeded.
+  window.dispatchEvent(new Event(CART_EVENT));
+}
+
+// ---------------------------------------------------------------------------
+// External store
+// ---------------------------------------------------------------------------
+
+export const CART_EVENT = 'amoramar:cart';
+
+/**
+ * Cached snapshot.
+ *
+ * `useSyncExternalStore` compares snapshots by reference and re-renders when
+ * they differ, so `getSnapshot` must return the *same* object until something
+ * actually changes. Parsing localStorage on every call would return a new
+ * object each time and spin forever.
+ */
+let snapshot: Cart | null = null;
+
+export function subscribeToCart(onChange: () => void): () => void {
+  const onStorage = () => {
+    // Another tab is the same shopper; drop the cache and re-read.
+    snapshot = null;
+    onChange();
+  };
+
+  window.addEventListener(CART_EVENT, onChange);
+  window.addEventListener('storage', onStorage);
+
+  return () => {
+    window.removeEventListener(CART_EVENT, onChange);
+    window.removeEventListener('storage', onStorage);
+  };
+}
+
+export function getCartSnapshot(): Cart {
+  if (snapshot === null) snapshot = readCart();
+  return snapshot;
+}
+
+/** The server has no cart, so the first paint must match an empty one. */
+export function getCartServerSnapshot(): Cart {
+  return EMPTY_CART;
 }
 
 /** Adds a line, merging with an existing one for the same product. */
