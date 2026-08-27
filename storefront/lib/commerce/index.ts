@@ -16,8 +16,15 @@ import 'server-only';
  * plain modules with no server dependency — and receive their data as props
  * from a Server Component.
  */
-import { api } from './api-client';
-import type { Collection, Paginated, Product } from './types';
+import { api, CommerceError } from './api-client';
+import type {
+  CheckoutInput,
+  CheckoutResult,
+  Collection,
+  Order,
+  Paginated,
+  Product,
+} from './types';
 
 export * from './types';
 export * from './constants';
@@ -78,4 +85,40 @@ export async function getProductRecommendations(
   handle: string,
 ): Promise<Product[]> {
   return api.get<Product[]>(`/api/v1/catalog/products/${handle}/related`);
+}
+
+/**
+ * Places an order. The only write this storefront can perform.
+ *
+ * Sends product ids and quantities — never prices or totals. The admin
+ * recomputes every peso from its own catalogue inside the same transaction that
+ * reserves the stock, so a tampered cart in localStorage cannot change what is
+ * charged.
+ *
+ * Authenticated: this moves real inventory, and an open endpoint would let
+ * anyone exhaust it with orders nobody intends to pay for.
+ */
+export async function createOrder(
+  input: CheckoutInput,
+): Promise<CheckoutResult> {
+  return api.post<CheckoutResult>('/api/v1/checkout', input, {
+    authenticated: true,
+  });
+}
+
+/**
+ * Reads a placed order by its token. Returns null when the token is unknown, so
+ * a wrong link renders a real 404 rather than an error page.
+ */
+export async function getOrder(token: string): Promise<Order | null> {
+  try {
+    return await api.get<Order>(`/api/v1/orders/${token}`, {
+      authenticated: true,
+      // Never cached: the status changes as the shop works the order.
+      revalidate: 0,
+    });
+  } catch (error) {
+    if (error instanceof CommerceError && error.status === 404) return null;
+    throw error;
+  }
 }

@@ -136,10 +136,15 @@ export default function CartDrawer({
                   {formatMoney({ amountCents: subtotalCents, currency: CURRENCY })}
                 </span>
               </div>
-              {/* Checkout is not built yet; promising it here would be a dead
-                  end. The button arrives with the checkout phase. */}
-              <p className="text-sm text-muted">
-                El pago en línea todavía no está disponible.
+              <Link href="/checkout" onClick={close} className="block">
+                <Button fullWidth>Ir a pagar</Button>
+              </Link>
+
+              {/* Said before the click, not after: no card is taken online
+                  (F6 has not started), and discovering that at the end of a
+                  checkout is how a shopper stops trusting a shop. */}
+              <p className="mt-3 text-sm text-muted">
+                Confirmas tu pedido aquí y pagas al recibirlo o recogerlo.
               </p>
             </footer>
           </>

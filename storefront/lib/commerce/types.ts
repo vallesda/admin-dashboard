@@ -76,3 +76,48 @@ export type CartLine = {
   quantity: number;
   image: ProductImage | null;
 };
+
+export type OrderLine = {
+  name: string;
+  quantity: number;
+  unitPrice: Money;
+  lineTotal: Money;
+};
+
+/**
+ * A placed order, as the person who placed it may see it.
+ *
+ * Addressed by an opaque token, never by `orderNumber`: the number is
+ * sequential, so a URL built on it would be an enumeration of every customer's
+ * name and delivery address. The number is still here — it is what a customer
+ * quotes on the phone — but it is not the key.
+ *
+ * Carries no phone and no email: the confirmation page is reachable by anyone
+ * holding the link, and the link travels through browser history and referrers.
+ */
+export type Order = {
+  orderNumber: number;
+  status: string;
+  paymentStatus: string;
+  fulfillmentType: string;
+  customerName: string;
+  deliveryAddress: string | null;
+  lines: OrderLine[];
+  subtotal: Money;
+  deliveryFee: Money;
+  total: Money;
+  createdAt: string;
+};
+
+export type CheckoutInput = {
+  customer: { name: string; phone: string; email: string | null };
+  fulfillmentType: 'pickup' | 'delivery';
+  deliveryAddress?: string;
+  notes?: string;
+  lines: { productId: string; quantity: number }[];
+};
+
+export type CheckoutResult = {
+  orderNumber: number;
+  token: string;
+};
