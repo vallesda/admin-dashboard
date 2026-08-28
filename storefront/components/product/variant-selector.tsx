@@ -45,10 +45,10 @@ export default function VariantSelector({
               disabled={disabled}
               aria-pressed={selected}
               className={[
-                'rounded border px-4 py-2 text-sm transition-colors duration-150',
+                'rounded border px-4 py-2.5 text-sm transition-colors duration-150',
                 selected
                   ? 'border-brand bg-brand text-background'
-                  : 'border-border bg-surface hover:border-brand',
+                  : 'border-border-strong bg-surface hover:border-brand',
                 disabled ? 'cursor-not-allowed line-through opacity-50' : '',
               ].join(' ')}
             >

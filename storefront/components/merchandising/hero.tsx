@@ -16,13 +16,21 @@ import Button from '@/components/ui/button';
  * It says where the product comes from before a single word does, which is the
  * one thing a seafood hero has to establish.
  *
+ * The headline says what the shop does, not how good it is. "Pescado
+ * extraordinario" was a superlative the brand's own voice rule forbids, and it
+ * was doing no work the photograph wasn't already doing better.
+ *
+ * The CTA goes to the full catalogue rather than to an anchor further down this
+ * page: an anchor scrolled the shopper PAST the first purchasable products,
+ * which inverts the "buy first, story later" principle it was meant to serve.
+ *
  * No data fetching here — the hero is the first thing painted, and making it
  * wait on the catalogue would delay the whole page for an image that never
  * changes.
  */
 export default function Hero() {
   return (
-    <section className="relative bg-background">
+    <section aria-labelledby="hero-heading" className="relative bg-background">
       <div className="grid grid-cols-1 md:grid-cols-[5fr_7fr]">
         {/* Photography */}
         <div className="relative order-1 aspect-[4/3] md:order-2 md:aspect-auto md:min-h-[34rem]">
@@ -40,8 +48,8 @@ export default function Hero() {
             keeps its full frame. */}
         <div className="order-2 bg-brand text-background edge-top md:order-1 md:edge-none">
           <div className="px-5 py-14 md:py-24 md:pl-8 md:pr-14 lg:pl-[max(2rem,calc((100vw-var(--container))/2+2rem))]">
-            <Heading as="h1" size="hero" className="max-w-[13ch]">
-              Pescado extraordinario, del mar a tu mesa.
+            <Heading id="hero-heading" as="h1" size="hero" className="max-w-[13ch]">
+              Del barco a tu cocina, sin escala.
             </Heading>
 
             <p className="mt-6 max-w-[38ch] text-lg text-background/85">
@@ -49,9 +57,9 @@ export default function Hero() {
               frío.
             </p>
 
-            <Link href="#producto-fresco" className="mt-9 inline-block">
+            <Link href="/search" className="mt-9 inline-block">
               <Button className="bg-background text-brand hover:bg-gold hover:text-foreground">
-                Comprar producto
+                Ver lo que hay hoy
               </Button>
             </Link>
           </div>

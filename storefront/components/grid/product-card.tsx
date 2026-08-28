@@ -14,6 +14,10 @@ import Price from '@/components/ui/price';
  * A Server Component — it has no interaction of its own.
  */
 export default function ProductCard({ product }: { product: Product }) {
+  const meta = [product.presentation, product.origin]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <Link
       href={`/product/${product.handle}`}
@@ -53,11 +57,12 @@ export default function ProductCard({ product }: { product: Product }) {
         </h3>
 
         {/* Presentation and origin are the differentiators a shopper actually
-            compares between two cuts of the same fish. */}
-        <p className="mt-1 text-sm text-muted">
-          {[product.presentation, product.origin].filter(Boolean).join(' · ') ||
-            ' '}
-        </p>
+            compares between two cuts of the same fish.
+
+            The row collapses when neither is set. The old fallback rendered a
+            non-breaking space, so a card the admin had not filled in showed a
+            blank line and read as broken rather than simply shorter. */}
+        {meta ? <p className="mt-1 text-sm text-muted">{meta}</p> : null}
 
         <p className="mt-2 text-base">
           <Price value={product.price} unit={product.unit} />

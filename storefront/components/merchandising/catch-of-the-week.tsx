@@ -6,6 +6,7 @@ import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
 import Button from '@/components/ui/button';
 import Price from '@/components/ui/price';
+import Section from '@/components/ui/section';
 
 /**
  * Seasonal merchandising.
@@ -26,7 +27,11 @@ export default async function CatchOfTheWeek() {
   if (!product) return null;
 
   return (
-    <section className="bg-brand text-background edge-top edge-bottom">
+    <Section
+      labelledBy="pesca-heading"
+      rhythm="none"
+      className="bg-brand text-background edge-top edge-bottom"
+    >
       <Container>
         <div className="grid grid-cols-1 items-center gap-10 py-20 md:grid-cols-2 md:gap-16 md:py-28">
           <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-brand-dark md:aspect-square">
@@ -42,11 +47,11 @@ export default async function CatchOfTheWeek() {
           </div>
 
           <div>
-            <p className="mb-4 font-sans text-xs uppercase tracking-[0.16em] text-gold">
-              Pesca de la semana
-            </p>
-
-            <Heading size="section" className="max-w-[14ch]">
+            <Heading
+              id="pesca-heading"
+              size="section"
+              className="max-w-[14ch]"
+            >
               {product.name}
             </Heading>
 
@@ -74,6 +79,6 @@ export default async function CatchOfTheWeek() {
           </div>
         </div>
       </Container>
-    </section>
+    </Section>
   );
 }

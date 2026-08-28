@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { getCollections } from '@/lib/commerce';
 import { OCCASIONS } from '@/lib/occasions';
+import Eyebrow from '@/components/ui/eyebrow';
 
 /**
  * Browsing rails for the collection pages.
@@ -56,9 +57,9 @@ function Group({
 }) {
   return (
     <div>
-      <h2 className="mb-3 font-sans text-xs uppercase tracking-[0.12em] text-muted">
+      <Eyebrow as="h2" className="mb-3">
         {title}
-      </h2>
+      </Eyebrow>
       <ul className="flex flex-wrap gap-x-4 gap-y-1 md:flex-col md:gap-y-2">
         {children}
       </ul>
@@ -82,8 +83,8 @@ function Item({
         aria-current={active ? 'page' : undefined}
         className={
           active
-            ? 'border-b-2 border-brand pb-0.5 text-sm font-medium text-brand'
-            : 'text-sm text-foreground hover:text-brand'
+            ? '-my-1.5 inline-block border-b-2 border-brand py-1.5 text-sm font-medium text-brand'
+            : '-my-1.5 inline-block py-1.5 text-sm text-foreground hover:text-brand'
         }
       >
         {label}

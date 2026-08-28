@@ -67,7 +67,10 @@ export default async function Page({ params }: Props) {
       <ProductJsonLd product={product} />
 
       <nav aria-label="Ruta de navegación" className="mb-8 text-sm text-muted">
-        <Link href="/" className="hover:text-brand">
+        <Link
+          href="/search"
+          className="-my-2 inline-block py-2 hover:text-brand"
+        >
           Productos
         </Link>
         <span aria-hidden="true"> / </span>

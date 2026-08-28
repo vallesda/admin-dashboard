@@ -5,6 +5,8 @@ import {
   ColdIcon,
   HandlingIcon,
 } from './value-icons';
+import Eyebrow from '@/components/ui/eyebrow';
+import Section from '@/components/ui/section';
 
 /**
  * Why buy here — four reasons, read in a glance.
@@ -24,7 +26,7 @@ import {
 const POINTS = [
   {
     Icon: FishIcon,
-    title: 'Selección premium',
+    title: 'Elegido pieza por pieza',
     body: 'Elegimos pieza por pieza lo que entra al catálogo. Lo que no pasa, no se vende.',
   },
   {
@@ -46,7 +48,7 @@ const POINTS = [
 
 export default function ValueProps() {
   return (
-    <section aria-labelledby="valor-heading" className="py-16 md:py-20">
+    <Section labelledBy="valor-heading">
       <Container>
         <h2 id="valor-heading" className="sr-only">
           Por qué comprar en Amor a Mar
@@ -61,9 +63,9 @@ export default function ValueProps() {
               <span className="text-brand">
                 <Icon />
               </span>
-              <h3 className="mt-4 font-sans text-sm font-medium uppercase tracking-[0.08em]">
+              <Eyebrow as="h3" size="sm" tone="inherit" className="mt-4">
                 {title}
-              </h3>
+              </Eyebrow>
               <p className="mt-2 max-w-[32ch] text-sm leading-relaxed text-muted">
                 {body}
               </p>
@@ -71,6 +73,6 @@ export default function ValueProps() {
           ))}
         </ul>
       </Container>
-    </section>
+    </Section>
   );
 }

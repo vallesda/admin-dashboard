@@ -1,6 +1,8 @@
 import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
 import { STEPS, ZONES, DAYS, CUTOFF } from '@/lib/fulfillment';
+import Eyebrow from '@/components/ui/eyebrow';
+import Section from '@/components/ui/section';
 
 /**
  * How ordering works — three steps, no more.
@@ -25,10 +27,7 @@ export default function HowItWorks() {
   ].filter((f): f is { label: string; value: string } => f.value !== null);
 
   return (
-    <section
-      aria-labelledby="como-funciona-heading"
-      className="py-16 md:py-24"
-    >
+    <Section labelledBy="como-funciona-heading">
       <Container>
         <Heading id="como-funciona-heading" className="mb-3">
           Cómo funciona
@@ -64,15 +63,15 @@ export default function HowItWorks() {
           <dl className="mt-12 flex flex-col gap-4 border-t border-border pt-8 sm:flex-row sm:gap-12">
             {facts.map((fact) => (
               <div key={fact.label}>
-                <dt className="font-sans text-xs uppercase tracking-[0.1em] text-muted">
+                <Eyebrow as="dt">
                   {fact.label}
-                </dt>
+                </Eyebrow>
                 <dd className="mt-1 text-sm">{fact.value}</dd>
               </div>
             ))}
           </dl>
         ) : null}
       </Container>
-    </section>
+    </Section>
   );
 }

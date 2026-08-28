@@ -8,6 +8,8 @@ import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
 import Button from '@/components/ui/button';
 import ClearCart from './clear-cart';
+import Eyebrow from '@/components/ui/eyebrow';
+import { RHYTHM } from '@/components/ui/section';
 
 export const metadata: Metadata = {
   title: 'Tu pedido',
@@ -47,13 +49,13 @@ export default async function Page({
   const isCancelled = order.status === 'cancelled';
 
   return (
-    <Container className="py-12 md:py-16">
+    <Container className={RHYTHM.sm}>
       <ClearCart token={token} />
 
       <div className="max-w-2xl">
-        <p className="mb-3 font-sans text-xs uppercase tracking-[0.14em] text-muted">
+        <Eyebrow className="mb-3">
           Pedido #{order.orderNumber}
-        </p>
+        </Eyebrow>
 
         <Heading as="h1" className="mb-4">
           {isCancelled ? 'Este pedido fue cancelado' : 'Gracias, ' + order.customerName.split(' ')[0]}
@@ -67,25 +69,25 @@ export default async function Page({
 
         <dl className="mb-10 grid grid-cols-1 gap-6 border-y border-border py-6 sm:grid-cols-3">
           <div>
-            <dt className="text-xs uppercase tracking-[0.1em] text-muted">
+            <Eyebrow as="dt">
               Estado
-            </dt>
+            </Eyebrow>
             <dd className="mt-1 text-sm">
               {STATUS_LABEL[order.status] ?? order.status}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-[0.1em] text-muted">
+            <Eyebrow as="dt">
               Entrega
-            </dt>
+            </Eyebrow>
             <dd className="mt-1 text-sm">
               {FULFILLMENT_LABEL[order.fulfillmentType] ?? order.fulfillmentType}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-[0.1em] text-muted">
+            <Eyebrow as="dt">
               Pago
-            </dt>
+            </Eyebrow>
             <dd className="mt-1 text-sm">
               {order.paymentStatus === 'paid' ? 'Pagado' : 'Al recibir'}
             </dd>
@@ -94,9 +96,7 @@ export default async function Page({
 
         {order.deliveryAddress ? (
           <div className="mb-10">
-            <h2 className="text-xs uppercase tracking-[0.1em] text-muted">
-              Dirección
-            </h2>
+            <Eyebrow as="h2">Dirección</Eyebrow>
             <p className="mt-1 text-sm">{order.deliveryAddress}</p>
           </div>
         ) : null}

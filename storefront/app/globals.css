@@ -31,12 +31,33 @@
   --background: 250 246 239;
   --surface: 255 253 249;
   --foreground: 12 28 29;
-  --muted: 104 118 116;
+  /*
+   * Was 104 118 116, which measured 4.40:1 on cream and 3.65:1 on sand — both
+   * under AA, and this colour carries origin, presentation and price unit
+   * across 40+ sites. This is the lightest value that clears 4.5:1 on the
+   * darkest surface it lands on (sand), so it is safe everywhere:
+   * cream 5.49 · sand 4.56 · surface 5.82.
+   */
+  --muted: 89 103 101;
   --sand: 234 225 210;
-  --border: 223 214 199;
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
+  /*
+   * Two border tokens, because they answer to different rules.
+   *
+   * --border is a divider: rules between rows, edges of a card. WCAG asks
+   * nothing of it, so it stays a hairline and keeps the system quiet. Nudged up
+   * only enough to survive a bright screen.
+   *
+   * --border-strong is the boundary of an interactive control. In a system with
+   * no shadows and a field background barely distinct from the page, that 1px
+   * line is the ONLY thing identifying an input as an input — which puts it
+   * under WCAG 1.4.11 and its 3:1 floor. 149 142 132 measures 3.01:1 on cream.
+   * Keeping the two apart is what lets fields be legible without turning every
+   * divider on the site into a hard rule.
+   */
+  --border: 210 200 183;
+  --border-strong: 149 142 132;
+
   --container: 1360px;
   --motion: 180ms;
 }
@@ -94,11 +115,23 @@
   }
 }
 
+/*
+ * Reduced motion removes movement, not feedback.
+ *
+ * A blanket `transition-duration: 0.01ms` also kills the colour changes that
+ * communicate hover, focus and disabled state — which are not motion. So the
+ * kill is scoped to transform and to animation, and colour transitions are left
+ * alive. `animation-iteration-count` is pinned too: overriding only the
+ * duration leaves an infinite loop spinning infinitely fast.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: color, background-color, border-color, outline-color,
+      fill, stroke, opacity !important;
+    transition-duration: 120ms !important;
   }
 }

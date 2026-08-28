@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCollections } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Logo from '@/components/layout/logo';
+import Eyebrow from '@/components/ui/eyebrow';
 
 /**
  * Footer.
@@ -29,7 +30,7 @@ export default async function Footer() {
           </div>
 
           <FooterColumn title="Productos">
-            <FooterLink href="/">Todo el catálogo</FooterLink>
+            <FooterLink href="/search">Todo el catálogo</FooterLink>
             {collections.map((c) => (
               <FooterLink key={c.handle} href={`/search/${c.handle}`}>
                 {c.title}
@@ -70,9 +71,9 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h3 className="mb-4 font-sans text-xs uppercase tracking-[0.12em] text-background/60">
+      <Eyebrow as="h3" tone="on-brand" className="mb-4">
         {title}
-      </h3>
+      </Eyebrow>
       <ul className="flex flex-col gap-2">{children}</ul>
     </div>
   );
@@ -89,7 +90,7 @@ function FooterLink({
     <li>
       <Link
         href={href}
-        className="text-sm text-background/85 underline-offset-4 hover:underline"
+        className="-my-1.5 inline-block py-1.5 text-sm text-background/85 underline-offset-4 hover:underline"
       >
         {children}
       </Link>

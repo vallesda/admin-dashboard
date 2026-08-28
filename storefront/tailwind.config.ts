@@ -18,13 +18,16 @@ const config: Config = {
         muted: 'rgb(var(--muted) / <alpha-value>)',
         sand: 'rgb(var(--sand) / <alpha-value>)',
         border: 'rgb(var(--border) / <alpha-value>)',
+        'border-strong': 'rgb(var(--border-strong) / <alpha-value>)',
       },
       fontFamily: {
         display: ['var(--font-display)', 'Georgia', 'serif'],
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
       maxWidth: { container: '1360px' },
-      borderRadius: { DEFAULT: '4px', md: '6px', lg: '8px' },
+      // `sm` is declared explicitly so it stops falling through to
+      // Tailwind's 2px default while `--radius-sm` sat unused in globals.css.
+      borderRadius: { sm: '2px', DEFAULT: '4px', md: '6px', lg: '8px' },
     },
   },
   plugins: [],

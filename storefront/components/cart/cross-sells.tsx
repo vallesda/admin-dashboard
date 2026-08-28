@@ -7,6 +7,7 @@ import type { Product } from '@/lib/commerce/types';
 import { addLine, getCartSnapshot, writeCart } from '@/lib/cart';
 import { pickCrossSells } from '@/lib/cross-sell';
 import { formatMoney } from '@/lib/format';
+import Eyebrow from '@/components/ui/eyebrow';
 
 /**
  * Suggestions inside the cart.
@@ -42,12 +43,9 @@ export default function CrossSells({
       aria-labelledby="cross-sells-heading"
       className="border-t border-border px-5 py-4"
     >
-      <h3
-        id="cross-sells-heading"
-        className="mb-3 text-xs uppercase tracking-wide text-muted"
-      >
+      <Eyebrow as="h3" id="cross-sells-heading" className="mb-3">
         Otros productos frescos
-      </h3>
+      </Eyebrow>
 
       <ul className="flex flex-col gap-3">
         {suggestions.map((product) => (
@@ -76,7 +74,7 @@ export default function CrossSells({
               onClick={() =>
                 writeCart(addLine(getCartSnapshot(), product, 1))
               }
-              className="flex-none rounded-sm border border-border px-3 py-1.5 text-sm hover:border-brand hover:text-brand"
+              className="flex-none rounded-sm border border-border px-3 py-2.5 text-sm hover:border-brand hover:text-brand"
             >
               Agregar
               <span className="sr-only"> {product.name} al carrito</span>

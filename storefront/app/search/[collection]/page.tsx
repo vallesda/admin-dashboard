@@ -10,6 +10,7 @@ import Heading from '@/components/ui/heading';
 import ProductGrid from '@/components/grid/product-grid';
 import CollectionNav from '@/components/layout/collection-nav';
 import GridSkeleton from '@/components/grid/grid-skeleton';
+import { RHYTHM } from '@/components/ui/section';
 
 type Props = { params: Promise<{ collection: string }> };
 
@@ -69,7 +70,7 @@ export default async function Page({ params }: Props) {
     found.kind === 'collection' ? found.collection.title : found.occasion.title;
 
   return (
-    <Container className="py-10 md:py-16">
+    <Container className={RHYTHM.sm}>
       {found.kind === 'occasion' ? (
         <div className="relative mb-10 aspect-[16/7] overflow-hidden rounded-sm md:aspect-[21/6]">
           <Image

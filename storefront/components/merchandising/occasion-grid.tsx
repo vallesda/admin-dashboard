@@ -2,6 +2,7 @@ import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
 import { OCCASIONS } from '@/lib/occasions';
 import OccasionCard from './occasion-card';
+import Section from '@/components/ui/section';
 
 /**
  * Shopping by intent rather than by taxonomy.
@@ -19,9 +20,11 @@ import OccasionCard from './occasion-card';
  */
 export default function OccasionGrid() {
   return (
-    <section className="py-16 md:py-24">
+    <Section labelledBy="ocasiones-heading">
       <Container>
-        <Heading className="mb-3">Para qué lo quieres</Heading>
+        <Heading id="ocasiones-heading" className="mb-3">
+          Para qué lo quieres
+        </Heading>
         <p className="mb-10 max-w-[52ch] text-muted">
           Empieza por lo que vas a preparar y nosotros te decimos qué pieza
           funciona mejor.
@@ -35,6 +38,6 @@ export default function OccasionGrid() {
           ))}
         </ul>
       </Container>
-    </section>
+    </Section>
   );
 }

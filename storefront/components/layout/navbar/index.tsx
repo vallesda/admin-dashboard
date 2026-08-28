@@ -4,6 +4,7 @@ import { getCollections } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Logo from '@/components/layout/logo';
 import OpenCart from '@/components/cart/open-cart';
+import SearchField from '@/components/ui/search-field';
 import MobileMenu from './mobile-menu';
 
 /**
@@ -17,6 +18,10 @@ import MobileMenu from './mobile-menu';
  * Cream background rather than transparent-over-hero: contrast stays reliable
  * on every page, and the hero below is strong enough without borrowing the
  * header's space.
+ *
+ * "Productos" points at /search, not at `/`. It used to be a no-op on the
+ * homepage, which left the full catalogue with no entry point in the header at
+ * all.
  */
 export default async function Navbar() {
   const collections = await getCollections();
@@ -36,7 +41,10 @@ export default async function Navbar() {
             <nav aria-label="Principal" className="hidden md:block">
               <ul className="flex items-center gap-6 text-sm">
                 <li>
-                  <Link href="/" className="hover:text-brand">
+                  <Link
+                    href="/search"
+                    className="-my-2 inline-block py-2 hover:text-brand"
+                  >
                     Productos
                   </Link>
                 </li>
@@ -44,7 +52,7 @@ export default async function Navbar() {
                   <li key={collection.handle}>
                     <Link
                       href={`/search/${collection.handle}`}
-                      className="hover:text-brand"
+                      className="-my-2 inline-block py-2 hover:text-brand"
                     >
                       {collection.title}
                     </Link>
@@ -54,7 +62,14 @@ export default async function Navbar() {
             </nav>
           </div>
 
-          <OpenCart />
+          <div className="flex items-center gap-2">
+            {/* Search lives in the header because the returning shopper who
+                already knows what they want should not have to reach the
+                catalogue page first. Hidden below `lg` only to protect the
+                logo; the mobile drawer carries its own copy. */}
+            <SearchField className="hidden w-56 lg:block xl:w-64" />
+            <OpenCart />
+          </div>
         </div>
       </Container>
     </header>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
+import Section from '@/components/ui/section';
 
 /**
  * About — the only section on the page that is not trying to sell anything.
@@ -31,12 +32,15 @@ export default function About() {
   );
 
   return (
-    <section
-      aria-labelledby="nosotros-heading"
-      className="edge-top edge-bottom bg-brand text-white"
-    >
-      <Container className="py-16 md:py-24">
-        <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
+    <Section labelledBy="nosotros-heading" className="bg-sand/40">
+      <Container>
+        <div
+          className={
+            hasPhoto
+              ? 'grid items-center gap-10 md:grid-cols-2 md:gap-16'
+              : 'flex justify-center'
+          }
+        >
           {hasPhoto ? (
             <div className="relative aspect-[4/5] overflow-hidden rounded-sm md:aspect-[4/5]">
               <Image
@@ -50,15 +54,11 @@ export default function About() {
           ) : null}
 
           <div className={hasPhoto ? '' : 'max-w-[62ch]'}>
-            <p className="mb-4 font-sans text-xs uppercase tracking-[0.14em] text-white/60">
-              Amor a Mar
-            </p>
-
-            <Heading id="nosotros-heading" className="mb-6 text-white">
+            <Heading id="nosotros-heading" className="mb-6">
               El mar no se apura
             </Heading>
 
-            <div className="space-y-4 text-[15px] leading-relaxed text-white/85">
+            <div className="space-y-4 leading-relaxed text-muted">
               <p>
                 Trabajamos con lo que el mar da ese día, no con lo que un
                 catálogo dice que debería haber. Por eso lo que ves disponible
@@ -74,13 +74,13 @@ export default function About() {
 
             <Link
               href="/search"
-              className="mt-8 inline-block border-b border-white/40 pb-1 font-sans text-sm text-white transition-colors hover:border-white"
+              className="mt-8 inline-block border-b border-brand/40 py-2 font-sans text-sm text-brand transition-colors hover:border-brand"
             >
               Ver lo que hay hoy
             </Link>
           </div>
         </div>
       </Container>
-    </section>
+    </Section>
   );
 }

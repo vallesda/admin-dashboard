@@ -21,7 +21,7 @@ export default function Button({
   const look =
     variant === 'primary'
       ? 'bg-brand text-background hover:bg-brand-dark'
-      : 'border border-border bg-surface text-foreground hover:bg-sand';
+      : 'border border-border-strong bg-surface text-foreground hover:bg-sand';
 
   return (
     <button

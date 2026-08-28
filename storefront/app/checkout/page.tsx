@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
 import CheckoutForm from './checkout-form';
+import { RHYTHM } from '@/components/ui/section';
 
 export const metadata: Metadata = {
   title: 'Checkout',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <Container className="py-12 md:py-16">
+    <Container className={RHYTHM.sm}>
       <Heading as="h1" className="mb-8">
         Confirma tu pedido
       </Heading>

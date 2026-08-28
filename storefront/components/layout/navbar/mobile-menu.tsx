@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import IconButton from '@/components/ui/icon-button';
 import type { Collection } from '@/lib/commerce/types';
+import SearchField from '@/components/ui/search-field';
 
 /**
  * Mobile navigation.
@@ -53,15 +54,19 @@ export default function MobileMenu({
             </IconButton>
           </div>
 
+          <div className="border-b border-border px-5 py-4">
+            <SearchField />
+          </div>
+
           <nav className="px-5 py-4">
             <ul className="flex flex-col gap-1">
               <li>
                 <Link
-                  href="/"
+                  href="/search"
                   onClick={() => setOpen(false)}
                   className="block py-3 text-lg"
                 >
-                  Productos
+                  Todo el catálogo
                 </Link>
               </li>
               {collections.map((collection) => (

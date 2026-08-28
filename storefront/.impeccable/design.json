@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-28T23:44:19Z",
+  "title": "Design System: Amor a Mar",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Verde Marino Profundo",
+        "canonical": "rgb(2 79 85)",
+        "tonalRamp": [
+          "oklch(18% 0.035 199)",
+          "oklch(28% 0.045 199)",
+          "oklch(38% 0.055 199)",
+          "oklch(48% 0.058 199)",
+          "oklch(58% 0.055 199)",
+          "oklch(70% 0.045 199)",
+          "oklch(84% 0.028 199)",
+          "oklch(95% 0.012 199)"
+        ]
+      },
+      "brand-dark": {
+        "role": "primary",
+        "displayName": "Verde Casco",
+        "canonical": "rgb(1 42 46)",
+        "tonalRamp": [
+          "oklch(15% 0.030 199)",
+          "oklch(24% 0.040 199)",
+          "oklch(34% 0.050 199)",
+          "oklch(44% 0.052 199)",
+          "oklch(56% 0.048 199)",
+          "oklch(69% 0.038 199)",
+          "oklch(83% 0.024 199)",
+          "oklch(95% 0.010 199)"
+        ]
+      },
+      "brand-soft": {
+        "role": "primary",
+        "displayName": "Verde Espuma",
+        "canonical": "rgb(218 239 241)",
+        "tonalRamp": [
+          "oklch(20% 0.020 199)",
+          "oklch(32% 0.026 199)",
+          "oklch(44% 0.030 199)",
+          "oklch(56% 0.030 199)",
+          "oklch(68% 0.026 199)",
+          "oklch(80% 0.022 199)",
+          "oklch(91% 0.018 199)",
+          "oklch(97% 0.008 199)"
+        ]
+      },
+      "gold": {
+        "role": "secondary",
+        "displayName": "Oro de Logo",
+        "canonical": "rgb(214 168 8)",
+        "tonalRamp": [
+          "oklch(20% 0.055 92)",
+          "oklch(32% 0.080 92)",
+          "oklch(44% 0.105 92)",
+          "oklch(56% 0.125 92)",
+          "oklch(66% 0.135 92)",
+          "oklch(78% 0.115 92)",
+          "oklch(88% 0.070 92)",
+          "oklch(96% 0.030 92)"
+        ]
+      },
+      "gold-soft": {
+        "role": "secondary",
+        "displayName": "Oro Pálido",
+        "canonical": "rgb(250 240 209)",
+        "tonalRamp": [
+          "oklch(22% 0.030 92)",
+          "oklch(34% 0.042 92)",
+          "oklch(46% 0.052 92)",
+          "oklch(58% 0.058 92)",
+          "oklch(70% 0.052 92)",
+          "oklch(82% 0.040 92)",
+          "oklch(91% 0.028 92)",
+          "oklch(97% 0.014 92)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Crema de Papel",
+        "canonical": "rgb(250 246 239)",
+        "tonalRamp": [
+          "oklch(18% 0.008 85)",
+          "oklch(30% 0.010 85)",
+          "oklch(42% 0.012 85)",
+          "oklch(55% 0.013 85)",
+          "oklch(68% 0.013 85)",
+          "oklch(80% 0.012 85)",
+          "oklch(90% 0.010 85)",
+          "oklch(97% 0.008 85)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Crema Elevada",
+        "canonical": "rgb(255 253 249)",
+        "tonalRamp": [
+          "oklch(18% 0.005 85)",
+          "oklch(30% 0.006 85)",
+          "oklch(42% 0.007 85)",
+          "oklch(55% 0.008 85)",
+          "oklch(68% 0.008 85)",
+          "oklch(80% 0.007 85)",
+          "oklch(90% 0.006 85)",
+          "oklch(99% 0.004 85)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Tinta de Mar",
+        "canonical": "rgb(12 28 29)",
+        "tonalRamp": [
+          "oklch(14% 0.014 199)",
+          "oklch(26% 0.018 199)",
+          "oklch(38% 0.020 199)",
+          "oklch(50% 0.020 199)",
+          "oklch(63% 0.018 199)",
+          "oklch(76% 0.014 199)",
+          "oklch(87% 0.010 199)",
+          "oklch(96% 0.005 199)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Gris Marea",
+        "canonical": "rgb(89 103 101)",
+        "tonalRamp": [
+          "oklch(18% 0.010 175)",
+          "oklch(29% 0.012 175)",
+          "oklch(40% 0.014 175)",
+          "oklch(52% 0.014 175)",
+          "oklch(64% 0.013 175)",
+          "oklch(76% 0.011 175)",
+          "oklch(87% 0.008 175)",
+          "oklch(96% 0.004 175)"
+        ]
+      },
+      "sand": {
+        "role": "neutral",
+        "displayName": "Arena",
+        "canonical": "rgb(234 225 210)",
+        "tonalRamp": [
+          "oklch(20% 0.012 82)",
+          "oklch(32% 0.016 82)",
+          "oklch(44% 0.020 82)",
+          "oklch(56% 0.022 82)",
+          "oklch(69% 0.020 82)",
+          "oklch(80% 0.018 82)",
+          "oklch(91% 0.014 82)",
+          "oklch(97% 0.007 82)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Borde de Concha",
+        "canonical": "rgb(210 200 183)",
+        "tonalRamp": [
+          "oklch(20% 0.013 82)",
+          "oklch(32% 0.017 82)",
+          "oklch(44% 0.021 82)",
+          "oklch(56% 0.023 82)",
+          "oklch(68% 0.021 82)",
+          "oklch(79% 0.018 82)",
+          "oklch(89% 0.014 82)",
+          "oklch(96% 0.007 82)"
+        ]
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Borde de Control",
+        "canonical": "rgb(149 142 132)",
+        "tonalRamp": [
+          "oklch(20% 0.013 82)",
+          "oklch(32% 0.017 82)",
+          "oklch(44% 0.021 82)",
+          "oklch(56% 0.023 82)",
+          "oklch(68% 0.021 82)",
+          "oklch(79% 0.018 82)",
+          "oklch(89% 0.014 82)",
+          "oklch(96% 0.007 82)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Solo el titular del hero. Uno por página, nunca dos."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Títulos de sección; divide la página en capítulos."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Subsecciones, legend de formulario, encabezado del resumen de pedido."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto corrido; medida limitada en ch, no en porcentaje."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "La etiqueta pequeña en mayúsculas que precede a un encabezado o nombra un valor en una lista de definición. Vive en components/ui/eyebrow.tsx. Tracking 0.1em. La barra de anuncios es la excepción declarada (0.08em, sin mayúsculas): no es un eyebrow."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay",
+        "value": "0 8px 40px rgb(12 28 29 / 0.14)",
+        "purpose": "Única sombra del sistema. Solo para superficies que flotan sobre contenido activo: drawer del carrito y menú móvil. Fría (Tinta de Mar, no negro) para no ensuciar la crema."
+      }
+    ],
+    "motion": [
+      {
+        "name": "motion-base",
+        "value": "180ms",
+        "purpose": "Token --motion en globals.css. Duración de referencia para transiciones de estado."
+      },
+      {
+        "name": "duration-color",
+        "value": "150ms",
+        "purpose": "Transiciones de color: hover de botón, control de icono, tarjeta de entrega."
+      },
+      {
+        "name": "duration-transform",
+        "value": "200ms",
+        "purpose": "Transformaciones: el scale-[1.02] de la imagen de producto en hover."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transform + animation only",
+        "purpose": "Bajo prefers-reduced-motion el bloque global mata transform y animation y fija animation-iteration-count en 1, pero deja vivas las transiciones de color. Reducir movimiento no es apagar la retroalimentación de estado."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "container",
+        "value": "1360px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "La acción principal. Sólido y seguro: el peso viene del color y del tamaño, no de la decoración.",
+      "html": "<button class=\"ds-btn-primary\">Agregar al carrito</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgb(2 79 85); color: rgb(250 246 239); font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; transition: background-color 150ms; } .ds-btn-primary:hover { background: rgb(1 42 46); } .ds-btn-primary:focus-visible { outline: 2px solid rgb(2 79 85); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción alterna. Superficie crema elevada con borde de 1px; el borde hace el trabajo que en otro sistema haría una sombra.",
+      "html": "<button class=\"ds-btn-secondary\">Seguir comprando</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgb(255 253 249); color: rgb(12 28 29); font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; padding: 12px 24px; border: 1px solid rgb(223 214 199); border-radius: 4px; cursor: pointer; transition: background-color 150ms; } .ds-btn-secondary:hover { background: rgb(234 225 210); } .ds-btn-secondary:focus-visible { outline: 2px solid rgb(2 79 85); outline-offset: 2px; }"
+    },
+    {
+      "name": "On-Brand Button",
+      "kind": "button",
+      "refersTo": "button-on-brand",
+      "description": "Botón invertido para cuando vive dentro de un bloque verde. Su hover es el único lugar del sistema donde el oro toca un control.",
+      "html": "<div style=\"background: rgb(2 79 85); padding: 24px; border-radius: 4px;\"><button class=\"ds-btn-on-brand\">Comprar producto</button></div>",
+      "css": ".ds-btn-on-brand { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgb(250 246 239); color: rgb(2 79 85); font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-btn-on-brand:hover { background: rgb(214 168 8); color: rgb(12 28 29); } .ds-btn-on-brand:focus-visible { outline: 2px solid rgb(250 246 239); outline-offset: 2px; }"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "Control de icono de 44x44px. El nombre accesible es obligatorio por tipo, no opcional.",
+      "html": "<button class=\"ds-icon-button\" aria-label=\"Abrir carrito\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z\"/><path d=\"M3 6h18\"/><path d=\"M16 10a4 4 0 0 1-8 0\"/></svg></button>",
+      "css": ".ds-icon-button { display: flex; align-items: center; justify-content: center; height: 44px; width: 44px; background: transparent; color: rgb(12 28 29); border: none; border-radius: 2px; cursor: pointer; transition: background-color 150ms; } .ds-icon-button:hover { background: rgb(234 225 210); } .ds-icon-button:focus-visible { outline: 2px solid rgb(2 79 85); outline-offset: 2px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Campo de formulario. Se hunde en lugar de levantarse: fondo Crema de Papel, no la superficie elevada.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-tel\">Teléfono</label><p class=\"ds-field-hint\" id=\"ds-tel-hint\">Te llamamos para confirmar horario y punto de entrega.</p><input class=\"ds-field-input\" id=\"ds-tel\" type=\"tel\" aria-describedby=\"ds-tel-hint\" placeholder=\"81 1234 5678\"></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font-family: 'Instrument Sans', system-ui, sans-serif; max-width: 22rem; } .ds-field-label { font-size: 0.875rem; font-weight: 500; color: rgb(12 28 29); } .ds-field-hint { font-size: 0.875rem; color: rgb(104 118 116); margin: 0; } .ds-field-input { width: 100%; background: rgb(250 246 239); color: rgb(12 28 29); font-size: 0.875rem; padding: 10px 12px; border: 1px solid rgb(223 214 199); border-radius: 2px; outline: none; transition: border-color 150ms; } .ds-field-input:focus-visible { border-color: rgb(2 79 85); outline: 2px solid rgb(2 79 85); outline-offset: 2px; }"
+    },
+    {
+      "name": "Seasonal Chip",
+      "kind": "chip",
+      "refersTo": "chip-seasonal",
+      "description": "El único uso permitido del oro sobre superficie. Marca lo excepcional y lo efímero.",
+      "html": "<span class=\"ds-chip-seasonal\">De temporada</span>",
+      "css": ".ds-chip-seasonal { display: inline-block; background: rgb(214 168 8); color: rgb(12 28 29); font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; padding: 4px 8px; border-radius: 2px; }"
+    },
+    {
+      "name": "Sold-Out Chip",
+      "kind": "chip",
+      "refersTo": "chip-soldout",
+      "description": "La disponibilidad es una palabra, nunca solo una imagen atenuada. Sobrevive a escala de grises y a luz de sol.",
+      "html": "<span class=\"ds-chip-soldout\">Agotado</span>",
+      "css": ".ds-chip-soldout { display: inline-block; background: rgb(12 28 29 / 0.85); color: rgb(250 246 239); font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 0.75rem; padding: 4px 8px; border-radius: 2px; }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card-product",
+      "description": "El componente del que vive o muere la tienda. Sin marco y sin sombra: la fotografía es el objeto y la tarjeta se aparta.",
+      "html": "<a class=\"ds-card\" href=\"#\"><div class=\"ds-card-media\"><span class=\"ds-card-badge\">De temporada</span></div><div class=\"ds-card-body\"><h3 class=\"ds-card-title\">Huachinango entero</h3><p class=\"ds-card-meta\">Limpio y escamado · Golfo de México</p><p class=\"ds-card-price\">$480.00 <span class=\"ds-card-unit\">/ kg</span></p></div></a>",
+      "css": ".ds-card { display: block; text-decoration: none; color: rgb(12 28 29); font-family: 'Instrument Sans', system-ui, sans-serif; max-width: 15rem; } .ds-card-media { position: relative; aspect-ratio: 4 / 5; background: rgb(234 225 210); border-radius: 2px; overflow: hidden; transition: transform 200ms; } .ds-card:hover .ds-card-media { transform: scale(1.02); } .ds-card-badge { position: absolute; left: 8px; top: 8px; background: rgb(214 168 8); color: rgb(12 28 29); font-size: 0.75rem; font-weight: 500; padding: 4px 8px; border-radius: 2px; } .ds-card-body { margin-top: 12px; } .ds-card-title { font-size: 1rem; font-weight: 500; line-height: 1.375; margin: 0; } .ds-card-meta { font-size: 0.875rem; color: rgb(104 118 116); margin: 4px 0 0; } .ds-card-price { font-size: 1rem; font-variant-numeric: tabular-nums; margin: 8px 0 0; } .ds-card-unit { color: rgb(104 118 116); } .ds-card:focus-visible { outline: 2px solid rgb(2 79 85); outline-offset: 2px; }"
+    },
+    {
+      "name": "Navigation Bar",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Encabezado persistente. Crema al 95% con desenfoque, no transparente-sobre-hero: el contraste se mantiene fiable en todas las páginas.",
+      "html": "<header class=\"ds-nav\"><span class=\"ds-nav-logo\">Amor a Mar</span><nav class=\"ds-nav-links\" aria-label=\"Principal\"><a href=\"#\" aria-current=\"page\">Productos</a><a href=\"#\">Pescados</a><a href=\"#\">Mariscos</a></nav></header>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 32px; height: 64px; padding: 0 20px; background: rgb(250 246 239 / 0.95); backdrop-filter: blur(4px); border-bottom: 1px solid rgb(223 214 199); font-family: 'Instrument Sans', system-ui, sans-serif; } .ds-nav-logo { font-family: 'Newsreader', Georgia, serif; font-size: 1.25rem; letter-spacing: -0.015em; color: rgb(2 79 85); } .ds-nav-links { display: flex; gap: 24px; } .ds-nav-links a { font-size: 0.875rem; color: rgb(12 28 29); text-decoration: none; transition: color 150ms; } .ds-nav-links a:hover { color: rgb(2 79 85); } .ds-nav-links a[aria-current='page'] { font-weight: 600; border-bottom: 1px solid rgb(2 79 85); } .ds-nav-links a:focus-visible { outline: 2px solid rgb(2 79 85); outline-offset: 2px; }"
+    },
+    {
+      "name": "Brand Diagonal",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "La firma geométrica del sistema y su único gesto puramente expresivo. clip-path en lugar de pseudo-elemento rotado: nunca desborda y el ángulo encoge en móvil sin romper la composición. Máximo una por pantalla.",
+      "html": "<div class=\"ds-diagonal\"><p class=\"ds-diagonal-text\">Pescado extraordinario, del mar a tu mesa.</p></div>",
+      "css": ".ds-diagonal { background: rgb(2 79 85); color: rgb(250 246 239); clip-path: polygon(0 4vw, 100% 0, 100% 100%, 0 100%); padding: 72px 24px 40px; } .ds-diagonal-text { font-family: 'Newsreader', Georgia, serif; font-size: 2rem; font-weight: 400; line-height: 0.95; letter-spacing: -0.015em; max-width: 13ch; margin: 0; } @media (max-width: 767px) { .ds-diagonal { clip-path: polygon(0 24px, 100% 0, 100% 100%, 0 100%); } }"
+    },
+    {
+      "name": "Eyebrow",
+      "kind": "custom",
+      "refersTo": "eyebrow",
+      "description": "La etiqueta pequeña en mayúsculas. Extraída porque el mismo patrón había crecido siete trackings distintos en diez archivos. El tono on-brand resuelve desde el token crema, nunca desde blanco puro.",
+      "html": "<div><p class=\"ds-eyebrow\">Pesca de la semana</p><p class=\"ds-eyebrow ds-eyebrow-gold\">Pesca de la semana</p><div class=\"ds-eyebrow-onbrand-demo\"><p class=\"ds-eyebrow ds-eyebrow-onbrand\">Amor a Mar</p></div></div>",
+      "css": ".ds-eyebrow { font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: rgb(104 118 116); margin: 0 0 12px; } .ds-eyebrow-gold { color: rgb(214 168 8); } .ds-eyebrow-onbrand-demo { background: rgb(2 79 85); padding: 16px; border-radius: 2px; } .ds-eyebrow-onbrand { color: rgb(250 246 239 / 0.6); margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La Captura del Día",
+    "overview": "Este no es un catálogo: es el registro de lo que el mar dio hoy. Todo el sistema visual está construido alrededor de una sola verdad incómoda del negocio — el inventario es volátil por diseño, una pieza se agota y desaparece, y el producto que estaba ayer puede no estar mañana. Un anaquel de supermercado esconde eso. Aquí se convierte en el material con el que se diseña.\n\nDe ahí salen las decisiones que parecen austeras y no lo son. La fotografía ocupa el espacio que en otra tienda ocuparía la decoración, porque la foto es la única prueba de frescura que un navegador puede transmitir. La superficie es crema cálida y nunca blanco puro, porque el producto se fotografía sobre hielo y el blanco puro le roba la temperatura. El verde de marca aparece en bloques sólidos y completos en vez de en acentos dispersos, para que cada sección declare de una vez si pertenece a la tienda o a la narrativa. Y el oro — extraído del mismo logo que el verde — se reserva casi por completo para una función: decir que algo es de temporada, es decir, que no siempre va a estar.\n\nLa tipografía sostiene la misma división del trabajo. Newsreader lleva la voz — titulares, nombres de sección, la parte editorial. Instrument Sans lleva todo lo que el comprador tiene que usar: precio, cantidad, etiqueta, botón. Mantenerlas separadas por función y no por gusto es lo que impide que la tienda lea como un sitio genérico de Tailwind.",
+    "keyCharacteristics": [
+      "El estado del inventario es información de primera clase, nunca una atenuación visual.",
+      "Crema cálida dominante (~65–70%), verde de marca en bloques (~20–25%), el resto neutros y el oro contado con los dedos de una mano.",
+      "Superficies planas: la profundidad viene de capas tonales y bordes de 1px, no de sombras.",
+      "Serif editorial para la voz, sans para la función; nunca se cruzan.",
+      "Una diagonal recortada (clip-path) es la única firma geométrica del sistema.",
+      "Fotografía propia y real; jamás stock, jamás ilustración de mariscos."
+    ],
+    "rules": [
+      {
+        "name": "La Regla del Oro Escaso",
+        "body": "El oro señala una sola cosa: que algo es excepcional o no va a durar. Techo duro de dos apariciones por viewport. Permitido en el chip «De temporada» y en el hover de un botón claro sobre verde. Prohibido como fondo de sección, como color de texto de cuerpo, y como borde decorativo. Su rareza es su función — un oro que aparece en todas partes deja de significar «de temporada» y pasa a significar nada.",
+        "section": "colors"
+      },
+      {
+        "name": "La Regla del Bloque Verde",
+        "body": "El verde de marca se aplica a superficies completas o a nada. Un párrafo con una palabra verde, un borde verde suelto o un icono verde aislado diluyen el único color que la marca posee. Si una sección merece verde, se lo lleva entero.",
+        "section": "colors"
+      },
+      {
+        "name": "La Regla del Estado Legible",
+        "body": "La disponibilidad nunca se comunica solo con color ni solo con opacidad. «Agotado» y «De temporada» son palabras sobre un chip. La prueba: en escala de grises y a plena luz de sol, el estado del producto sigue siendo legible. Esto no es negociable — es la manifestación visual del principio de producto «el catálogo dice la verdad del día».",
+        "section": "colors"
+      },
+      {
+        "name": "La Regla de la Voz Dividida",
+        "body": "Newsreader habla, Instrument Sans funciona. Todo lo que el comprador lee como narrativa va en serif; todo lo que usa para decidir o actuar — precio, cantidad, botón, etiqueta, dato de formulario — va en sans. Un nombre de producto en una tarjeta de rejilla es dato, no voz: va en sans, y eso es deliberado.",
+        "section": "typography"
+      },
+      {
+        "name": "La Regla del Número Tabular",
+        "body": "Toda cifra que un comprador pueda comparar de una fila a otra lleva tabular-nums: precios, subtotales, cantidades. Precios que bailan de columna a columna hacen más lento lo único que una página de colección tiene que facilitar.",
+        "section": "typography"
+      },
+      {
+        "name": "La Regla de la Escala Central",
+        "body": "Las tallas de encabezado viven en components/ui/heading.tsx, la etiqueta en components/ui/eyebrow.tsx, y el ritmo vertical de sección en components/ui/section.tsx. En ningún otro lugar. Un título text-3xl aquí y text-4xl dos componentes más allá es exactamente cómo un sistema de diseño deja de serlo en silencio.",
+        "section": "typography"
+      },
+      {
+        "name": "La Regla del Ancho Único",
+        "body": "Ninguna página declara su propio max-width. Si una sección necesita otro ancho, es una prop de Container, no un valor suelto.",
+        "section": "layout"
+      },
+      {
+        "name": "La Regla del Plano Absoluto",
+        "body": "Si un elemento vive en el flujo de la página, no lleva sombra. Nunca. Una tarjeta de producto, un campo de formulario, el resumen del pedido, un chip: todos se separan por tono y por borde. La sombra es la respuesta a flotar, no a importar.",
+        "section": "elevation"
+      },
+      {
+        "name": "La Regla de la Esquina Casi Recta",
+        "body": "Ningún radio del sistema supera los 8px, y en la práctica ninguno supera los 4px. Una pastilla (rounded-full en un botón o un chip) es ajena a este sistema: convierte una pescadería en una app.",
+        "section": "shapes"
+      },
+      {
+        "name": "La Regla de la Diagonal Única",
+        "body": "La diagonal es una firma, no un patrón. Como máximo una transición angular por pantalla. Dos diagonales compitiendo dejan de ser un gesto de marca y pasan a ser ruido.",
+        "section": "shapes"
+      },
+      {
+        "name": "La Regla de las Dos Líneas",
+        "body": "Un borde divisorio y un borde de control no son el mismo token. Si la línea es lo único que dice «esto se puede tocar», usa border-strong (3:1, WCAG 1.4.11); si solo separa dos cosas, usa border. La prueba: ¿el usuario pierde una afordancia si la línea desaparece?",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do declarar todo color como token en app/globals.css y consumirlo por la utilidad de Tailwind. Ningún componente sostiene un hex.",
+      "Do usar Crema de Papel (#FAF6EF) como fondo, nunca #FFFFFF. La fotografía de producto se apoya en la calidez.",
+      "Do aplicar el verde de marca a superficies completas.",
+      "Do escribir el estado del producto como palabra sobre un chip — «Agotado», «De temporada» — y no como una imagen atenuada.",
+      "Do mantener tabular-nums en toda cifra comparable.",
+      "Do mantener todo objetivo táctil de icono en 44×44px.",
+      "Do limitar la medida de lectura en ch (max-w-[38ch]), no en porcentaje.",
+      "Do dejar las tallas de encabezado en components/ui/heading.tsx.",
+      "Do vincular todo error de formulario con aria-describedby y role=\"alert\".",
+      "Do respetar prefers-reduced-motion — ya está resuelto globalmente en globals.css; no lo re-implementes por componente."
+    ],
+    "donts": [
+      "Don't añadir box-shadow a nada que viva en el flujo de la página. La sombra pertenece solo a overlays flotantes.",
+      "Don't usar el oro como fondo de sección, color de texto de cuerpo o borde decorativo. Máximo dos apariciones por viewport.",
+      "Don't usar rounded-full en botones o chips. Ningún radio del sistema supera los 8px.",
+      "Don't poner más de una diagonal por pantalla.",
+      "Don't poner un nombre de producto, un precio o una etiqueta en Newsreader. La serif es voz; el dato es sans.",
+      "Don't esconder información de compra detrás de un hover.",
+      "Don't usar fotografía de stock ni ilustración de mariscos. Solo fotografía propia; si no existe, degradar con elegancia a Arena.",
+      "Don't comunicar estado activo o disponibilidad únicamente con color.",
+      "Don't introducir un tercer tipo de letra.",
+      "Don't escribir copia que afirme certificaciones, premios, superlativos o cifras que el negocio no haya establecido. Ante la duda entre un dato inventado y un hueco honesto, gana el hueco.",
+      "Don't escribir una etiqueta en mayúsculas a mano con su propio tracking-[…]. Usa Eyebrow. Siete trackings distintos para el mismo patrón fue exactamente la deriva que este componente cerró.",
+      "Don't escribir py-… md:py-… en una banda de sección. Usa Section.",
+      "Don't poner una etiqueta pequeña encima de un encabezado. Si la etiqueta no nombra un valor concreto, bórrala — el encabezado se sostiene solo.",
+      "Don't usar border en el contorno de algo interactivo. Ese es border-strong, y la diferencia es un requisito de accesibilidad, no un gusto.",
+      "Don't dejar una banda de sección sin aria-labelledby."
+    ]
+  }
+}

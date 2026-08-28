@@ -109,12 +109,12 @@ export default function CartDrawer({
                         onChange={(e) =>
                           setQuantity(line.productId, Number(e.target.value))
                         }
-                        className="h-9 w-16 rounded-sm border border-border bg-surface text-center text-sm tabular-nums"
+                        className="h-11 w-16 rounded-sm border border-border-strong bg-surface text-center text-sm tabular-nums"
                       />
                       <button
                         type="button"
                         onClick={() => remove(line.productId)}
-                        className="text-sm text-muted underline underline-offset-2 hover:text-foreground"
+                        className="-my-2 inline-block py-2 text-sm text-muted underline underline-offset-2 hover:text-foreground"
                       >
                         Quitar
                         <span className="sr-only"> {line.name}</span>

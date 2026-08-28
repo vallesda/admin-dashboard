@@ -36,7 +36,7 @@ export default function QuantitySelector({
           onClick={() => onChange(value - 1)}
           disabled={!canDecrease}
           aria-label="Quitar uno"
-          className="flex h-11 w-11 items-center justify-center rounded border border-border bg-surface transition-colors duration-150 hover:bg-sand disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded border border-border-strong bg-surface transition-colors duration-150 hover:bg-sand disabled:cursor-not-allowed disabled:opacity-40"
         >
           <MinusIcon />
         </button>
@@ -53,7 +53,7 @@ export default function QuantitySelector({
             if (!Number.isFinite(next)) return;
             onChange(Math.min(Math.max(1, Math.floor(next)), max || 1));
           }}
-          className="h-11 w-16 rounded border border-border bg-surface text-center text-sm tabular-nums"
+          className="h-11 w-16 rounded border border-border-strong bg-surface text-center text-sm tabular-nums"
         />
 
         <button
@@ -61,7 +61,7 @@ export default function QuantitySelector({
           onClick={() => onChange(value + 1)}
           disabled={!canIncrease}
           aria-label="Agregar uno"
-          className="flex h-11 w-11 items-center justify-center rounded border border-border bg-surface transition-colors duration-150 hover:bg-sand disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded border border-border-strong bg-surface transition-colors duration-150 hover:bg-sand disabled:cursor-not-allowed disabled:opacity-40"
         >
           <PlusIcon />
         </button>

@@ -109,7 +109,7 @@ export default function CheckoutForm() {
                 className={`flex flex-1 cursor-pointer items-center gap-3 rounded-sm border px-4 py-3 text-sm transition-colors ${
                   fulfillment === option.value
                     ? 'border-brand bg-brand-soft'
-                    : 'border-border hover:border-muted'
+                    : 'border-border-strong hover:border-muted'
                 }`}
               >
                 <input
@@ -230,8 +230,12 @@ function Field({
   const errorId = error ? `${name}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
 
-  const className = `w-full rounded-sm border bg-background px-3 py-2.5 text-sm outline-none focus-visible:border-brand ${
-    error ? 'border-brand' : 'border-border'
+  // No `outline-none` here. It emits `outline: 2px solid transparent` from the
+  // utilities layer, which beats the base-layer `:focus-visible` rule — and the
+  // replacement was a border swap to brand, which the error state already
+  // applies. A focused invalid field had no visible focus change at all.
+  const className = `w-full rounded-sm border bg-background px-3 py-2.5 text-sm focus-visible:border-brand ${
+    error ? 'border-brand' : 'border-border-strong'
   }`;
 
   return (
