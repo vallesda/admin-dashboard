@@ -23,6 +23,20 @@ coverage/
 # Plataforma
 .vercel
 
+# Herramientas de agentes de IA.
+#
+# `npx impeccable install` deja ~6.8 MB en dos copias del mismo skill (`.agents/`
+# y `.claude/skills/`). Se regeneran con ese mismo comando, así que son
+# artefactos, no fuente — la misma razón por la que `.next/` está arriba.
+#
+# `.claude/` NO se ignora entero a propósito: un futuro `.claude/settings.json`
+# compartido por el equipo sí debe versionarse. Lo que se ignora es lo instalado
+# y lo personal.
+.agents/
+.codex/
+.claude/skills/
+.claude/settings.local.json
+
 # Sistema operativo y logs
 .DS_Store
 npm-debug.log*
