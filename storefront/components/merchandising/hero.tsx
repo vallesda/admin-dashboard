@@ -28,6 +28,12 @@ import { ButtonLink } from '@/components/ui/button';
  * extraordinario" was a superlative the brand's own voice rule forbids, and it
  * was doing no work the photograph wasn't already doing better.
  *
+ * "Cocina" is set in gold — the emphasis colour for the stressed noun of a
+ * display heading on brand green. It is the word the whole sentence turns on:
+ * the promise is not the boat and not the trip, it is that the fish arrives in
+ * the shopper's own kitchen. Gold on the brand green measures 4.20:1 and the
+ * headline is display-sized, so the 3:1 threshold is the one that applies.
+ *
  * The CTA goes to the full catalogue rather than to an anchor further down this
  * page: an anchor scrolled the shopper PAST the first purchasable products,
  * which inverts the "buy first, story later" principle it was meant to serve.
@@ -79,7 +85,8 @@ export default function Hero() {
                 // alone is the one that carries the promise.
                 className="max-w-[13ch]"
               >
-                Del barco a tu <em>cocina</em>, sin escala.
+                Del barco a tu <em className="text-gold">cocina</em>, sin
+                escala.
               </Heading>
             </div>
 

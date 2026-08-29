@@ -33,6 +33,10 @@ import { useCart } from './cart-context';
  * everything the check said, permanently, and without a timer that fires after
  * the card has already been re-rendered by a search.
  *
+ * The button turns gold under the cursor. Gold is this system's mark for
+ * "exceptional or fleeting", and reaching for a piece of the day's catch is
+ * exactly that — see the `addOutline` variant.
+ *
  * ## Why the height never changes
  *
  * Both states are 44px and full width. A card that grew or shrank when its
@@ -52,7 +56,7 @@ export default function ProductCartControl({
   if (!product.availableForSale) {
     return (
       <Button
-        variant="secondary"
+        variant="addOutline"
         fullWidth
         disabled
         aria-disabled="true"
@@ -68,7 +72,7 @@ export default function ProductCartControl({
     return (
       <>
         <Button
-          variant="secondary"
+          variant="addOutline"
           fullWidth
           onClick={() => add(product, 1)}
           className={className}

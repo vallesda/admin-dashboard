@@ -214,11 +214,43 @@ un hex propio.
 ### Named Rules
 
 **La Regla del Oro Escaso.** El oro señala una sola cosa: que algo es
-excepcional o no va a durar. Techo duro de **dos apariciones por viewport**.
-Permitido en el chip «De temporada» y en el hover de un botón claro sobre verde.
-Prohibido como fondo de sección, como color de texto de cuerpo, y como borde
-decorativo. Su rareza *es* su función — un oro que aparece en todas partes deja
-de significar «de temporada» y pasa a significar nada.
+excepcional o no va a durar. Prohibido como fondo de sección, como color de
+texto de cuerpo, y como borde decorativo. Su rareza *es* su función — un oro que
+aparece en todas partes deja de significar «de temporada» y pasa a significar
+nada.
+
+Dónde se permite, y solo ahí:
+
+**1 · El sustantivo acentuado de un titular display, y solo sobre verde.**
+El `<em>` de un titular grande sobre superficie de marca va en oro: «cocina» en
+el hero, «semana» en la pesca de la semana, y el nombre del producto de esa
+misma banda. No es decoración: es la palabra sobre la que gira la frase. Regla
+general, no lista de excepciones — si mañana hay otro titular display sobre
+verde, su sustantivo acentuado también va en oro.
+
+**2 · El chip «De temporada».**
+
+**3 · El hover de un control.** Un botón claro sobre verde (`onBrand`) y los
+botones «Agregar» (`add`, `addOutline`). Es el momento en que alguien alarga la
+mano hacia una pieza de la captura del día — exactamente lo que el oro
+significa. Medido: Tinta de Mar sobre oro da **7.89:1**, muy por encima del
+4.5:1 que exige la etiqueta de un botón. En reposo el botón delineado conserva
+`border-strong` (3.01:1), porque ahí esa línea es lo único que lo identifica
+como control; en hover lo identifican el relleno y el texto, así que el borde
+puede irse al oro con él.
+
+**El oro solo vive sobre el verde de marca.** Medido: oro sobre verde da
+**4.20:1**, que despeja AA para texto grande; el mismo oro sobre la crema de la
+página da **2.06:1** y no despeja nada. Un titular dorado sobre crema no es una
+decisión de gusto, es texto ilegible.
+
+El hover no cuenta contra el techo: solo se puede apuntar a un control a la vez,
+así que en reposo la rejilla no tiene ni una aparición de oro.
+
+**Techo por viewport: tres en reposo.** Era dos. La banda de la pesca de la
+semana ahora lleva tres —los dos titulares y el chip— más el hover del botón
+como cuarta aparición transitoria. El techo se ensanchó para esa banda y para
+ninguna otra: fuera de ella siguen siendo dos.
 
 **La Regla del Bloque Verde.** El verde de marca se aplica a superficies
 completas o a nada. Un párrafo con una palabra verde, un borde verde suelto o un
@@ -749,6 +781,11 @@ pantalla.
 - **Don't** poner más de una diagonal por pantalla.
 - **Don't** poner un nombre de producto, un precio o una etiqueta en Newsreader.
   La serif es voz; el dato es sans.
+- **Don't** dejar al comprador en la ficha después de agregar. Agregar desde la
+  ficha devuelve al catálogo completo (`/search`): la ficha responde una sola
+  pregunta —«¿es esta la pieza?»— y contestada ya no queda nada que hacer en
+  ella. La tarjeta del catálogo aparece con la cantidad recién elegida, que es
+  mejor acuse que una palomita de dos segundos.
 - **Don't** esconder información de compra detrás de un hover — ni el dato ni el
   control. Un botón que solo aparece al pasar el cursor no existe en un teléfono.
 - **Don't** anidar un `<button>` dentro de un `<a>`. Si un contenedor necesita un

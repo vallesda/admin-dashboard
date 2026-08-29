@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import type { Product } from '@/lib/commerce/types';
 import Button from '@/components/ui/button';
@@ -34,20 +35,28 @@ import { useCart } from './cart-context';
 export default function AddToCart({
   product,
   quantity = 1,
-  variant = 'primary',
+  variant = 'add',
   fullWidth = true,
   /** Short label for tight placements; the product name is appended for AT. */
   label = 'Agregar al carrito',
+  /**
+   * Where to send the shopper once the line is written. Used by the product
+   * page, which returns them to the full catalogue; left unset everywhere the
+   * shopper is already looking at a list.
+   */
+  redirectTo,
   className = '',
 }: {
   product: Product;
   quantity?: number;
-  variant?: 'primary' | 'secondary';
+  variant?: 'add' | 'addOutline' | 'primary' | 'secondary';
   fullWidth?: boolean;
   label?: string;
+  redirectTo?: string;
   className?: string;
 }) {
   const { add } = useCart();
+  const router = useRouter();
   const [added, setAdded] = useState(false);
   const timer = useRef<number | undefined>(undefined);
 
@@ -75,6 +84,18 @@ export default function AddToCart({
 
   function handleAdd() {
     add(product, quantity);
+
+    /*
+     * When the caller asks for it, the confirmation is the destination rather
+     * than a label that flips for two seconds. The catalogue the shopper lands
+     * on shows this product's own card already holding the quantity they just
+     * chose — a more durable receipt than a check mark that expires.
+     */
+    if (redirectTo) {
+      router.push(redirectTo);
+      return;
+    }
+
     setAdded(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setAdded(false), 2000);

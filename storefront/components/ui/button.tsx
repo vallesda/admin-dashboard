@@ -17,10 +17,10 @@ import Link from 'next/link';
  * action the site has.
  *
  * Making it a variant means the two colours are chosen in one place and never
- * compete. Its hover is the single point in the whole system where gold touches
- * a control.
+ * compete. Gold reaches a control in exactly three places now: this variant's
+ * hover, and the two add-to-cart variants below.
  */
-type Variant = 'primary' | 'secondary' | 'onBrand';
+type Variant = 'primary' | 'secondary' | 'onBrand' | 'add' | 'addOutline';
 
 const BASE =
   'inline-flex items-center justify-center gap-2 rounded px-6 py-3 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45';
@@ -30,6 +30,28 @@ const LOOK: Record<Variant, string> = {
   secondary:
     'border border-border-strong bg-surface text-foreground hover:bg-sand',
   onBrand: 'bg-background text-brand hover:bg-gold hover:text-foreground',
+
+  /*
+   * The two "put this in the basket" controls. They differ at rest and agree on
+   * hover: solid brand where the page has one clear commit (the product page),
+   * outlined where there are eight of them down a catalogue and the photography
+   * has to keep its weight.
+   *
+   * Both turn gold under the cursor. Gold means "exceptional or fleeting" in
+   * this system, and the moment a shopper reaches for a piece of that day's
+   * catch is exactly that — the catalogue is volatile by design and the thing
+   * they are touching may not be there tomorrow.
+   *
+   * Measured: Sea Ink on gold is 7.89:1, well past the 4.5:1 a button label
+   * needs. The gold fill against the cream page is only 2.06:1, so at REST the
+   * outlined variant keeps `border-strong` (3.01:1) — that hairline is the only
+   * thing identifying it as a control and it stays under WCAG 1.4.11's floor.
+   * On hover the fill and a 7.89:1 label identify it instead, so the border may
+   * go gold with it.
+   */
+  add: 'bg-brand text-background hover:bg-gold hover:text-foreground',
+  addOutline:
+    'border border-border-strong bg-surface text-foreground hover:border-gold hover:bg-gold hover:text-foreground',
 };
 
 function classes(variant: Variant, fullWidth: boolean, className: string) {

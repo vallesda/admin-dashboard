@@ -80,7 +80,7 @@ export default function CrossSells({
             <div className="flex-none">
               <AddToCart
                 product={product}
-                variant="secondary"
+                variant="addOutline"
                 fullWidth={false}
                 label="Agregar"
               />

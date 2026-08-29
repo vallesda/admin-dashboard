@@ -28,6 +28,22 @@ import SpecList, { type Spec } from '@/components/ui/spec-list';
  *
  * No countdown, no "últimas piezas": the data does not support urgency, so the
  * copy does not claim it.
+ *
+ * ## The gold headings
+ *
+ * The emphasised noun of the section title and the product's own name are set in
+ * Logo Gold. This is the one band where that works: gold on the brand green
+ * measures 4.20:1, which clears AA for large text, while the same gold on the
+ * page's cream measures 2.06:1 and would fail anywhere else on the site. Both
+ * headings are display sizes, so the 3:1 threshold is the one that applies.
+ *
+ * It also spends the gold budget deliberately. The system's scarcity rule caps
+ * gold at two appearances per viewport, and this band now carries three at rest
+ * — the two headings plus the "De temporada" chip — with the button's hover as a
+ * fourth. That is a widening of the rule, recorded in DESIGN.md rather than left
+ * for someone to discover as a contradiction and "fix". The band earns it: it is
+ * the one section on the site whose whole subject is a piece that will not
+ * always be there, which is precisely what the gold means.
  */
 export default async function CatchOfTheWeek() {
   const { items } = await getProducts();
@@ -64,7 +80,7 @@ export default async function CatchOfTheWeek() {
             tone="on-brand"
             title={
               <>
-                La pesca de la <em>semana</em>
+                La pesca de la <em className="text-gold">semana</em>
               </>
             }
             lede="Una pieza que elegimos esta semana y que no siempre vamos a tener."

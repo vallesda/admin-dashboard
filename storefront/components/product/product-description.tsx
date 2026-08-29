@@ -127,7 +127,14 @@ export default function ProductDescription({ product }: { product: Product }) {
 
       <DeliveryMessage product={product} />
 
-      <AddToCart product={product} quantity={quantity} />
+      {/*
+        Adding from here returns the shopper to the full catalogue. The product
+        page answers one question — "is this the piece I want?" — and once it is
+        answered there is nothing left to do on it; the catalogue is where the
+        next decision lives, and the card there already shows this product
+        holding the quantity just chosen.
+      */}
+      <AddToCart product={product} quantity={quantity} redirectTo="/search" />
     </div>
   );
 }
