@@ -6,9 +6,10 @@
  * Realiza: RF-SAL-001…011 · HU-SAL-001, HU-SAL-003…006.
  */
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
-import { requireRole } from '@/lib/auth/guard';
+import { AuthorizationError, requireRole } from '@/lib/auth/guard';
+import { redirectWithFlash } from '@/lib/flash';
+import { failed, ok, type ActionResult } from '@/lib/action-result';
 import { isDomainError } from '@/lib/errors';
 import type { OrderStatus, PaymentStatus } from '@/db/schema/sales';
 import * as service from './service';
@@ -91,7 +92,7 @@ export async function createOrder(
   revalidatePath(ORDERS_PATH);
   // Straight to the detail page: after taking an order the next thing anyone
   // does is confirm it or read it back to the customer.
-  redirect(`${ORDERS_PATH}/${orderId}`);
+  redirectWithFlash(`${ORDERS_PATH}/${orderId}`, 'order.created');
 }
 
 /**
@@ -101,18 +102,37 @@ export async function createOrder(
  * transitions, so reaching an illegal one means a forged POST or a bug, and
  * neither should look like a normal outcome.
  */
+const ORDER_STATUS_DONE: Record<OrderStatus, string> = {
+  pending: 'Pedido reabierto.',
+  confirmed: 'Pedido confirmado.',
+  preparing: 'Pedido en preparación.',
+  ready: 'Pedido listo para entregar.',
+  completed: 'Pedido completado.',
+  cancelled: 'Pedido cancelado y el inventario liberado.',
+};
+
 export async function changeOrderStatus(
   orderId: string,
   next: OrderStatus,
-) {
-  const session = await requireRole('staff');
-
-  await service.changeOrderStatus(orderId, next, session.user.id);
+): Promise<ActionResult> {
+  try {
+    const session = await requireRole('staff');
+    await service.changeOrderStatus(orderId, next, session.user.id);
+  } catch (error) {
+    // A refused transition — most often a stock shortfall on confirm — is an
+    // expected outcome the operator has to read, not a crash. Anything that is
+    // not a DomainError is still a bug and still fails loudly.
+    if (error instanceof AuthorizationError) return failed(error.message);
+    if (!isDomainError(error)) throw error;
+    return failed(error.message);
+  }
 
   revalidatePath(ORDERS_PATH);
   revalidatePath(`${ORDERS_PATH}/${orderId}`);
   // Completing or cancelling moves stock, so the inventory views are stale now.
   revalidatePath('/dashboard/inventory');
+
+  return ok(ORDER_STATUS_DONE[next]);
 }
 
 /**
@@ -122,14 +142,27 @@ export async function changeOrderStatus(
  * refunded is an accounting statement, and it is the one action in Sales that
  * nobody can undo (`refunded` is terminal).
  */
+const PAYMENT_STATUS_DONE: Record<PaymentStatus, string> = {
+  unpaid: 'Pedido marcado como no pagado.',
+  paid: 'Pago registrado.',
+  refunded: 'Reembolso registrado. Este estado no se puede revertir.',
+};
+
 export async function changePaymentStatus(
   orderId: string,
   next: PaymentStatus,
-) {
-  await requireRole('admin');
-
-  await service.changePaymentStatus(orderId, next);
+): Promise<ActionResult> {
+  try {
+    await requireRole('admin');
+    await service.changePaymentStatus(orderId, next);
+  } catch (error) {
+    if (error instanceof AuthorizationError) return failed(error.message);
+    if (!isDomainError(error)) throw error;
+    return failed(error.message);
+  }
 
   revalidatePath(ORDERS_PATH);
   revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
+  return ok(PAYMENT_STATUS_DONE[next]);
 }

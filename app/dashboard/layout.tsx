@@ -1,4 +1,8 @@
+import { Suspense } from 'react';
+
 import SideNav from '@/app/ui/dashboard/sidenav';
+import { ToastProvider } from '@/app/ui/kit/toast';
+import FlashListener from '@/app/ui/kit/flash-listener';
 
 /**
  * Dashboard shell.
@@ -13,14 +17,27 @@ import SideNav from '@/app/ui/dashboard/sidenav';
  *
  * The content column is not width-capped. Tables want the room, and a `max-w`
  * here would put a permanent empty gutter on the right of every list screen.
+ *
+ * `ToastProvider` wraps the whole panel so a confirmation raised by a row action
+ * deep inside a table has somewhere to land, and survives the client-side
+ * navigations between list screens. `FlashListener` sits inside it and converts
+ * the `?flash=` code a redirecting action leaves behind; it reads
+ * `useSearchParams`, so it needs its own Suspense boundary or it would opt every
+ * dashboard route out of static rendering.
  */
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen flex-col bg-canvas md:flex-row md:overflow-hidden">
-      <div className="w-full flex-none md:w-60">
-        <SideNav />
+    <ToastProvider>
+      <div className="flex h-screen flex-col bg-canvas md:flex-row md:overflow-hidden">
+        <div className="w-full flex-none md:w-60">
+          <SideNav />
+        </div>
+        <div className="grow p-4 md:overflow-y-auto lg:p-6">{children}</div>
       </div>
-      <div className="grow p-4 md:overflow-y-auto lg:p-6">{children}</div>
-    </div>
+
+      <Suspense fallback={null}>
+        <FlashListener />
+      </Suspense>
+    </ToastProvider>
   );
 }

@@ -6,9 +6,9 @@
  * Realiza: RF-CLI-001, RF-CLI-002 · HU-CLI-001.
  */
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 import { requireRole } from '@/lib/auth/guard';
+import { redirectWithFlash } from '@/lib/flash';
 import { isDomainError } from '@/lib/errors';
 import * as service from './service';
 import { customerSchema } from './validators';
@@ -62,7 +62,7 @@ export async function createCustomer(
   }
 
   revalidatePath(CUSTOMERS_PATH);
-  redirect(CUSTOMERS_PATH);
+  redirectWithFlash(CUSTOMERS_PATH, 'customer.created');
 }
 
 export async function updateCustomer(
@@ -88,5 +88,5 @@ export async function updateCustomer(
   }
 
   revalidatePath(CUSTOMERS_PATH);
-  redirect(CUSTOMERS_PATH);
+  redirectWithFlash(CUSTOMERS_PATH, 'customer.updated');
 }

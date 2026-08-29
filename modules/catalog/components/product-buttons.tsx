@@ -1,3 +1,12 @@
+'use client';
+
+/*
+ * A Client Component because its buttons submit through `ActionForm`, which
+ * hands a `pending` flag to a render prop — and a function cannot cross the
+ * server/client boundary. Rendering this from a server-side table is still
+ * fine: only serialisable props (ids, names, a status string) pass over, and a
+ * bound server action is itself a serialisable reference.
+ */
 import {
   PencilIcon,
   PlusIcon,
@@ -9,6 +18,7 @@ import {
 import type { ProductStatus } from '@/db/schema/catalog';
 import { changeProductStatus } from '../actions';
 import { Button, ButtonLink } from '@/app/ui/button';
+import ActionRunner from '@/app/ui/kit/action-runner';
 
 export function CreateProduct() {
   return (
@@ -101,12 +111,20 @@ function StatusButton({
   const change = changeProductStatus.bind(null, id, next);
 
   return (
-    <form action={change}>
-      <Button type="submit" variant="secondary" size="sm">
-        {children}
-        {label}
-        <span className="sr-only"> {name}</span>
-      </Button>
-    </form>
+    <ActionRunner action={change}>
+      {(pending, run) => (
+        <Button
+          type="button"
+          onClick={run}
+          variant="secondary"
+          size="sm"
+          disabled={pending}
+        >
+          {children}
+          {label}
+          <span className="sr-only"> {name}</span>
+        </Button>
+      )}
+    </ActionRunner>
   );
 }

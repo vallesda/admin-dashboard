@@ -10,10 +10,11 @@
  * gobierno 2 y 3).
  */
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
-import { requireRole } from '@/lib/auth/guard';
+import { AuthorizationError, requireRole } from '@/lib/auth/guard';
 import { isDomainError } from '@/lib/errors';
+import { redirectWithFlash } from '@/lib/flash';
+import { failed, ok, type ActionResult } from '@/lib/action-result';
 import * as service from './service';
 import {
   createCategorySchema,
@@ -81,7 +82,7 @@ export async function createCategory(
   }
 
   revalidatePath(CATEGORIES_PATH);
-  redirect(CATEGORIES_PATH);
+  redirectWithFlash(CATEGORIES_PATH, 'category.created');
 }
 
 export async function updateCategory(
@@ -107,7 +108,7 @@ export async function updateCategory(
   }
 
   revalidatePath(CATEGORIES_PATH);
-  redirect(CATEGORIES_PATH);
+  redirectWithFlash(CATEGORIES_PATH, 'category.updated');
 }
 
 /**
@@ -116,12 +117,23 @@ export async function updateCategory(
  * The MVP has no delete: `RF-CAT-001` asks for an active flag, and deactivating
  * keeps every product's `category_id` intact.
  */
-export async function toggleCategoryActive(id: string, active: boolean) {
-  await requireRole('admin');
-
-  await service.setCategoryActive(id, active);
+export async function toggleCategoryActive(
+  id: string,
+  active: boolean,
+): Promise<ActionResult> {
+  try {
+    await requireRole('admin');
+    await service.setCategoryActive(id, active);
+  } catch (error) {
+    // A DomainError is an expected refusal and belongs in a toast. Anything
+    // else is a bug and is rethrown so it still fails loudly.
+    if (error instanceof AuthorizationError) return failed(error.message);
+    if (!isDomainError(error)) throw error;
+    return failed(error.message);
+  }
 
   revalidatePath(CATEGORIES_PATH);
+  return ok(active ? 'Categoría activada.' : 'Categoría desactivada.');
 }
 
 // ---------------------------------------------------------------------------
@@ -194,7 +206,7 @@ export async function createProduct(
   }
 
   revalidatePath(PRODUCTS_PATH);
-  redirect(PRODUCTS_PATH);
+  redirectWithFlash(PRODUCTS_PATH, 'product.created');
 }
 
 export async function updateProduct(
@@ -220,7 +232,7 @@ export async function updateProduct(
   }
 
   revalidatePath(PRODUCTS_PATH);
-  redirect(PRODUCTS_PATH);
+  redirectWithFlash(PRODUCTS_PATH, 'product.updated');
 }
 
 /**
@@ -231,10 +243,25 @@ export async function updateProduct(
  * ever offer legal transitions, so reaching an illegal one means a forged POST
  * or a bug, and neither should look like a normal outcome.
  */
-export async function changeProductStatus(id: string, next: ProductStatus) {
-  await requireRole('admin');
+const PRODUCT_STATUS_DONE: Record<ProductStatus, string> = {
+  active: 'Producto activado: ya aparece en la tienda.',
+  archived: 'Producto archivado: se retiró de la tienda.',
+  draft: 'Producto devuelto a borrador.',
+};
 
-  await service.changeProductStatus(id, next);
+export async function changeProductStatus(
+  id: string,
+  next: ProductStatus,
+): Promise<ActionResult> {
+  try {
+    await requireRole('admin');
+    await service.changeProductStatus(id, next);
+  } catch (error) {
+    if (error instanceof AuthorizationError) return failed(error.message);
+    if (!isDomainError(error)) throw error;
+    return failed(error.message);
+  }
 
   revalidatePath(PRODUCTS_PATH);
+  return ok(PRODUCT_STATUS_DONE[next]);
 }

@@ -1,5 +1,15 @@
+'use client';
+
+/*
+ * A Client Component because its buttons submit through `ActionForm`, which
+ * hands a `pending` flag to a render prop — and a function cannot cross the
+ * server/client boundary. Rendering this from a server-side table is still
+ * fine: only serialisable props (ids, names, a status string) pass over, and a
+ * bound server action is itself a serialisable reference.
+ */
 import type { OrderStatus, PaymentStatus } from '@/db/schema/sales';
 import { Button } from '@/app/ui/button';
+import ActionRunner from '@/app/ui/kit/action-runner';
 import { changeOrderStatus, changePaymentStatus } from '../actions';
 import {
   nextStatuses,
@@ -34,18 +44,25 @@ export function OrderStatusActions({
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((next) => (
-        <form key={next} action={changeOrderStatus.bind(null, orderId, next)}>
-          {/* Cancelling is the one irreversible move on this screen, so it is
-              the one that looks different. Everything else advances the order
-              and takes the primary tone. */}
-          <Button
-            type="submit"
-            size="sm"
-            variant={next === 'cancelled' ? 'danger' : 'primary'}
-          >
-            {TRANSITION_LABEL[next]}
-          </Button>
-        </form>
+        <ActionRunner
+          key={next}
+          action={changeOrderStatus.bind(null, orderId, next)}
+        >
+          {(pending, run) => (
+            /* Cancelling is the one irreversible move on this screen, so it is
+               the one that looks different. Everything else advances the order
+               and takes the primary tone. */
+            <Button
+              type="button"
+              onClick={run}
+              size="sm"
+              variant={next === 'cancelled' ? 'danger' : 'primary'}
+              disabled={pending}
+            >
+              {TRANSITION_LABEL[next]}
+            </Button>
+          )}
+        </ActionRunner>
       ))}
     </div>
   );
@@ -71,11 +88,22 @@ export function PaymentStatusActions({
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((next) => (
-        <form key={next} action={changePaymentStatus.bind(null, orderId, next)}>
-          <Button type="submit" size="sm" variant="secondary">
-            {PAYMENT_TRANSITION_LABEL[next]}
-          </Button>
-        </form>
+        <ActionRunner
+          key={next}
+          action={changePaymentStatus.bind(null, orderId, next)}
+        >
+          {(pending, run) => (
+            <Button
+              type="button"
+              onClick={run}
+              size="sm"
+              variant="secondary"
+              disabled={pending}
+            >
+              {PAYMENT_TRANSITION_LABEL[next]}
+            </Button>
+          )}
+        </ActionRunner>
       ))}
     </div>
   );

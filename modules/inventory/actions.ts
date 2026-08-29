@@ -10,7 +10,8 @@
  */
 import { revalidatePath } from 'next/cache';
 
-import { requireRole } from '@/lib/auth/guard';
+import { AuthorizationError, requireRole } from '@/lib/auth/guard';
+import { failed, ok, type ActionResult } from '@/lib/action-result';
 import { isDomainError } from '@/lib/errors';
 import * as service from './service';
 import {
@@ -68,7 +69,7 @@ export async function receiveStock(
   revalidatePath(INVENTORY_PATH);
   revalidatePath(`${INVENTORY_PATH}/${productId}`);
 
-  return { errors: {}, message: null };
+  return { errors: {}, message: null, done: 'Entrada registrada.' };
 }
 
 export async function adjustStock(
@@ -100,7 +101,7 @@ export async function adjustStock(
   revalidatePath(INVENTORY_PATH);
   revalidatePath(`${INVENTORY_PATH}/${productId}`);
 
-  return { errors: {}, message: null };
+  return { errors: {}, message: null, done: 'Ajuste registrado en el ledger.' };
 }
 
 /**
@@ -135,7 +136,7 @@ export async function setLowStockThreshold(
   revalidatePath(INVENTORY_PATH);
   revalidatePath(`${INVENTORY_PATH}/${productId}`);
 
-  return { errors: {}, message: null };
+  return { errors: {}, message: null, done: 'Umbral actualizado.' };
 }
 
 /**
@@ -145,11 +146,20 @@ export async function setLowStockThreshold(
  * nobody can receive is an operational blocker, not something to wait on an
  * admin for.
  */
-export async function ensureInventory(productId: string) {
-  await requireRole('staff');
-
-  await service.ensureInventory(productId);
+export async function ensureInventory(
+  productId: string,
+): Promise<ActionResult> {
+  try {
+    await requireRole('staff');
+    await service.ensureInventory(productId);
+  } catch (error) {
+    if (error instanceof AuthorizationError) return failed(error.message);
+    if (!isDomainError(error)) throw error;
+    return failed(error.message);
+  }
 
   revalidatePath(INVENTORY_PATH);
   revalidatePath(`${INVENTORY_PATH}/${productId}`);
+
+  return ok('Inventario inicializado en cero. Ya puedes recibir mercancía.');
 }

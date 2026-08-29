@@ -1,7 +1,17 @@
+'use client';
+
+/*
+ * A Client Component because its buttons submit through `ActionForm`, which
+ * hands a `pending` flag to a render prop — and a function cannot cross the
+ * server/client boundary. Rendering this from a server-side table is still
+ * fine: only serialisable props (ids, names, a status string) pass over, and a
+ * bound server action is itself a serialisable reference.
+ */
 import { PencilIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 import { toggleCategoryActive } from '../actions';
 import { Button, ButtonLink } from '@/app/ui/button';
+import ActionRunner from '@/app/ui/kit/action-runner';
 
 export function CreateCategory() {
   return (
@@ -47,11 +57,19 @@ export function ToggleCategory({
   const toggle = toggleCategoryActive.bind(null, id, !active);
 
   return (
-    <form action={toggle}>
-      <Button type="submit" variant={active ? 'danger' : 'secondary'} size="sm">
-        {active ? 'Desactivar' : 'Activar'}
-        <span className="sr-only"> {name}</span>
-      </Button>
-    </form>
+    <ActionRunner action={toggle}>
+      {(pending, run) => (
+        <Button
+          type="button"
+          onClick={run}
+          variant={active ? 'danger' : 'secondary'}
+          size="sm"
+          disabled={pending}
+        >
+          {active ? 'Desactivar' : 'Activar'}
+          <span className="sr-only"> {name}</span>
+        </Button>
+      )}
+    </ActionRunner>
   );
 }

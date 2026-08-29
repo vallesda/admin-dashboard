@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import {
   ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
@@ -9,6 +9,7 @@ import {
 
 import { Button } from '@/app/ui/button';
 import Panel from '@/app/ui/kit/panel';
+import { useToast } from '@/app/ui/kit/toast';
 import {
   receiveStock,
   adjustStock,
@@ -223,6 +224,25 @@ function FormShell({
   state: StockFormState;
   children: React.ReactNode;
 }) {
+  const { notify } = useToast();
+
+  /*
+   * These forms do not navigate — an operator receiving a delivery files several
+   * in a row — so there is no redirect to carry a `?flash=` code. The action
+   * reports success in `state.done` and the toast is raised from here.
+   *
+   * The ref makes the announcement fire once per write: `useActionState` hands
+   * back a new object on each submission, but React's development Strict Mode
+   * would otherwise replay the effect and double the confirmation.
+   */
+  const announced = useRef<StockFormState | null>(null);
+
+  useEffect(() => {
+    if (!state.done || announced.current === state) return;
+    announced.current = state;
+    notify({ tone: 'ok', message: state.done });
+  }, [state, notify]);
+
   return (
     <form action={action}>
       <Panel
