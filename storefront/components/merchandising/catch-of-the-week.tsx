@@ -1,9 +1,8 @@
 import Image from 'next/image';
-import Link from 'next/link';
 
 import { getProducts } from '@/lib/commerce';
 import Container from '@/components/ui/container';
-import Button from '@/components/ui/button';
+import { ButtonLink } from '@/components/ui/button';
 import Price from '@/components/ui/price';
 import Section from '@/components/ui/section';
 import SectionHeader from '@/components/ui/section-header';
@@ -119,14 +118,13 @@ export default async function CatchOfTheWeek() {
                 <Price value={product.price} unit={product.unit} tone="on-brand" />
               </p>
 
-              <Link
+              <ButtonLink
                 href={`/product/${product.handle}`}
-                className="mt-8 inline-block"
+                variant="onBrand"
+                className="mt-8"
               >
-                <Button variant="onBrand">
-                  Ver producto
-                </Button>
-              </Link>
+                Ver producto
+              </ButtonLink>
             </div>
           </div>
         </div>

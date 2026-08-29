@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useCart } from '@/components/cart/cart-context';
 import { formatMoney } from '@/lib/format';
 import { CURRENCY } from '@/lib/commerce/constants';
-import Button from '@/components/ui/button';
+import Button, { ButtonLink } from '@/components/ui/button';
 import { placeOrder } from './actions';
 import { EMPTY_STATE } from './form-state';
 
@@ -35,9 +35,9 @@ export default function CheckoutForm() {
         <p className="text-muted">
           Tu carrito está vacío, así que todavía no hay nada que pedir.
         </p>
-        <Link href="/search">
-          <Button variant="secondary">Ver productos</Button>
-        </Link>
+        <ButtonLink href="/search" variant="secondary">
+          Ver productos
+        </ButtonLink>
       </div>
     );
   }

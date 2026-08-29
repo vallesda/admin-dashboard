@@ -500,6 +500,11 @@ paleta o no se han terminado.
   fuertes del sitio. Si dos utilidades del mismo grupo compiten, la respuesta es
   una variante, nunca el orden del string.
 - **Deshabilitado:** `opacity-45` y `cursor-not-allowed`. Nunca se oculta.
+- **`ButtonLink`:** un control que navega es un `<a>`; solo *parece* un botón.
+  Toma su geometría de las mismas dos constantes que `Button`, así que los dos no
+  pueden separarse. Existe porque siete lugares escribían `<Link><Button/></Link>`
+  — el hero, la pesca de la semana, el carrito vacío, el checkout vacío y la
+  página de pedido — y todos enviaban un `<a>` envolviendo un `<button>`.
 
 ### Icon Buttons
 
@@ -520,13 +525,72 @@ paleta o no se han terminado.
 ### Cards / Containers
 
 - **Tarjeta de producto:** sin marco y sin fondo propio. La imagen es el objeto:
-  `aspect-[4/5]`, radio 2px, `object-cover`, marcador de posición en Arena. Bajo
-  ella, el nombre en sans medium, la línea `presentación · origen` en Gris Marea,
-  y el precio.
-- **Hover:** `scale-[1.02]` sobre la imagen en `200ms`. Nada importante se
-  esconde detrás del hover — la fotografía vende y la tarjeta se aparta.
+  `aspect-[4/5]`, radio 2px, `object-cover`, marcador de posición en Arena.
+  Debajo, una regla; sobre la regla el nombre en sans medium y el precio en la
+  misma línea base; luego `presentación · origen` a la izquierda con la unidad a
+  la derecha; y al final la acción.
+- **Hover:** la imagen escala `1.03` en `500ms` con `ease-board`, y la regla pasa
+  de Borde de Concha a verde de marca. Nada importante se esconde detrás del
+  hover — la fotografía vende y la tarjeta se aparta.
+- **La acción de compra vive en la tarjeta, y tiene dos estados.** Una sola
+  ranura de 44px a ancho completo:
+  - **Fuera del carrito** — botón `secondary` «Agregar». No es primario a
+    propósito: ocho botones verdes saturados bajando por una página de catálogo
+    pesarían más que la fotografía que la rejilla existe para mostrar.
+  - **Dentro del carrito** — el `Stepper` de esa línea: menos, cifra, más. El
+    comprador de despensa semanal arma el pedido completo sin abrir el cajón
+    nunca, que es exactamente su trabajo.
+
+  **Visible en reposo en ambos estados.** La regla que prohíbe esconder
+  información de compra detrás de un hover vale igual para el *control*: un botón
+  que aparece al pasar el cursor no existe en un teléfono.
+- **Un producto agotado muestra el botón deshabilitado** con la palabra
+  «Agotado», no lo oculta: una tarjeta sin botón rompe la altura de la fila y
+  deja el estado dependiendo solo del chip.
+- **La papelera aparece en 1.** Bajar de uno no decrementa, quita la línea — y el
+  glifo cambia a una papelera, porque «−» sobre la última unidad promete restar,
+  no borrar. Sin eso, agregar desde la rejilla es una puerta de un solo sentido:
+  se entra desde la tarjeta y se sale solo desde el cajón.
+- **`mt-auto` fija la acción al fondo.** Una fila con nombres de una y dos líneas
+  tiene que presentar sus botones en una sola línea horizontal.
 - **Contenedor de resumen** (checkout, carrito): Crema Elevada, borde de 1px,
   radio 2px, padding `20px`, sin sombra.
+
+#### La Regla de la Ranura Estable
+
+Los dos estados miden **44px y ancho completo**. Una tarjeta que creciera o
+encogiera al cambiar su cantidad empujaría todas las tarjetas de abajo: el
+comprador pulsa «+» y ve la página moverse bajo su dedo. Por eso el `Stepper`
+tiene `fullWidth` — el grupo se estira al ancho del botón que sustituye y la
+cifra se lleva la holgura.
+
+#### La Regla del Carrito como Fuente de Verdad
+
+La cantidad se **lee del carrito en cada render**, nunca se copia a estado local.
+El mismo producto puede aparecer dos veces en una pantalla —en la rejilla y en la
+banda de la pesca de la semana, o en la rejilla y en el cajón abierto encima— y
+una tarjeta con su propia copia del número mostraría una desactualizada en cuanto
+el comprador editara la otra. Editar en el cajón se refleja en la tarjeta de
+abajo al instante, y un carrito restaurado de `localStorage` en una segunda
+visita pinta sus cantidades sin ningún paso de reconciliación.
+
+Corolario: **las tres mutaciones del carrito viven en `CartProvider`**
+(`add`, `setQuantity`, `remove`). Un componente que alcance `writeCart` por su
+cuenta es exactamente cómo la fila de sugerencias del cajón acabó con su propia
+copia sutilmente distinta de la escritura.
+
+#### La tarjeta no es un solo enlace
+
+Una tarjeta con destino **y** acción no puede ser un `<a>` envolviéndolo todo: un
+`<button>` dentro de un `<a>` es HTML inválido y el navegador resuelve el
+conflicto tragándose una de las dos interacciones.
+
+El patrón es: contenedor posicionado, el **nombre** lleva el enlace, y ese enlace
+estira un `::after` vacío sobre toda la tarjeta. Así la fotografía y el precio
+siguen siendo clicables, el nombre accesible del enlace es el nombre del producto
+—y no un párrafo de texto de tarjeta— y el botón se apoya encima del overlay con
+su propio `relative`. Es la única forma de dejar las dos cosas alcanzables por
+teclado.
 
 ### Inputs / Fields
 
@@ -685,7 +749,15 @@ pantalla.
 - **Don't** poner más de una diagonal por pantalla.
 - **Don't** poner un nombre de producto, un precio o una etiqueta en Newsreader.
   La serif es voz; el dato es sans.
-- **Don't** esconder información de compra detrás de un hover.
+- **Don't** esconder información de compra detrás de un hover — ni el dato ni el
+  control. Un botón que solo aparece al pasar el cursor no existe en un teléfono.
+- **Don't** anidar un `<button>` dentro de un `<a>`. Si un contenedor necesita un
+  destino y una acción, usa el enlace estirado con `::after`; si un botón navega,
+  usa `ButtonLink`.
+- **Don't** agregar al carrito desde la rejilla un producto con más de una
+  presentación. El comprador todavía no ha elegido, y elegir por él es como
+  alguien termina con el corte equivocado: la tarjeta degrada a «Elegir
+  presentación» y lo manda a la ficha.
 - **Don't** usar fotografía de stock ni ilustración de mariscos. Solo fotografía
   propia; si no existe, degradar con elegancia a Arena.
 - **Don't** comunicar estado activo o disponibilidad únicamente con color.

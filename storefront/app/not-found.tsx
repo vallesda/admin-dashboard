@@ -1,6 +1,5 @@
-import Link from 'next/link';
 
-import Button from '@/components/ui/button';
+import { ButtonLink } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
@@ -10,9 +9,7 @@ export default function NotFound() {
         Puede que el producto ya no esté disponible o que la dirección haya
         cambiado.
       </p>
-      <Link href="/">
-        <Button>Ver todos los productos</Button>
-      </Link>
+      <ButtonLink href="/">Ver todos los productos</ButtonLink>
     </div>
   );
 }

@@ -1,10 +1,9 @@
 import { Suspense } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 
 import { getProducts } from '@/lib/commerce';
 import Heading from '@/components/ui/heading';
-import Button from '@/components/ui/button';
+import { ButtonLink } from '@/components/ui/button';
 
 /**
  * Hero — the board above the counter.
@@ -93,11 +92,13 @@ export default function Hero() {
             </p>
 
             <div className="set-down" style={{ animationDelay: '270ms' }}>
-              <Link href="/search" className="mt-9 inline-block">
-                <Button variant="onBrand">
-                  Ver lo que hay hoy
-                </Button>
-              </Link>
+              <ButtonLink
+                href="/search"
+                variant="onBrand"
+                className="mt-9"
+              >
+                Ver lo que hay hoy
+              </ButtonLink>
             </div>
 
             {/* Pushes the tally to the bottom of the block on desktop, where it

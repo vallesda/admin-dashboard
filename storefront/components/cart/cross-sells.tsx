@@ -4,10 +4,10 @@ import Image from 'next/image';
 
 import type { Cart } from '@/lib/cart';
 import type { Product } from '@/lib/commerce/types';
-import { addLine, getCartSnapshot, writeCart } from '@/lib/cart';
 import { pickCrossSells } from '@/lib/cross-sell';
 import { formatMoney } from '@/lib/format';
 import Eyebrow from '@/components/ui/eyebrow';
+import AddToCart from './add-to-cart';
 
 /**
  * Suggestions inside the cart.
@@ -73,17 +73,18 @@ export default function CrossSells({
               </p>
             </div>
 
-            {/* 44px tall like every other control in the drawer, and secondary
-                to "Ir a confirmar" below it — a suggestion must never compete
-                with the button that completes the order. */}
-            <button
-              type="button"
-              onClick={() => writeCart(addLine(getCartSnapshot(), product, 1))}
-              className="h-11 flex-none rounded border border-border-strong bg-surface px-4 text-sm transition-colors duration-150 hover:bg-background hover:text-brand"
-            >
-              Agregar
-              <span className="sr-only"> {product.name} al carrito</span>
-            </button>
+            {/* The shared control, not a local copy of the write.
+                Secondary and not full width, so a suggestion never competes
+                with "Ir a confirmar" below it — and it now confirms the add and
+                announces it, which the hand-rolled button did neither of. */}
+            <div className="flex-none">
+              <AddToCart
+                product={product}
+                variant="secondary"
+                fullWidth={false}
+                label="Agregar"
+              />
+            </div>
           </li>
         ))}
       </ul>

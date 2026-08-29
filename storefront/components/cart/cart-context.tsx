@@ -10,6 +10,7 @@ import {
 } from 'react';
 
 import {
+  addLine,
   cartCount,
   cartSubtotalCents,
   getCartSnapshot,
@@ -20,6 +21,7 @@ import {
   writeCart,
   type Cart,
 } from '@/lib/cart';
+import type { Product } from '@/lib/commerce/types';
 
 /**
  * Global cart boundary.
@@ -40,8 +42,12 @@ type CartContextValue = {
   isOpen: boolean;
   open: () => void;
   close: () => void;
+  /** Adds a product, merging with an existing line for the same product. */
+  add: (product: Product, quantity?: number) => void;
   setQuantity: (productId: string, quantity: number) => void;
   remove: (productId: string) => void;
+  /** The quantity of one product in the cart, or 0 when it is not in it. */
+  quantityOf: (productId: string) => number;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -60,6 +66,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
 
+  /*
+   * All three mutations live here rather than in the components that trigger
+   * them. `add` moved up from `AddToCart` when the catalogue cards started
+   * needing it too: a second component reaching for `writeCart(addLine(...))`
+   * directly is exactly how the cart drawer's suggestion row ended up with its
+   * own subtly different copy of the write.
+   */
+  const add = useCallback((product: Product, quantity = 1) => {
+    writeCart(addLine(getCartSnapshot(), product, quantity));
+  }, []);
+
   // Writing is the only mutation path: `writeCart` updates the store and
   // notifies, and the hook re-renders whoever is subscribed.
   const setQuantity = useCallback((productId: string, quantity: number) => {
@@ -70,6 +87,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     writeCart(removeLine(getCartSnapshot(), productId));
   }, []);
 
+  /*
+   * Derived from `cart`, so it re-computes with the same snapshot every
+   * subscriber already re-rendered on. A catalogue of eight cards each asking
+   * "how many of me are in the cart?" is eight lookups over a list that is
+   * never longer than the basket.
+   */
+  const quantityOf = useCallback(
+    (productId: string) =>
+      cart.lines.find((l) => l.productId === productId)?.quantity ?? 0,
+    [cart],
+  );
+
   const value = useMemo(
     () => ({
       cart,
@@ -78,10 +107,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       isOpen,
       open,
       close,
+      add,
       setQuantity,
       remove,
+      quantityOf,
     }),
-    [cart, isOpen, open, close, setQuantity, remove],
+    [cart, isOpen, open, close, add, setQuantity, remove, quantityOf],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

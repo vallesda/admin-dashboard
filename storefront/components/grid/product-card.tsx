@@ -3,12 +3,14 @@ import Link from 'next/link';
 
 import type { Product } from '@/lib/commerce/types';
 import { formatMoney, formatUnit } from '@/lib/format';
+import ProductCartControl from '@/components/cart/product-cart-control';
 
 /**
  * ProductCard — the component the storefront lives or dies by.
  *
  * Read as a fishmonger's board rather than as a tile: a photograph mounted
- * behind a hairline, then a rule, then the name and its price on one baseline.
+ * behind a hairline, then a rule, then the name and its price on one baseline,
+ * then the one thing the shopper came to do.
  *
  * The two-column baseline row is the whole idea. Price used to sit two lines
  * below the name on the left, which meant that scanning a grid of eight
@@ -22,7 +24,32 @@ import { formatMoney, formatUnit } from '@/lib/format';
  * loin from a fillet of the same fish, so they stay on the card and are not
  * demoted to the product page.
  *
- * A Server Component — it has no interaction of its own.
+ * ## Why the card is no longer a single link
+ *
+ * It used to be one `<Link>` wrapping everything, which is the simplest thing
+ * that works right up until the card needs a second action — and a `<button>`
+ * nested inside an `<a>` is invalid HTML that browsers resolve by swallowing
+ * one of the two interactions.
+ *
+ * So the card is a positioned container, the product name carries the link, and
+ * that link stretches an empty `::after` over the whole card. The photograph and
+ * the price stay clickable, the accessible name of the link is the product name
+ * rather than a paragraph of card text, and the Add button sits above the
+ * overlay on its own stacking level. This is the standard shape for a card with
+ * one primary destination and one secondary action, and it is the only one that
+ * keeps both reachable by keyboard.
+ *
+ * ## Why the action is visible at rest
+ *
+ * The design system forbids hiding purchase information behind a hover, and the
+ * same reasoning applies to the purchase *control*: a button that appears on
+ * hover does not exist on a phone, which is most of this shop's traffic. It is
+ * `secondary` rather than `primary` because eight saturated green buttons down a
+ * catalogue page would outweigh the photography the grid is built to show.
+ *
+ * Once the product is in the basket that slot becomes the line's own quantity —
+ * see `ProductCartControl`. Both states are 44px and full width, so a row of
+ * cards never reflows as quantities change.
  */
 export default function ProductCard({ product }: { product: Product }) {
   const meta = [product.presentation, product.origin]
@@ -31,8 +58,18 @@ export default function ProductCard({ product }: { product: Product }) {
 
   const soldOut = !product.availableForSale;
 
+  /*
+   * A product with real presentations cannot be added from a grid: the shopper
+   * has not chosen one yet, and picking silently on their behalf is how someone
+   * ends up with the wrong cut. Today the catalogue always returns exactly one
+   * variant — a Product *is* the SKU, see the admin's DTO — so this branch is
+   * inert. It exists so that the day variants land, the grid degrades to
+   * "choose on the product page" instead of quietly adding the first option.
+   */
+  const needsChoice = product.variants.length > 1;
+
   return (
-    <Link href={`/product/${product.handle}`} className="group block">
+    <div className="group relative flex h-full flex-col">
       <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-sand">
         {product.featuredImage ? (
           <Image
@@ -82,7 +119,17 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="mt-4 border-t border-border pt-3 transition-colors duration-200 group-hover:border-brand">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-sans text-base font-medium leading-snug tracking-[-0.01em]">
-            {product.name}
+            {/*
+              The stretched `::after` is what keeps the whole card clickable now
+              that it is not itself a link. `rounded-sm` on it so the focus ring
+              traces the card rather than a bare rectangle.
+            */}
+            <Link
+              href={`/product/${product.handle}`}
+              className="rounded-sm after:absolute after:inset-0 after:content-['']"
+            >
+              {product.name}
+            </Link>
           </h3>
           <span className="shrink-0 font-sans text-base font-medium tabular-nums">
             {formatMoney(product.price)}
@@ -103,6 +150,26 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         ) : null}
       </div>
-    </Link>
+
+      {/*
+        `mt-auto` pins the action to the bottom of the card, so a row of cards
+        with one- and two-line names still presents its buttons on a single
+        line. `relative` lifts it out of the link's stretched overlay; without
+        it every click on the button would navigate instead of adding.
+      */}
+      <div className="relative mt-auto pt-3">
+        {needsChoice ? (
+          <Link
+            href={`/product/${product.handle}`}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded border border-border-strong bg-surface px-6 text-sm font-medium transition-colors duration-150 hover:bg-sand"
+          >
+            Elegir presentación
+            <span className="sr-only"> de {product.name}</span>
+          </Link>
+        ) : (
+          <ProductCartControl product={product} />
+        )}
+      </div>
+    </div>
   );
 }

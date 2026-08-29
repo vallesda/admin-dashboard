@@ -5,6 +5,7 @@ import { getFeaturedProducts } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Price from '@/components/ui/price';
 import Section from '@/components/ui/section';
+import ProductCartControl from '@/components/cart/product-cart-control';
 import SectionHeader from '@/components/ui/section-header';
 
 /**
@@ -32,6 +33,11 @@ import SectionHeader from '@/components/ui/section-header';
  *
  * No ratings, no sales counts, no scarcity — the shop has no data for any of
  * them, and inventing it would be a lie dressed as social proof.
+ *
+ * It carries the same Add control as the catalogue grid. A shopper who is
+ * offered three hand-picked pieces and then has to open each one to buy it is
+ * being sent backwards; the row is merchandising, but what it merchandises is
+ * still purchasable.
  */
 export default async function BestSellers() {
   const products = await getFeaturedProducts(3);
@@ -54,8 +60,11 @@ export default async function BestSellers() {
 
         <ul className="grid grid-cols-1 gap-10 sm:grid-cols-3 md:gap-8">
           {products.map((product) => (
-            <li key={product.id}>
-              <Link href={`/product/${product.handle}`} className="group block">
+            <li key={product.id} className="flex">
+              {/* Same anatomy as `ProductCard`, and the same reason it is not a
+                  single link: the Add button cannot live inside an anchor. The
+                  product name carries the link and stretches over the card. */}
+              <div className="group relative flex w-full flex-col">
                 <div className="relative aspect-[4/5] w-full overflow-hidden rounded-sm bg-sand">
                   {product.featuredImage ? (
                     <Image
@@ -75,7 +84,12 @@ export default async function BestSellers() {
                 <div className="mt-4 border-t border-border pt-3 transition-colors duration-200 group-hover:border-brand">
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="font-sans text-base font-medium tracking-[-0.01em]">
-                      {product.name}
+                      <Link
+                        href={`/product/${product.handle}`}
+                        className="rounded-sm after:absolute after:inset-0 after:content-['']"
+                      >
+                        {product.name}
+                      </Link>
                     </h3>
                     <span className="shrink-0 font-sans text-base font-medium">
                       <Price value={product.price} />
@@ -87,7 +101,11 @@ export default async function BestSellers() {
                     </p>
                   ) : null}
                 </div>
-              </Link>
+
+                <div className="relative mt-auto pt-4">
+                  <ProductCartControl product={product} />
+                </div>
+              </div>
             </li>
           ))}
         </ul>

@@ -48,3 +48,18 @@ export function SearchIcon() {
     </svg>
   );
 }
+
+/** Remove: the minus button's other face when a line is down to its last one. */
+export function TrashIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none">
+      <path
+        d="M3 4.5h10M6.5 4.5V3.2a.7.7 0 0 1 .7-.7h1.6a.7.7 0 0 1 .7.7v1.3M4.3 4.5l.5 7.8a1 1 0 0 0 1 .95h4.4a1 1 0 0 0 1-.95l.5-7.8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

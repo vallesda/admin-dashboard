@@ -2,8 +2,8 @@
  * Product grid placeholder.
  *
  * Shares the grid's exact proportions AND the card's exact anatomy — the 4:5
- * frame, the rule, the two baseline rows — so the page does not jump when the
- * real cards arrive. A skeleton with a different shape is worse than none: it
+ * frame, the rule, the two baseline rows, the action — so the page does not
+ * jump when the real cards arrive. A skeleton with a different shape is worse than none: it
  * promises a layout the content then contradicts.
  */
 export default function GridSkeleton({ count = 8 }: { count?: number }) {
@@ -25,6 +25,11 @@ export default function GridSkeleton({ count = 8 }: { count?: number }) {
               <div className="h-3 w-6 animate-pulse rounded-sm bg-sand" />
             </div>
           </div>
+
+          {/* The Add button. 44px, matching the real control — without it the
+              grid grew by a button's height the moment the products arrived,
+              which is the jump a skeleton exists to prevent. */}
+          <div className="mt-3 h-11 animate-pulse rounded bg-sand" />
         </li>
       ))}
     </ul>

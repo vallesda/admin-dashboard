@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 
 import { getOrder } from '@/lib/commerce';
 import { formatMoney } from '@/lib/format';
 import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
-import Button from '@/components/ui/button';
+import { ButtonLink } from '@/components/ui/button';
 import ClearCart from './clear-cart';
 import Eyebrow from '@/components/ui/eyebrow';
 import { RHYTHM } from '@/components/ui/section';
@@ -141,9 +140,9 @@ export default async function Page({
           Guarda este enlace: es la única forma de volver a ver tu pedido.
         </p>
 
-        <Link href="/search">
-          <Button variant="secondary">Seguir comprando</Button>
-        </Link>
+        <ButtonLink href="/search" variant="secondary">
+          Seguir comprando
+        </ButtonLink>
       </div>
     </Container>
   );

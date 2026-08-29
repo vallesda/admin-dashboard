@@ -7,7 +7,7 @@ import Link from 'next/link';
 import type { Product } from '@/lib/commerce/types';
 import { formatMoney } from '@/lib/format';
 import { CURRENCY } from '@/lib/commerce/constants';
-import Button from '@/components/ui/button';
+import { ButtonLink } from '@/components/ui/button';
 import IconButton from '@/components/ui/icon-button';
 import Stepper from '@/components/ui/stepper';
 import { useCart } from './cart-context';
@@ -94,9 +94,9 @@ export default function CartDrawer({ catalogue }: { catalogue: Product[] }) {
                 El catálogo cambia con lo que llega. Mira lo que hay hoy.
               </p>
             </div>
-            <Link href="/search" onClick={close}>
-              <Button>Ver lo que hay hoy</Button>
-            </Link>
+            <ButtonLink href="/search" onClick={close}>
+              Ver lo que hay hoy
+            </ButtonLink>
           </div>
         ) : (
           <>
@@ -192,9 +192,9 @@ export default function CartDrawer({ catalogue }: { catalogue: Product[] }) {
                 </span>
               </div>
 
-              <Link href="/checkout" onClick={close} className="block">
-                <Button fullWidth>Ir a confirmar</Button>
-              </Link>
+              <ButtonLink href="/checkout" onClick={close} fullWidth>
+                Ir a confirmar
+              </ButtonLink>
 
               {/* Said before the click, not after: no card is taken online
                   (F6 has not started), and discovering that at the end of a
