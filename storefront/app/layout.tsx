@@ -14,8 +14,22 @@ import Footer from '@/components/layout/footer';
  * functional. Keeping them apart is most of what stops the storefront reading
  * like a generic Tailwind site.
  */
+/**
+ * Newsreader is loaded with its italic as well as its roman.
+ *
+ * Not decoration: the section headings set one word of each title in italic —
+ * the noun the band is actually about — which is how an editorial page marks
+ * emphasis without reaching for a second weight, a colour, or a rule. Without
+ * the real italic the browser would synthesise one by slanting the roman, and a
+ * skewed serif at 48px is visibly wrong.
+ *
+ * No `weight` is passed, so both axes load as variable fonts and the display
+ * scale is free to sit at 300 where 400 would look heavy — a 5.5rem headline at
+ * regular weight reads as a poster, at light it reads as a masthead.
+ */
 const display = Newsreader({
   subsets: ['latin'],
+  style: ['normal', 'italic'],
   variable: '--font-display',
   display: 'swap',
 });

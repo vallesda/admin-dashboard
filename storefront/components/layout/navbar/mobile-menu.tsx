@@ -44,11 +44,11 @@ export default function MobileMenu({
         ref={ref}
         onClose={() => setOpen(false)}
         aria-label="Menú"
-        className="mr-auto ml-0 h-full max-h-full w-full max-w-xs bg-background p-0 text-foreground backdrop:bg-foreground/40"
+        className="drawer-left mr-auto ml-0 h-full max-h-full w-full max-w-xs bg-background p-0 text-foreground shadow-overlay backdrop:bg-foreground/50"
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <span className="font-display text-xl text-brand">Amor a Mar</span>
+            <span className="font-display text-xl font-light text-brand">Amor a Mar</span>
             <IconButton label="Cerrar menú" onClick={() => setOpen(false)}>
               <CloseIcon />
             </IconButton>
@@ -58,23 +58,26 @@ export default function MobileMenu({
             <SearchField />
           </div>
 
-          <nav className="px-5 py-4">
-            <ul className="flex flex-col gap-1">
-              <li>
+          {/* Ruled rows rather than a gapped list: at 18px with no separator
+              the entries read as a paragraph of links, and the row a thumb is
+              aiming at has no visible bounds. */}
+          <nav className="px-5 py-2">
+            <ul className="flex flex-col">
+              <li className="border-b border-border">
                 <Link
                   href="/search"
                   onClick={() => setOpen(false)}
-                  className="block py-3 text-lg"
+                  className="block py-4 text-lg transition-colors hover:text-brand"
                 >
                   Todo el catálogo
                 </Link>
               </li>
               {collections.map((collection) => (
-                <li key={collection.handle}>
+                <li key={collection.handle} className="border-b border-border last:border-none">
                   <Link
                     href={`/search/${collection.handle}`}
                     onClick={() => setOpen(false)}
-                    className="block py-3 text-lg"
+                    className="block py-4 text-lg transition-colors hover:text-brand"
                   >
                     {collection.title}
                   </Link>

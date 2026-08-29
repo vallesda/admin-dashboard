@@ -3,18 +3,29 @@ import Link from 'next/link';
 
 import { getProducts } from '@/lib/commerce';
 import Container from '@/components/ui/container';
-import Heading from '@/components/ui/heading';
 import Button from '@/components/ui/button';
 import Price from '@/components/ui/price';
 import Section from '@/components/ui/section';
+import SectionHeader from '@/components/ui/section-header';
+import SpecList, { type Spec } from '@/components/ui/spec-list';
 
 /**
- * Seasonal merchandising.
+ * Seasonal merchandising — the single green moment in the middle of the page.
  *
  * Picks a product actually flagged `seasonal` in the admin, falling back to a
  * featured one. If neither exists the section does not render — an empty
  * "Pesca de la semana" is worse than no section, and inventing a highlight the
  * shop did not choose would be worse still.
+ *
+ * The band now names itself before it names the fish. Previously the section
+ * heading *was* the product name, which meant the page's largest type said
+ * "Atún aleta amarilla" with no indication of why, and a shopper landing
+ * mid-scroll met a product with no frame around it. The section header says
+ * what this is; the product then gets the full editorial treatment beneath it.
+ *
+ * The spec list is the same one the product page uses, in its on-brand tone.
+ * A week's pick that shows a price and no cut is a poster; showing the cut and
+ * the origin is what makes it an offer.
  *
  * No countdown, no "últimas piezas": the data does not support urgency, so the
  * copy does not claim it.
@@ -26,6 +37,21 @@ export default async function CatchOfTheWeek() {
 
   if (!product) return null;
 
+  // The literal is annotated, not the filtered result: inferred, each entry
+  // keeps its own narrow object shape and the type guard has nothing
+  // assignable to narrow from. Rows the admin has not filled in are dropped
+  // rather than rendered empty.
+  const rows: (Spec | null)[] = [
+    product.presentation
+      ? { label: 'Presentación', value: product.presentation }
+      : null,
+    product.origin ? { label: 'Origen', value: product.origin } : null,
+    product.netWeightGrams
+      ? { label: 'Peso neto', value: `${product.netWeightGrams} g`, numeric: true }
+      : null,
+  ];
+  const specs = rows.filter((s): s is Spec => s !== null);
+
   return (
     <Section
       labelledBy="pesca-heading"
@@ -33,49 +59,75 @@ export default async function CatchOfTheWeek() {
       className="bg-brand text-background edge-top edge-bottom"
     >
       <Container>
-        <div className="grid grid-cols-1 items-center gap-10 py-20 md:grid-cols-2 md:gap-16 md:py-28">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-brand-dark md:aspect-square">
-            {product.featuredImage ? (
-              <Image
-                src={product.featuredImage.url}
-                alt={product.featuredImage.altText}
-                fill
-                sizes="(min-width: 768px) 45vw, 90vw"
-                className="object-cover"
+        <div className="py-20 md:py-28">
+          <SectionHeader
+            id="pesca-heading"
+            tone="on-brand"
+            title={
+              <>
+                La pesca de la <em>semana</em>
+              </>
+            }
+            lede="Una pieza que elegimos esta semana y que no siempre vamos a tener."
+            className="mb-12 md:mb-16"
+          />
+
+          <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-16">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-brand-dark md:aspect-square">
+              {product.featuredImage ? (
+                <Image
+                  src={product.featuredImage.url}
+                  alt={product.featuredImage.altText}
+                  fill
+                  sizes="(min-width: 768px) 45vw, 90vw"
+                  className="object-cover"
+                />
+              ) : null}
+
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-sm plate-on-brand"
               />
-            ) : null}
-          </div>
 
-          <div>
-            <Heading
-              id="pesca-heading"
-              size="section"
-              className="max-w-[14ch]"
-            >
-              {product.name}
-            </Heading>
+              {/* One of the two gold appearances the viewport allows; the
+                  other is this section's own button on hover. The chip is the
+                  system's designated home for "will not always be here". */}
+              {product.seasonal ? (
+                <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-medium text-foreground">
+                  De temporada
+                </span>
+              ) : null}
+            </div>
 
-            {product.shortDescription ? (
-              <p className="mt-6 max-w-[44ch] text-lg text-background/85">
-                {product.shortDescription}
+            <div>
+              {/* `h3`, not `h2`: the section already owns the h2 above, and the
+                  product is a level inside it. Sized as a headline anyway —
+                  outline depth and type scale are separate decisions. */}
+              <h3 className="max-w-[14ch] font-display text-3xl font-light leading-[1.05] md:text-[2.75rem]">
+                {product.name}
+              </h3>
+
+              {product.shortDescription ? (
+                <p className="mt-5 max-w-[44ch] text-lg text-background/85">
+                  {product.shortDescription}
+                </p>
+              ) : null}
+
+              <SpecList specs={specs} tone="on-brand" className="mt-8" />
+
+              <p className="mt-8 font-sans text-2xl tabular-nums">
+                <Price value={product.price} unit={product.unit} tone="on-brand" />
               </p>
-            ) : null}
 
-            {product.origin ? (
-              <p className="mt-3 text-sm text-background/70">
-                Origen: {product.origin}
-              </p>
-            ) : null}
-
-            <p className="mt-6 text-2xl">
-              <Price value={product.price} unit={product.unit} />
-            </p>
-
-            <Link href={`/product/${product.handle}`} className="mt-8 inline-block">
-              <Button className="bg-background text-brand hover:bg-gold hover:text-foreground">
-                Ver producto
-              </Button>
-            </Link>
+              <Link
+                href={`/product/${product.handle}`}
+                className="mt-8 inline-block"
+              >
+                <Button variant="onBrand">
+                  Ver producto
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </Container>

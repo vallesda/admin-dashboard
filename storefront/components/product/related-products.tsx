@@ -1,5 +1,6 @@
 import { getProductRecommendations } from '@/lib/commerce';
 import ProductGrid from '@/components/grid/product-grid';
+import SectionHeader from '@/components/ui/section-header';
 
 /**
  * Same-category cross-sells.
@@ -17,8 +18,16 @@ export default async function RelatedProducts({ handle }: { handle: string }) {
   if (products.length === 0) return null;
 
   return (
-    <section className="mt-16">
-      <h2 className="mb-8 text-3xl md:text-4xl">También te puede gustar</h2>
+    <section aria-labelledby="relacionados-heading" className="mt-20 md:mt-28">
+      <SectionHeader
+        id="relacionados-heading"
+        title={
+          <>
+            De la misma <em>categoría</em>
+          </>
+        }
+        className="mb-10"
+      />
       <ProductGrid products={products} />
     </section>
   );

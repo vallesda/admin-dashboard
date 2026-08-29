@@ -17,15 +17,15 @@ colors:
 typography:
   display:
     fontFamily: "Newsreader, Georgia, serif"
-    fontSize: "clamp(3.25rem, 8vw, 5.5rem)"
-    fontWeight: 400
+    fontSize: "clamp(3.25rem, 8vw, 5.25rem)"
+    fontWeight: 300
     lineHeight: 0.95
-    letterSpacing: "-0.015em"
+    letterSpacing: "-0.03em"
   headline:
     fontFamily: "Newsreader, Georgia, serif"
-    fontSize: "clamp(1.875rem, 4vw, 3rem)"
+    fontSize: "clamp(1.875rem, 4vw, 2.75rem)"
     fontWeight: 400
-    lineHeight: 1.1
+    lineHeight: 1.05
     letterSpacing: "-0.015em"
   title:
     fontFamily: "Newsreader, Georgia, serif"
@@ -350,6 +350,19 @@ La única excepción son los **overlays**: el drawer del carrito y el menú móv
 flotan sobre contenido vivo y desplazable, y una capa tonal no basta para
 separarlos de lo que sigue debajo. Solo ellos reciben sombra.
 
+### La Placa
+
+El único recurso de profundidad que se sumó al sistema, y no es una sombra:
+**toda fotografía de la tienda lleva una línea de 1px dibujada por dentro de su
+propio marco** (`.plate`, o `.plate-on-brand` sobre verde).
+
+Es `box-shadow: inset`, no un borde: un borde exterior suma un píxel al layout y
+`overflow-hidden` se lo come, mientras que el anillo interior lo pinta el propio
+elemento — así un marco 4:5 sigue siendo exactamente 4:5 y la línea sobrevive al
+recorte. El color es la tinta de la marca al 12% y no el token de borde: sobre
+una foto oscura una línea arena brilla, y sobre una clara la tinta se lee como
+el paspartú de una lámina enmarcada.
+
 ### Shadow Vocabulary
 
 - **overlay** (`box-shadow: 0 8px 40px rgb(12 28 29 / 0.14)`): exclusivamente
@@ -405,6 +418,61 @@ un chip) es ajena a este sistema: convierte una pescadería en una app.
 máximo una transición angular por pantalla. Dos diagonales compitiendo dejan de
 ser un gesto de marca y pasan a ser ruido.
 
+## Motion & Browser Surfaces
+
+### El Momento Único
+
+El sitio tiene **un** momento animado y está en el hero: la fecha, el titular, el
+subtítulo y el CTA se posan en su sitio escalonados al primer pintado
+(`.set-down`, 900ms, `--ease-out-expo`). Es CSS puro y no se repite en ninguna
+otra banda.
+
+Un *scroll reveal* repetido en cada sección es exactamente lo que hace que una
+página se sienta animada en vez de compuesta, y le cobra al comprador un
+parpadeo de vacío en cada banda. Aquí no existe.
+
+La curva es exponencial: casi toda la distancia se recorre en el primer tercio,
+así que el movimiento se lee como algo que **llega**, no como algo que viaja.
+Vive una sola vez, en `--ease-out-expo`, y Tailwind la expone como `ease-board`.
+
+El resto del movimiento del sistema es retroalimentación, no expresión: la regla
+de una tarjeta que pasa a verde, la foto que escala 3% en 500ms, el chevron de un
+`<details>` que gira, la flecha de un enlace que se desplaza 2px, el drawer que
+entra desde su borde. Ninguno de esos es "el momento"; son estados.
+
+### Superficies del Navegador
+
+Las partes que no dibujamos también llevan el diseño. Todas resuelven desde la
+paleta en `globals.css`:
+
+- **`::selection`** — verde de marca al 16% con la tinta intacta encima. El
+  resalte azul de Chrome sobre una página crema es la señal más ruidosa de que un
+  sitio se ensambló en vez de construirse.
+- **`caret-color`** — verde de marca, igual que el anillo de foco.
+- **Scrollbar** — delgada, pista arena, pulgar en Borde de Control con radio de
+  2px, nunca la pastilla del sistema operativo. Declarada dos veces:
+  `scrollbar-color` para los que la respetan y `::-webkit-scrollbar` para el
+  resto.
+- **`text-underline-offset: 0.2em`** — sin él, el descendente de una serif
+  atraviesa su propio subrayado y el enlace se lee tachado.
+- **`::placeholder`** — Gris Marea explícito. El gris por defecto del navegador
+  mide 3.1:1 sobre crema, bajo AA, en la única cadena que dice para qué sirve un
+  campo.
+- **Spinners de `input[type=number]`** — eliminados. El carrito y la ficha de
+  producto ponen botones reales de 44px al lado; el spinner del navegador ofrece
+  la misma acción a un tercio del tamaño, y en un teléfono es el que encuentra
+  primero el pulgar.
+
+### Named Rules
+
+**La Regla del Momento Único.** Una sola animación de entrada autoral por sitio,
+y está gastada en el hero. Cualquier otro movimiento tiene que ser un estado —
+hover, foco, abierto/cerrado, entrada de un overlay — o no se añade.
+
+**La Regla de la Superficie Prestada.** Ningún valor por defecto del navegador se
+queda. Selección, cursor, scrollbar, placeholder y subrayado se declaran desde la
+paleta o no se han terminado.
+
 ## Components
 
 ### Buttons
@@ -417,9 +485,20 @@ ser un gesto de marca y pasan a ser ruido.
   El foco es el anillo global — nunca se sustituye por un cambio de fondo.
 - **Secundario:** superficie crema elevada con borde de 1px
   (`border-border bg-surface text-foreground`), hover a Arena.
-- **Sobre verde:** cuando un botón vive dentro de un bloque de marca, invierte —
-  fondo crema, texto verde — y su hover es el **único** lugar donde el oro toca
-  un control (`hover:bg-gold hover:text-foreground`).
+- **Sobre verde (`variant="onBrand"`):** cuando un botón vive dentro de un
+  bloque de marca, invierte — fondo crema, texto verde — y su hover es el
+  **único** lugar donde el oro toca un control (`hover:bg-gold
+  hover:text-foreground`).
+
+  Es una **variante**, no un `className` que sobrescribe a `primary`. Los dos
+  CTA sobre verde estaban escritos como `variant="primary"` más
+  `className="bg-background text-brand"`, suponiendo que una clase escrita
+  después gana. No gana: la cascada resuelve por el orden en que las utilidades
+  salen en la hoja generada, y `background` se declara después de `brand` en la
+  paleta — así que `text-background` le ganaba a `text-brand` y ambos botones se
+  pintaban crema sobre crema. **Invisibles**, en las dos llamadas a la acción más
+  fuertes del sitio. Si dos utilidades del mismo grupo compiten, la respuesta es
+  una variante, nunca el orden del string.
 - **Deshabilitado:** `opacity-45` y `cursor-not-allowed`. Nunca se oculta.
 
 ### Icon Buttons
@@ -468,7 +547,14 @@ ser un gesto de marca y pasan a ser ruido.
 - **Estado activo:** nunca solo color — siempre acompañado de peso tipográfico,
   una regla, o `aria-current`.
 - **Móvil:** el logo se centra entre el disparador del menú y el del carrito; la
-  navegación entera pasa a un drawer.
+  navegación entera pasa a un drawer, con filas regladas y objetivos de 44px en
+  lugar de una lista de enlaces separada por `gap`.
+- **Rieles de colección:** horizontales, no una barra lateral. Siete enlaces
+  cortos se llevaban un séptimo del ancho de forma permanente y bajaban la
+  rejilla de cuatro columnas a tres en cualquier laptop. Horizontales cuestan dos
+  filas y devuelven el contenedor completo al producto. Los ítems se envuelven,
+  no hacen scroll: una tira que se desplaza esconde su propia cola en un
+  teléfono.
 - **Contenido:** las colecciones se leen del catálogo real en un Server
   Component, no de una lista hardcodeada que se desincroniza.
 
@@ -491,6 +577,61 @@ encabezado de grupo de la navegación de colecciones.
   no una etiqueta que precede.
 - **Regla:** el tono `on-brand` resuelve desde el token crema, nunca desde blanco
   puro. Dos blancos en la misma página se leen como un error.
+
+### SectionHeader
+
+El encabezado de banda, y la estructura sobre la que cuelga toda la portada.
+Vive en `components/ui/section-header.tsx`. Anatomía fija, tres partes:
+
+```
+── regla ──────────────────────────────────────────────────────
+Lo que hay hoy                             Ver todo el catálogo
+El catálogo cambia con lo que llega.
+```
+
+- **La regla superior** es lo que hace que una banda se lea como una sección de
+  un pizarrón y no como una tarjeta flotando sobre crema. También **sustituye al
+  eyebrow**: una etiqueta pequeña sobre un encabezado es decoración que el
+  encabezado no necesita, y una línea de 1px hace el mismo trabajo de separación
+  sin decir nada.
+- **La cursiva editorial.** Un sustantivo del título va en `<em>`, con la
+  itálica real de Newsreader cargada en el layout — nunca una inclinación
+  sintética. Es énfasis semántico, no un cambio de fuente.
+- **`meta` y `action` comparten la ranura derecha** porque nunca aplican las
+  dos: una banda o apunta a otro lado (el catálogo) o se cuenta a sí misma (el
+  total de una colección).
+- **`tone="on-brand"`** re-tinta regla, lede y enlace para superficie verde.
+
+### SpecList
+
+La etiqueta de mostrador: `components/ui/spec-list.tsx`. Una lista de
+definición con una regla bajo cada fila, columna de etiqueta fija para que los
+valores empiecen en la misma x en todos los productos.
+
+Corte, origen, peso neto y categoría son los datos con los que se decide una
+compra de pescado — la diferencia entre dos piezas del mismo animal — y estaban
+repartidos en tres lugares. Aquí van juntos, bajo el precio, en la ficha de
+producto y en la pesca de la semana. Filas sin valor se descartan en el
+llamador, nunca se pintan vacías.
+
+### Stepper
+
+El control de cantidad, compartido por la ficha de producto y el carrito
+(`components/ui/stepper.tsx`). Los tres elementos van soldados en un solo grupo
+con borde: una cantidad es **un** valor, y tres cajas separadas se leen como
+tres controles.
+
+Botones de **44×44 en ambos sitios, sin variante compacta**. El carrito era
+justo donde se iba a cobrar la excepción — usaba un `<input type="number">`
+pelado y el spinner de 12px del navegador, en la única pantalla donde un toque
+errado cambia lo que a alguien se le cobra.
+
+### ResultRule
+
+La regla entre los rieles de navegación y la rejilla, con el conteo en su
+extremo (`components/grid/result-rule.tsx`). Cierra los filtros y abre los
+resultados; sin ella los rieles y la primera fila de producto quedan en un solo
+bloque indiferenciado.
 
 ### Section
 
@@ -521,6 +662,11 @@ pantalla.
 - **Do** mantener todo objetivo táctil de icono en `44×44px`.
 - **Do** limitar la medida de lectura en `ch` (`max-w-[38ch]`), no en porcentaje.
 - **Do** dejar las tallas de encabezado en `components/ui/heading.tsx`.
+- **Do** encabezar toda banda con `SectionHeader`, y marcar el énfasis con `<em>`
+  dentro del título.
+- **Do** montar toda fotografía con `.plate` (o `.plate-on-brand` sobre verde).
+- **Do** dar a toda cifra que el comprador acepta — total de línea, subtotal — la
+  misma columna derecha, para que la suma se lea hacia abajo.
 - **Do** vincular todo error de formulario con `aria-describedby` y `role="alert"`.
 - **Do** respetar `prefers-reduced-motion` — ya está resuelto globalmente en
   `globals.css`, y de forma quirúrgica: el bloque mata `transform` y
@@ -548,6 +694,16 @@ pantalla.
   Usa `Eyebrow`. Siete trackings distintos para el mismo patrón fue exactamente la
   deriva que este componente cerró.
 - **Don't** escribir `py-… md:py-…` en una banda de sección. Usa `Section`.
+- **Don't** resolver un conflicto entre dos utilidades del mismo grupo con el
+  orden del `className`. La cascada no lo respeta — eso fue exactamente lo que
+  dejó los dos CTA sobre verde pintados crema sobre crema. Se resuelve con una
+  variante.
+- **Don't** añadir una segunda animación de entrada. El sitio ya gastó la suya en
+  el hero.
+- **Don't** dejar un `<input type="number">` a solas como control de cantidad.
+  Usa `Stepper`.
+- **Don't** repetir un dato de la `SpecList` en el acordeón de abajo. Un mismo
+  hecho en dos lugares de una página envejece mal en uno de los dos.
 - **Don't** poner una etiqueta pequeña encima de un encabezado. Si la etiqueta no
   nombra un valor concreto, bórrala — el encabezado se sostiene solo.
 - **Don't** usar `border` en el contorno de algo interactivo. Ese es

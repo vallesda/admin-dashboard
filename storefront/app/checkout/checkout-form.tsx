@@ -64,7 +64,7 @@ export default function CheckoutForm() {
         ) : null}
 
         <fieldset className="flex flex-col gap-5">
-          <legend className="mb-3 font-display text-2xl">Tus datos</legend>
+          <legend className="mb-3 font-display text-2xl font-light">Tus datos</legend>
 
           <Field
             name="name"
@@ -93,7 +93,7 @@ export default function CheckoutForm() {
         </fieldset>
 
         <fieldset className="flex flex-col gap-4">
-          <legend className="mb-3 font-display text-2xl">
+          <legend className="mb-3 font-display text-2xl font-light">
             Cómo lo quieres recibir
           </legend>
 
@@ -152,7 +152,7 @@ export default function CheckoutForm() {
       </div>
 
       <aside className="flex h-fit flex-col gap-5 rounded-sm border border-border bg-surface p-5 md:sticky md:top-6">
-        <h2 className="font-display text-xl">Tu pedido</h2>
+        <h2 className="font-display text-xl font-light">Tu pedido</h2>
 
         <ul className="flex flex-col gap-4">
           {cart.lines.map((line) => (
@@ -167,10 +167,27 @@ export default function CheckoutForm() {
                     className="object-cover"
                   />
                 ) : null}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-sm plate"
+                />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{line.name}</p>
-                <p className="text-sm tabular-nums text-muted">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="min-w-0 truncate text-sm font-medium">
+                    {line.name}
+                  </p>
+                  {/* Same column as the subtotal below it, for the same reason
+                      the cart drawer carries one: a shopper confirming an order
+                      should not have to multiply to check it. */}
+                  <span className="shrink-0 text-sm tabular-nums">
+                    {formatMoney({
+                      amountCents: line.unitPrice.amountCents * line.quantity,
+                      currency: line.unitPrice.currency,
+                    })}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-sm tabular-nums text-muted">
                   {line.quantity} × {formatMoney(line.unitPrice)}
                 </p>
               </div>
@@ -180,7 +197,7 @@ export default function CheckoutForm() {
 
         <div className="flex items-baseline justify-between border-t border-border pt-4">
           <span className="text-sm text-muted">Subtotal</span>
-          <span className="text-xl tabular-nums">
+          <span className="font-sans text-xl tabular-nums">
             {formatMoney({ amountCents: subtotalCents, currency: CURRENCY })}
           </span>
         </div>

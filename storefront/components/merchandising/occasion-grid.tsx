@@ -1,8 +1,8 @@
 import Container from '@/components/ui/container';
-import Heading from '@/components/ui/heading';
 import { OCCASIONS } from '@/lib/occasions';
 import OccasionCard from './occasion-card';
 import Section from '@/components/ui/section';
+import SectionHeader from '@/components/ui/section-header';
 
 /**
  * Shopping by intent rather than by taxonomy.
@@ -22,15 +22,18 @@ export default function OccasionGrid() {
   return (
     <Section labelledBy="ocasiones-heading">
       <Container>
-        <Heading id="ocasiones-heading" className="mb-3">
-          Para qué lo quieres
-        </Heading>
-        <p className="mb-10 max-w-[52ch] text-muted">
-          Empieza por lo que vas a preparar y nosotros te decimos qué pieza
-          funciona mejor.
-        </p>
+        <SectionHeader
+          id="ocasiones-heading"
+          title={
+            <>
+              Para qué lo <em>quieres</em>
+            </>
+          }
+          lede="Empieza por lo que vas a preparar y nosotros te decimos qué pieza funciona mejor."
+          className="mb-10"
+        />
 
-        <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
           {OCCASIONS.map((occasion) => (
             <li key={occasion.handle}>
               <OccasionCard occasion={occasion} />

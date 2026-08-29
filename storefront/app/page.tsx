@@ -1,10 +1,9 @@
 import { Suspense } from 'react';
-import Link from 'next/link';
 
 import { getProducts } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Section from '@/components/ui/section';
-import Heading from '@/components/ui/heading';
+import SectionHeader from '@/components/ui/section-header';
 import ProductGrid from '@/components/grid/product-grid';
 import GridSkeleton from '@/components/grid/grid-skeleton';
 import Hero from '@/components/merchandising/hero';
@@ -24,6 +23,14 @@ import HowItWorks from '@/components/merchandising/how-it-works';
  * sections of persuasion first. The catalogue now sits immediately under the
  * hero, and everything that explains the shop comes after it.
  *
+ * Every band below the hero is headed by `SectionHeader`, and that is the page's
+ * structure rather than a tidying-up. Each of these sections used to build its
+ * own header by hand, and they had drifted into five spellings of one idea —
+ * different bottom margins, a lede bounded in three of them and unbounded in the
+ * fourth, an exit link on one band and missing from three that needed it as
+ * much. The shared hairline above each title is what now makes the page read as
+ * one board with sections ruled onto it.
+ *
  * The colour rhythm is deliberate: cream carries most of the page so the two
  * brand-green surfaces — the hero and the catch of the week — keep their
  * weight. About used to be a third green block directly after the second, which
@@ -32,7 +39,7 @@ import HowItWorks from '@/components/merchandising/how-it-works';
  * is back to being a signature instead of a pattern.
  *
  * Section order, and why:
- *   1. Hero            — where the fish comes from, in one photograph
+ *   1. Hero            — where the fish comes from, and what is on the board today
  *   2. Catalogue       — the purchasable thing, before any argument for it
  *   3. Occasions       — the "por ocasión" shopper's own way of choosing
  *   4. Catch           — one green moment, the week's pick
@@ -48,27 +55,20 @@ export default function Page() {
 
       <Section id="producto-fresco" labelledBy="catalogo-heading">
         <Container>
-          <div className="mb-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
-            <div>
-              <Heading id="catalogo-heading" className="mb-3">
-                Lo que hay hoy
-              </Heading>
-              <p className="max-w-[52ch] text-muted">
-                El catálogo cambia con lo que llega. Todo lo disponible ahora,
-                con su presentación y su origen.
-              </p>
-            </div>
-
-            {/* The grid is capped, so the way out of it has to be visible.
-                Without this the only route to the full catalogue from the body
-                of the page was a text link buried in the story section. */}
-            <Link
-              href="/search"
-              className="-my-2 inline-block shrink-0 border-b border-brand/40 py-2 text-sm text-brand transition-colors hover:border-brand"
-            >
-              Ver todo el catálogo
-            </Link>
-          </div>
+          <SectionHeader
+            id="catalogo-heading"
+            title={
+              <>
+                Lo que hay <em>hoy</em>
+              </>
+            }
+            lede="El catálogo cambia con lo que llega. Todo lo disponible ahora, con su presentación y su origen."
+            // The grid is capped at eight, so the way out of it has to be
+            // visible. Without this the only route to the full catalogue from
+            // the body of the page was a text link buried in the story section.
+            action={{ href: '/search', label: 'Ver todo el catálogo' }}
+            className="mb-10"
+          />
 
           <Suspense fallback={<GridSkeleton />}>
             <Catalogue />

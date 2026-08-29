@@ -60,6 +60,16 @@
 
   --container: 1360px;
   --motion: 180ms;
+
+  /*
+   * The counter board's easing.
+   *
+   * Exponential ease-out: almost all of the distance is covered in the first
+   * third of the duration, so a movement reads as *arriving* rather than as
+   * travelling. Linear and the default `ease` both look like animation; this
+   * looks like something being set down.
+   */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
@@ -85,6 +95,91 @@
   :focus-visible {
     outline: 2px solid rgb(var(--brand));
     outline-offset: 2px;
+  }
+
+  /*
+   * The surfaces the browser draws and no design system remembers to claim.
+   *
+   * Selection, caret, scrollbar and underline offset all ship with defaults
+   * that belong to Chrome, not to this shop — a stock blue highlight over a
+   * cream page is the single loudest tell that a site was assembled rather
+   * than built. All four resolve from the palette.
+   */
+  ::selection {
+    background-color: rgb(var(--brand) / 0.16);
+    /* Not the brand green on brand-tinted cream: the pair measures under 4.5:1
+       once the highlight sits on top of the text colour. Ink stays ink. */
+    color: rgb(var(--foreground));
+  }
+
+  html {
+    /* Caret on a cream field reads as brand, matching the focus ring. */
+    caret-color: rgb(var(--brand));
+    scrollbar-color: rgb(var(--border-strong)) rgb(var(--sand) / 0.5);
+    scrollbar-width: thin;
+  }
+
+  /* WebKit ignores `scrollbar-color`, so the same two values are restated. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: rgb(var(--sand) / 0.5);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--border-strong));
+    /* Matches the system's near-square corner rather than the OS pill. */
+    border-radius: 2px;
+    border: 2px solid rgb(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--muted));
+  }
+
+  a {
+    /* A serif descender through its own underline is the default; 0.2em is the
+       distance at which "Ver todo el catálogo" stops looking struck through. */
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+
+  /*
+   * Placeholder text is content, not chrome. The UA default resolves to a grey
+   * that measures 3.1:1 on cream — under AA for the one string that tells a
+   * shopper what a field is for.
+   */
+  ::placeholder {
+    color: rgb(var(--muted));
+    opacity: 1;
+  }
+
+  /*
+   * Number inputs lose their spinners.
+   *
+   * The cart and the PDP both pair a quantity field with real −/+ buttons at
+   * 44px. The browser's own 12px spinner sits inside that field offering the
+   * same action at a third of the target size, and on a phone it is the one a
+   * thumb finds first.
+   */
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* The `search` type paints a UA clear button that ignores the palette. */
+  input[type='search']::-webkit-search-decoration,
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
   }
 }
 
@@ -112,6 +207,129 @@
     .edge-bottom {
       clip-path: polygon(0 0, 100% 0, 100% calc(100% - 24px), 0 100%);
     }
+  }
+
+  /*
+   * The mounted plate.
+   *
+   * Every photograph in the shop sits inside a hairline drawn *on top of* it
+   * rather than around it. An outer border would add a pixel to the layout and
+   * would be clipped away by `overflow-hidden`; an inset ring is painted by the
+   * element itself, so a 4:5 frame stays exactly 4:5 and the line survives the
+   * crop.
+   *
+   * The colour is the shop's ink at 12%, not the border token: over a dark
+   * photograph a warm sand line glows, and over a pale one an ink line reads as
+   * a mount. It is the same gesture as a print in a mat.
+   */
+  .plate {
+    box-shadow: inset 0 0 0 1px rgb(var(--foreground) / 0.12);
+  }
+
+  /*
+   * The unit that qualifies a price ("/ kg", "/ paquete").
+   *
+   * Sized in `em` rather than with a Tailwind step, because the price it hangs
+   * off is `text-base` in a grid card and `text-3xl` on a product page. A fixed
+   * step would be right in one place and wrong in the other; at 0.55em the unit
+   * stays subordinate at every size it is ever set at.
+   */
+  .price-unit {
+    font-size: 0.55em;
+    /* Letter-spacing does not scale down with the em size on its own, and at
+       this ratio the unqualified value reads loose against the figure. */
+    letter-spacing: 0.01em;
+  }
+
+  /* Over a brand-green surface the ink version disappears; this is its pair. */
+  .plate-on-brand {
+    box-shadow: inset 0 0 0 1px rgb(var(--background) / 0.16);
+  }
+
+  /*
+   * The overlay shadow, named rather than inlined.
+   *
+   * The system's only shadow, reserved for surfaces that float over live
+   * scrollable content — the cart drawer and the mobile menu. Cool, built from
+   * Sea Ink rather than pure black, so it does not dirty the cream underneath.
+   */
+  .shadow-overlay {
+    box-shadow: 0 8px 40px rgb(12 28 29 / 0.14);
+  }
+
+  /*
+   * The one authored moment on the site: the board being set down.
+   *
+   * Three elements of the hero rise a short distance into place, staggered, on
+   * first paint. Deliberately CSS-only and deliberately *only* here — a scroll
+   * reveal repeated on every section is the effect that makes a page feel
+   * animated rather than composed, and it costs the shopper a beat of blankness
+   * on every band.
+   *
+   * `backwards` fill is what holds the pre-delay state; without it a staggered
+   * element flashes at its final position before its turn.
+   *
+   * The reduced-motion block below collapses the duration, and because the
+   * keyframe ends at the resting state the content simply appears — no opacity
+   * is left stranded at zero.
+   */
+  @keyframes set-down {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .set-down {
+    animation: set-down 900ms var(--ease-out-expo) backwards;
+  }
+
+  /*
+   * Drawer entry.
+   *
+   * Not a second authored moment competing with the hero — a state transition.
+   * A panel that replaces a third of the screen with no travel gives the
+   * shopper nothing to tell them where it came from or, more importantly, that
+   * the page behind it is still there.
+   *
+   * Open only. Animating the close would need `transition-behavior:
+   * allow-discrete` on `display` and an `@starting-style` pair, and a drawer
+   * that lingers on the way out is a drawer in the way — dismissal should be
+   * instant.
+   */
+  @keyframes slide-from-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes slide-from-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .drawer-right[open] {
+    animation: slide-from-right 320ms var(--ease-out-expo);
+  }
+
+  .drawer-left[open] {
+    animation: slide-from-left 320ms var(--ease-out-expo);
+  }
+
+  .drawer-right[open]::backdrop,
+  .drawer-left[open]::backdrop {
+    animation: fade-in 320ms var(--ease-out-expo);
   }
 }
 

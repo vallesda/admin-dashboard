@@ -41,7 +41,7 @@ export default function CrossSells({
   return (
     <section
       aria-labelledby="cross-sells-heading"
-      className="border-t border-border px-5 py-4"
+      className="border-t border-border bg-sand/40 px-5 py-4"
     >
       <Eyebrow as="h3" id="cross-sells-heading" className="mb-3">
         Otros productos frescos
@@ -60,6 +60,10 @@ export default function CrossSells({
                   className="object-cover"
                 />
               ) : null}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-sm plate"
+              />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -69,12 +73,13 @@ export default function CrossSells({
               </p>
             </div>
 
+            {/* 44px tall like every other control in the drawer, and secondary
+                to "Ir a confirmar" below it — a suggestion must never compete
+                with the button that completes the order. */}
             <button
               type="button"
-              onClick={() =>
-                writeCart(addLine(getCartSnapshot(), product, 1))
-              }
-              className="flex-none rounded-sm border border-border px-3 py-2.5 text-sm hover:border-brand hover:text-brand"
+              onClick={() => writeCart(addLine(getCartSnapshot(), product, 1))}
+              className="h-11 flex-none rounded border border-border-strong bg-surface px-4 text-sm transition-colors duration-150 hover:bg-background hover:text-brand"
             >
               Agregar
               <span className="sr-only"> {product.name} al carrito</span>

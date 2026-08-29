@@ -25,6 +25,10 @@ const config: Config = {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
       maxWidth: { container: '1360px' },
+      // The system's one easing curve, so a component cannot invent its own.
+      // Declared in globals.css and referenced here for the same reason the
+      // colours are: one value, two consumers, no drift.
+      transitionTimingFunction: { board: 'var(--ease-out-expo)' },
       // `sm` is declared explicitly so it stops falling through to
       // Tailwind's 2px default while `--radius-sm` sat unused in globals.css.
       borderRadius: { sm: '2px', DEFAULT: '4px', md: '6px', lg: '8px' },

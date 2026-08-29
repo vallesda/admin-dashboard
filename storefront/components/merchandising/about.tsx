@@ -4,8 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import Container from '@/components/ui/container';
-import Heading from '@/components/ui/heading';
 import Section from '@/components/ui/section';
+import SectionHeader from '@/components/ui/section-header';
 
 /**
  * About — the only section on the page that is not trying to sell anything.
@@ -50,13 +50,23 @@ export default function About() {
                 sizes="(min-width: 768px) 50vw, 100vw"
                 className="object-cover"
               />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-sm plate"
+              />
             </div>
           ) : null}
 
           <div className={hasPhoto ? '' : 'max-w-[62ch]'}>
-            <Heading id="nosotros-heading" className="mb-6">
-              El mar no se apura
-            </Heading>
+            <SectionHeader
+              id="nosotros-heading"
+              title={
+                <>
+                  El mar no se <em>apura</em>
+                </>
+              }
+              className="mb-6"
+            />
 
             <div className="space-y-4 leading-relaxed text-muted">
               <p>

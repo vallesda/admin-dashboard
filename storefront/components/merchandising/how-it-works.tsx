@@ -1,8 +1,8 @@
 import Container from '@/components/ui/container';
-import Heading from '@/components/ui/heading';
 import { STEPS, ZONES, DAYS, CUTOFF } from '@/lib/fulfillment';
 import Eyebrow from '@/components/ui/eyebrow';
 import Section from '@/components/ui/section';
+import SectionHeader from '@/components/ui/section-header';
 
 /**
  * How ordering works — three steps, no more.
@@ -13,7 +13,8 @@ import Section from '@/components/ui/section';
  *
  * The steps ARE numbered, and the numbers are load-bearing: this is a real
  * sequence in time, and step two cannot happen before step one. That is the
- * only thing that justifies numbering a list.
+ * only thing that justifies numbering a list — decorative 01/02/03 above three
+ * unordered features is the version of this pattern that means nothing.
  *
  * Zones, days and cut-off render only when `lib/fulfillment.ts` defines them.
  * An empty schedule is better than an invented one — a made-up delivery day is
@@ -29,27 +30,34 @@ export default function HowItWorks() {
   return (
     <Section labelledBy="como-funciona-heading">
       <Container>
-        <Heading id="como-funciona-heading" className="mb-3">
-          Cómo funciona
-        </Heading>
-        <p className="mb-12 max-w-[52ch] text-muted">
-          Compras del producto que llegó ese día, no de una bodega. Son tres
-          pasos.
-        </p>
+        <SectionHeader
+          id="como-funciona-heading"
+          title={
+            <>
+              Cómo <em>funciona</em>
+            </>
+          }
+          lede="Compras del producto que llegó ese día, no de una bodega. Son tres pasos."
+          className="mb-12"
+        />
 
-        <ol className="grid grid-cols-1 gap-px sm:grid-cols-3">
+        <ol className="grid grid-cols-1 sm:grid-cols-3">
           {STEPS.map((step, i) => (
             <li
               key={step.title}
               className="border-t border-border pt-6 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0 sm:first:border-l-0 sm:first:pl-0"
             >
+              {/* Sans, not the display face: this is an index, and the system
+                  gives serif to voice and sans to anything the reader uses to
+                  navigate. Brand at 35% keeps it a marker rather than a
+                  headline competing with the step's own title. */}
               <span
                 aria-hidden="true"
-                className="font-display text-3xl text-brand/35 tabular-nums"
+                className="font-sans text-sm tabular-nums text-brand/60"
               >
                 {String(i + 1).padStart(2, '0')}
               </span>
-              <h3 className="mt-2 font-display text-xl md:text-2xl">
+              <h3 className="mt-3 font-display text-xl font-light md:text-2xl">
                 {step.title}
               </h3>
               <p className="mt-2 max-w-[38ch] text-sm leading-relaxed text-muted">
@@ -63,9 +71,7 @@ export default function HowItWorks() {
           <dl className="mt-12 flex flex-col gap-4 border-t border-border pt-8 sm:flex-row sm:gap-12">
             {facts.map((fact) => (
               <div key={fact.label}>
-                <Eyebrow as="dt">
-                  {fact.label}
-                </Eyebrow>
+                <Eyebrow as="dt">{fact.label}</Eyebrow>
                 <dd className="mt-1 text-sm">{fact.value}</dd>
               </div>
             ))}

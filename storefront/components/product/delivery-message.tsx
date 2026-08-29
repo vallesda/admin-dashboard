@@ -10,7 +10,12 @@ import type { Product } from '@/lib/commerce/types';
  */
 export default function DeliveryMessage({ product }: { product: Product }) {
   return (
-    <div className="rounded border border-border bg-surface px-4 py-3 text-sm">
+    /* Verde Espuma rather than an outlined cream card: the design system names
+       this token as the background for a one-line informational notice on
+       cream, and the bordered surface it used before was the same treatment as
+       a form field directly above it — so the one sentence that answers "when
+       does it arrive" looked like something to fill in. */
+    <div className="rounded-sm bg-brand-soft px-4 py-3 text-sm">
       {product.availableForSale ? (
         <p className="text-foreground">
           Disponible ahora · Entrega refrigerada

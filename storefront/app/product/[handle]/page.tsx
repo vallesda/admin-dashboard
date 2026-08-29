@@ -66,22 +66,44 @@ export default async function Page({ params }: Props) {
     <div className="mx-auto max-w-container px-5 py-8 md:px-8 md:py-12">
       <ProductJsonLd product={product} />
 
-      <nav aria-label="Ruta de navegación" className="mb-8 text-sm text-muted">
-        <Link
-          href="/search"
-          className="-my-2 inline-block py-2 hover:text-brand"
-        >
+      <nav
+        aria-label="Ruta de navegación"
+        className="mb-8 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted"
+      >
+        <Link href="/search" className="-my-2 py-2 hover:text-brand">
           Productos
         </Link>
-        <span aria-hidden="true"> / </span>
+        <span aria-hidden="true">/</span>
+        {/* The category step is what makes this a trail rather than a back
+            button. A shopper who arrived from a collection can return to it,
+            and one who arrived from search finds it for the first time. */}
+        {product.category ? (
+          <>
+            <Link
+              href={`/search/${categoryHandle(product.category)}`}
+              className="-my-2 py-2 hover:text-brand"
+            >
+              {product.category}
+            </Link>
+            <span aria-hidden="true">/</span>
+          </>
+        ) : null}
         <span className="text-foreground">{product.name}</span>
       </nav>
 
       {/* 60/40 on desktop: photography sells, the panel closes. One column on
-          mobile, gallery first. */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr] lg:gap-14">
+          mobile, gallery first.
+
+          `items-start` is what lets the panel stick: a stretched grid item is
+          already the full height of its row, and `position: sticky` on a box
+          with nowhere to travel does nothing. It sticks below the 80px header
+          plus a little air, so the price and the Add to Cart button stay
+          reachable while the shopper reads down a tall photograph. */}
+      <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[3fr_2fr] lg:gap-14">
         <Gallery images={product.images} name={product.name} />
-        <ProductDescription product={product} />
+        <div className="lg:sticky lg:top-28">
+          <ProductDescription product={product} />
+        </div>
       </div>
 
       <ProductDetails product={product} />
@@ -92,6 +114,28 @@ export default async function Page({ params }: Props) {
       </Suspense>
     </div>
   );
+}
+
+/**
+ * Turns a category name into the handle its collection page answers to.
+ *
+ * The catalogue returns a display name ("Producto Fresco") and the route wants
+ * a slug ("producto-fresco"). Deriving it here rather than adding a field keeps
+ * the API contract unchanged; if the admin ever returns the handle directly,
+ * this is one function to delete.
+ *
+ * `normalize('NFD')` plus the combining-marks strip is what makes "Pescados y
+ * Mariscos" and an accented category resolve the same way the admin slugged
+ * them. An unknown handle still lands on a real 404 rather than an empty grid.
+ */
+function categoryHandle(category: string): string {
+  return category
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 /**

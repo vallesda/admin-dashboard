@@ -7,7 +7,9 @@ import { getCollections, getProducts } from '@/lib/commerce';
 import { findOccasion } from '@/lib/occasions';
 import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
+import SectionHeader from '@/components/ui/section-header';
 import ProductGrid from '@/components/grid/product-grid';
+import ResultRule from '@/components/grid/result-rule';
 import CollectionNav from '@/components/layout/collection-nav';
 import GridSkeleton from '@/components/grid/grid-skeleton';
 import { RHYTHM } from '@/components/ui/section';
@@ -59,6 +61,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/**
+ * A collection page.
+ *
+ * The two kinds of header are deliberately different weights of the same thing.
+ * An occasion has an editorial photograph behind it because it is a proposition
+ * — "you are making ceviche" — and a category does not, because "Mariscos" is a
+ * filter and dressing a filter up as a campaign is how a shop starts lying to
+ * itself about which of its pages are merchandising.
+ *
+ * What they now share is everything below: the same rails, the same rule, the
+ * same grid at the same width. Before, a category page opened on a bare `<h1>`
+ * against cream while an occasion opened on a full-bleed photograph, and the
+ * two read as pages from different sites.
+ */
 export default async function Page({ params }: Props) {
   const { collection: handle } = await params;
   const found = await resolve(handle);
@@ -72,7 +88,7 @@ export default async function Page({ params }: Props) {
   return (
     <Container className={RHYTHM.sm}>
       {found.kind === 'occasion' ? (
-        <div className="relative mb-10 aspect-[16/7] overflow-hidden rounded-sm md:aspect-[21/6]">
+        <div className="relative mb-10 aspect-[16/9] overflow-hidden rounded-sm sm:aspect-[16/7] md:aspect-[21/6]">
           <Image
             src={found.occasion.image.url}
             alt={found.occasion.image.altText}
@@ -81,9 +97,20 @@ export default async function Page({ params }: Props) {
             sizes="100vw"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
-          <div className="absolute bottom-0 p-6 md:p-10">
-            <Heading as="h1" className="text-background">
+          {/* Scrim, not decoration: the title fails contrast over a bright
+              plate without it. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/30 to-transparent" />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-sm plate-on-brand"
+          />
+
+          <div className="absolute inset-x-0 bottom-0 p-5 md:p-10">
+            <span
+              aria-hidden="true"
+              className="block h-px w-10 bg-background/70"
+            />
+            <Heading as="h1" className="mt-4 text-background">
               {title}
             </Heading>
             <p className="mt-2 max-w-[44ch] text-background/85">
@@ -92,24 +119,22 @@ export default async function Page({ params }: Props) {
           </div>
         </div>
       ) : (
-        <Heading as="h1" className="mb-10">
-          {title}
-        </Heading>
+        <SectionHeader as="h1" title={title} className="mb-10" />
       )}
 
-      <div className="grid grid-cols-1 gap-10 md:grid-cols-[13rem_1fr] md:gap-14">
+      <div className="mb-10">
         <Suspense fallback={null}>
           <CollectionNav active={handle} />
         </Suspense>
-
-        <Suspense key={handle} fallback={<GridSkeleton />}>
-          {found.kind === 'collection' ? (
-            <CollectionProducts handle={handle} />
-          ) : (
-            <OccasionProducts title={title} />
-          )}
-        </Suspense>
       </div>
+
+      <Suspense key={handle} fallback={<GridSkeleton />}>
+        {found.kind === 'collection' ? (
+          <CollectionProducts handle={handle} />
+        ) : (
+          <OccasionProducts title={title} />
+        )}
+      </Suspense>
     </Container>
   );
 }
@@ -117,11 +142,20 @@ export default async function Page({ params }: Props) {
 async function CollectionProducts({ handle }: { handle: string }) {
   const { items, total } = await getProducts({ collection: handle });
 
+  if (items.length === 0) {
+    return (
+      <div className="border-t border-border py-14">
+        <p className="max-w-[46ch] text-muted">
+          Hoy no hay nada en esta categoría. El catálogo cambia con lo que
+          llega, así que vale la pena volver a consultar.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <p className="mb-6 text-sm text-muted">
-        {total} {total === 1 ? 'producto' : 'productos'}
-      </p>
+      <ResultRule total={total} />
       <ProductGrid products={items} />
     </div>
   );
@@ -135,23 +169,24 @@ async function CollectionProducts({ handle }: { handle: string }) {
  * broken shop. Sending the shopper to everything we sell keeps them buying
  * while the curation is still being built, and the note is honest about what
  * they are looking at.
+ *
+ * The note sits on Verde Espuma rather than on the elevated cream surface it
+ * used before. It is the one informational aside on the page and it has to be
+ * distinguishable from the product surfaces around it — which is exactly the
+ * job the design system gives that token.
  */
 async function OccasionProducts({ title }: { title: string }) {
   const { items, total } = await getProducts();
 
   return (
     <div>
-      <div className="mb-6 rounded-sm border border-border bg-surface px-4 py-3">
-        <p className="text-sm">
-          Todavía estamos armando la selección de{' '}
-          <span className="font-medium">{title}</span>. Mientras tanto, esto es
-          todo lo que tenemos disponible hoy.
-        </p>
-      </div>
-
-      <p className="mb-6 text-sm text-muted">
-        {total} {total === 1 ? 'producto' : 'productos'}
+      <p className="mb-8 rounded-sm bg-brand-soft px-4 py-3 text-sm text-foreground">
+        Todavía estamos armando la selección de{' '}
+        <span className="font-medium">{title}</span>. Mientras tanto, esto es
+        todo lo que tenemos disponible hoy.
       </p>
+
+      <ResultRule total={total} />
       <ProductGrid products={items} />
     </div>
   );

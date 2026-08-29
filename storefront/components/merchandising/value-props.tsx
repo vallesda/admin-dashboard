@@ -5,19 +5,26 @@ import {
   ColdIcon,
   HandlingIcon,
 } from './value-icons';
-import Eyebrow from '@/components/ui/eyebrow';
 import Section from '@/components/ui/section';
 
 /**
- * Why buy here — four reasons, read in a glance.
+ * Why buy here — four practices, read in a glance.
  *
  * This replaces the old TrustStrip rather than sitting next to it: that
  * component already carried these same four claims, and two sections making
  * the same promise in different words reads as padding.
  *
- * Small line icons, not photographs. A photo here would compete with the hero
- * and the editorial section for the same attention; the icon's whole job is to
- * be a marker the eye can count to four with.
+ * The icon sits *beside* the title on one line rather than stacked above it.
+ * Icon-over-heading-over-paragraph, repeated four times at equal size, is the
+ * single most generic block on the web, and it was the silhouette this section
+ * had. Inline, the four cells read as ruled columns of a ledger — which is the
+ * page's own vocabulary — and the icons go back to being what the design system
+ * says they are: markers the eye counts to four with, not illustrations.
+ *
+ * There is no section heading. The four titles are the content, a heading above
+ * them would only name what they already say, and the `sr-only` h2 keeps the
+ * band addressable for a screen reader without spending a line of the page on
+ * it.
  *
  * Every line describes a practice, not a certification. Nothing claims anything
  * the business has not actually established — no "el mejor de México", no
@@ -48,25 +55,25 @@ const POINTS = [
 
 export default function ValueProps() {
   return (
-    <Section labelledBy="valor-heading">
+    <Section labelledBy="valor-heading" rhythm="sm">
       <Container>
         <h2 id="valor-heading" className="sr-only">
           Por qué comprar en Amor a Mar
         </h2>
 
-        <ul className="grid grid-cols-1 gap-px border-y border-border sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 border-t border-border sm:grid-cols-2 lg:grid-cols-4">
           {POINTS.map(({ Icon, title, body }) => (
             <li
               key={title}
-              className="border-border py-8 sm:px-6 sm:first:pl-0 lg:border-l lg:first:border-l-0"
+              className="border-b border-border py-7 sm:px-6 sm:first:pl-0 lg:border-l lg:border-b-0 lg:first:border-l-0"
             >
-              <span className="text-brand">
-                <Icon />
-              </span>
-              <Eyebrow as="h3" size="sm" tone="inherit" className="mt-4">
+              <h3 className="flex items-center gap-2.5 font-sans text-sm font-medium">
+                <span className="shrink-0 text-brand">
+                  <Icon />
+                </span>
                 {title}
-              </Eyebrow>
-              <p className="mt-2 max-w-[32ch] text-sm leading-relaxed text-muted">
+              </h3>
+              <p className="mt-2.5 max-w-[34ch] text-sm leading-relaxed text-muted">
                 {body}
               </p>
             </li>
