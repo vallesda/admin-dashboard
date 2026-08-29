@@ -34,10 +34,10 @@ export default function HowItWorks() {
           id="como-funciona-heading"
           title={
             <>
-              Cómo <em>funciona</em>
+              Tu pedido, <em>paso a paso</em>
             </>
           }
-          lede="Compras del producto que llegó ese día, no de una bodega. Son tres pasos."
+          lede="Desde que eliges hasta que lo tienes en la mano. Son tres pasos y ninguno es automático."
           className="mb-12"
         />
 

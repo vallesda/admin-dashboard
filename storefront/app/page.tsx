@@ -10,9 +10,7 @@ import Hero from '@/components/merchandising/hero';
 import BestSellers from '@/components/merchandising/best-sellers';
 import OccasionGrid from '@/components/merchandising/occasion-grid';
 import CatchOfTheWeek from '@/components/merchandising/catch-of-the-week';
-import ValueProps from '@/components/merchandising/value-props';
-import About from '@/components/merchandising/about';
-import HowItWorks from '@/components/merchandising/how-it-works';
+import LearnMore from '@/components/merchandising/learn-more';
 
 /**
  * Home — commerce first, and now it actually is.
@@ -38,15 +36,21 @@ import HowItWorks from '@/components/merchandising/how-it-works';
  * past the share the design system gives it. It is cream now, and the diagonal
  * is back to being a signature instead of a pattern.
  *
+ * ## What left, and where it went
+ *
+ * The four practices, the three steps and the story used to close this page.
+ * Together they were three long reads stacked after the last purchasable thing,
+ * and the homepage spent more vertical space explaining the shop than showing
+ * it. They now live at `/como-funciona` and `/nosotros`, and `LearnMore` is the
+ * route to them — one band of three ruled links instead of three full sections.
+ *
  * Section order, and why:
- *   1. Hero            — where the fish comes from, and what is on the board today
- *   2. Catalogue       — the purchasable thing, before any argument for it
- *   3. Occasions       — the "por ocasión" shopper's own way of choosing
- *   4. Catch           — one green moment, the week's pick
- *   5. Value props     — why this shop, once there is something to want
- *   6. How it works    — the volatile catalogue and no-online-payment explained
- *   7. Selection       — the shop's hand-picked row, when there is one
- *   8. About           — the story, last, for whoever is still reading
+ *   1. Hero        — where the fish comes from, and what is on the board today
+ *   2. Catalogue   — the purchasable thing, before any argument for it
+ *   3. Occasions   — the "por ocasión" shopper's own way of choosing
+ *   4. Catch       — one green moment, the week's pick
+ *   5. Selection   — the shop's hand-picked row, when there is one
+ *   6. Learn more  — the way out to the pages that explain the shop
  */
 export default function Page() {
   return (
@@ -82,15 +86,11 @@ export default function Page() {
         <CatchOfTheWeek />
       </Suspense>
 
-      <ValueProps />
-
-      <HowItWorks />
-
       <Suspense fallback={null}>
         <BestSellers />
       </Suspense>
 
-      <About />
+      <LearnMore />
     </>
   );
 }

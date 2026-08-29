@@ -14,9 +14,16 @@ import { SearchIcon } from '@/components/product/icons';
  */
 export default function SearchField({
   defaultValue = '',
+  /**
+   * The header's field is narrow now that the informational links share its
+   * row, and "Buscar pescado o marisco" was being clipped mid-word there. The
+   * catalogue page keeps the descriptive version, where there is room for it.
+   */
+  placeholder = 'Buscar pescado o marisco',
   className = '',
 }: {
   defaultValue?: string;
+  placeholder?: string;
   className?: string;
 }) {
   return (
@@ -35,7 +42,7 @@ export default function SearchField({
         type="search"
         name="q"
         defaultValue={defaultValue}
-        placeholder="Buscar pescado o marisco"
+        placeholder={placeholder}
         autoComplete="off"
         className="w-full rounded-sm border border-border-strong bg-background py-2.5 pl-10 pr-3 text-sm placeholder:text-muted focus-visible:border-brand"
       />

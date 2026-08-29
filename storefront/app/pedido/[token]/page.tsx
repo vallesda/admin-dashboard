@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
 import { getOrder } from '@/lib/commerce';
@@ -51,7 +52,14 @@ export default async function Page({
     <Container className={RHYTHM.sm}>
       <ClearCart token={token} />
 
-      <div className="max-w-2xl">
+      {/*
+        Two columns from `lg`: the receipt on the left, the illustration on the
+        right. `items-start` so the artwork sits at the top of its column rather
+        than centring against a receipt whose height depends on how many lines
+        the order has.
+      */}
+      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,42rem)_1fr] lg:gap-16">
+        <div>
         <Eyebrow className="mb-3">
           Pedido #{order.orderNumber}
         </Eyebrow>
@@ -140,10 +148,60 @@ export default async function Page({
           Guarda este enlace: es la única forma de volver a ver tu pedido.
         </p>
 
-        <ButtonLink href="/search" variant="secondary">
-          Seguir comprando
-        </ButtonLink>
+          <ButtonLink href="/search" variant="secondary">
+            Seguir comprando
+          </ButtonLink>
+        </div>
+
+        <OrderIllustration cancelled={isCancelled} />
       </div>
     </Container>
+  );
+}
+
+/**
+ * The storefront's one ornamental image.
+ *
+ * The design system bans illustration *as a substitute for product
+ * photography* — the photo is the only proof of freshness a browser can carry,
+ * and a drawn fish where a real one belongs destroys exactly that. This is the
+ * other case: a confirmation page has no product to photograph, the sale is
+ * already made, and nothing here stands in for evidence. See the carve-out
+ * recorded in DESIGN.md.
+ *
+ * The asset in `public/` is a processed copy, and that mattered. The original
+ * shipped with a baked #FDFAF3 background and no alpha channel — three points
+ * lighter than the page's own cream, which rendered as a visible pale rectangle
+ * floating on the page. `mix-blend-multiply` does NOT fix that, which was the
+ * first attempt: multiply only erases a ground that is pure white, and #FDFAF3
+ * multiplied against cream comes out *darker* than the page. So the paper was
+ * cut to real transparency instead — 91% of the file is alpha now — which also
+ * took it from 1.4 MB to 361 KB and makes the drawing reusable on any surface
+ * rather than only on cream.
+ *
+ * `alt=""` and `aria-hidden`: it is decorative. Every fact on this page is
+ * already in the text beside it, and announcing "dibujo de un pescado colgado
+ * de un gancho" adds nothing to somebody's order.
+ *
+ * Hidden below `lg`. On a phone the receipt is the whole point, and the artwork
+ * would push the order lines — the thing the customer opened the link to read —
+ * below the fold.
+ */
+function OrderIllustration({ cancelled }: { cancelled: boolean }) {
+  // A cancelled order is not a moment to decorate.
+  if (cancelled) return null;
+
+  return (
+    <div className="hidden lg:block">
+      <Image
+        src="/illustrations/confirmation-fish.png"
+        alt=""
+        aria-hidden="true"
+        width={800}
+        height={1200}
+        sizes="(min-width: 1024px) 30vw, 0px"
+        className="mx-auto h-auto w-full max-w-[22rem]"
+      />
+    </div>
   );
 }

@@ -4,6 +4,12 @@ import { getCollections } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Logo from '@/components/layout/logo';
 import Eyebrow from '@/components/ui/eyebrow';
+import {
+  INFO_LINKS,
+  INSTAGRAM_URL,
+  WHATSAPP_URL,
+  WHATSAPP_LABEL,
+} from '@/components/layout/nav-links';
 
 /**
  * Footer.
@@ -38,18 +44,26 @@ export default async function Footer() {
             ))}
           </FooterColumn>
 
-          <FooterColumn title="Entregas">
-            <li className="text-sm text-background/70">Entrega refrigerada</li>
-            <li className="text-sm text-background/70">
-              Consulta cobertura al hacer tu pedido
-            </li>
+          <FooterColumn title="La tienda">
+            {INFO_LINKS.map((link) => (
+              <FooterLink key={link.href} href={link.href}>
+                {link.label}
+              </FooterLink>
+            ))}
           </FooterColumn>
 
+          {/*
+            Real destinations, not placeholders. `https://instagram.com` used to
+            sit here — the site's root, which lands a customer on a login wall
+            rather than on the shop. Both entries now point at channels the
+            business actually answers on, taken from its own profile.
+          */}
           <FooterColumn title="Contacto">
-            <li className="text-sm text-background/70">
-              Escríbenos por Instagram
-            </li>
-            <FooterLink href="https://instagram.com">Instagram</FooterLink>
+            <FooterLink href={WHATSAPP_URL}>
+              WhatsApp {WHATSAPP_LABEL}
+            </FooterLink>
+            <FooterLink href={INSTAGRAM_URL}>Instagram @amoramarmx</FooterLink>
+            <li className="text-sm text-background/70">Entrega refrigerada</li>
           </FooterColumn>
         </div>
 
@@ -79,6 +93,14 @@ function FooterColumn({
   );
 }
 
+/**
+ * One footer link.
+ *
+ * An absolute URL leaves the site, so it renders as a plain anchor with
+ * `rel="noreferrer"` rather than a `next/link` — prefetching a third-party
+ * domain is wasted work, and `target="_blank"` without `noreferrer` hands the
+ * opened tab a reference back to this one.
+ */
 function FooterLink({
   href,
   children,
@@ -86,14 +108,26 @@ function FooterLink({
   href: string;
   children: React.ReactNode;
 }) {
+  const external = href.startsWith('http');
+  const className =
+    '-my-1.5 inline-block py-1.5 text-sm text-background/85 underline-offset-4 hover:underline';
+
   return (
     <li>
-      <Link
-        href={href}
-        className="-my-1.5 inline-block py-1.5 text-sm text-background/85 underline-offset-4 hover:underline"
-      >
-        {children}
-      </Link>
+      {external ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className={className}
+        >
+          {children}
+        </a>
+      ) : (
+        <Link href={href} className={className}>
+          {children}
+        </Link>
+      )}
     </li>
   );
 }
