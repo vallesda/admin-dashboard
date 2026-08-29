@@ -1,15 +1,24 @@
 import Image from 'next/image';
+import { CubeIcon } from '@heroicons/react/24/outline';
 
 import { formatCentavos } from '@/lib/money';
 import { listProducts } from '../queries';
 import ProductStatusBadge from './product-status';
 import { UpdateProduct, ProductStatusActions } from './product-buttons';
+import { TableShell, Table, THead, TH, TBody, TR, TD } from '@/app/ui/kit/table';
+import RecordCard from '@/app/ui/kit/record-card';
+import EmptyState from '@/app/ui/kit/empty-state';
+import { ButtonLink } from '@/app/ui/button';
 
 /**
  * Admin product list.
  *
- * Fetches its own page of data so it can stream behind a `<Suspense>` boundary,
- * same as `app/ui/invoices/table.tsx`.
+ * Fetches its own page of data so it can stream behind a `<Suspense>` boundary.
+ *
+ * The thumbnail is square with a `rounded` corner, not `rounded-full`. A circular
+ * crop on a photograph of a whole fish cuts the head and tail off the one thing
+ * the operator is trying to recognise, and it was the same generic gesture the
+ * storefront removed from its own grid.
  */
 export default async function ProductTable({
   query,
@@ -22,47 +31,145 @@ export default async function ProductTable({
 
   if (items.length === 0) {
     return (
-      <div className="mt-6 rounded-lg bg-gray-50 p-8 text-center">
-        <p className="text-sm text-gray-500">
-          {query
-            ? `No hay productos que coincidan con “${query}”.`
-            : 'Todavía no hay productos. Crea el primero para empezar a vender.'}
-        </p>
+      <div className="rounded-lg border border-line bg-surface">
+        <EmptyState
+          icon={CubeIcon}
+          title={
+            query ? 'Sin coincidencias' : 'Todavía no hay productos'
+          }
+          description={
+            query
+              ? `Ningún producto coincide con “${query}”. Revisa el nombre o el SKU.`
+              : 'Crea el primero para empezar a vender. Puedes dejarlo en borrador hasta que esté listo.'
+          }
+          action={
+            query ? null : (
+              <ButtonLink href="/dashboard/products/create">
+                Crear producto
+              </ButtonLink>
+            )
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="mt-6 flow-root">
-      <div className="inline-block min-w-full align-middle">
-        <div className="rounded-lg bg-gray-50 p-2 md:pt-0">
-          {/* Mobile */}
-          <div className="md:hidden">
+    <>
+      {/* Mobile */}
+      <div className="flex flex-col gap-2.5 md:hidden">
+        {items.map((product) => (
+          <RecordCard
+            key={product.id}
+            title={product.name}
+            subtitle={product.sku}
+            badge={<ProductStatusBadge status={product.status} />}
+            rows={[
+              {
+                label: 'Precio',
+                value: formatCentavos(product.priceCents),
+                numeric: true,
+              },
+              {
+                label: 'Disponible',
+                value:
+                  product.reserved > 0
+                    ? `${product.available} (${product.reserved} res.)`
+                    : product.available,
+                numeric: true,
+              },
+              { label: 'Categoría', value: product.categoryName ?? '—' },
+              {
+                label: 'Unidad',
+                value:
+                  product.unitType === 'pack' && product.netWeightGrams
+                    ? `Paquete · ${product.netWeightGrams} g`
+                    : 'Por pieza',
+              },
+            ]}
+            actions={
+              <>
+                <UpdateProduct id={product.id} name={product.name} />
+                <ProductStatusActions
+                  id={product.id}
+                  name={product.name}
+                  status={product.status}
+                />
+              </>
+            }
+          />
+        ))}
+      </div>
+
+      {/* Desktop */}
+      <TableShell className="hidden md:block">
+        <Table>
+          <THead>
+            <TH>Producto</TH>
+            <TH>SKU</TH>
+            <TH>Categoría</TH>
+            <TH align="right">Precio</TH>
+            <TH align="right">Disponible</TH>
+            <TH>Estado</TH>
+            <TH srOnly>Acciones</TH>
+          </THead>
+          <TBody>
             {items.map((product) => (
-              <div
-                key={product.id}
-                className="mb-2 w-full rounded-md bg-white p-4"
-              >
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{product.name}</p>
-                    <p className="font-mono text-sm text-gray-500">
-                      {product.sku}
-                    </p>
+              <TR key={product.id}>
+                <TD>
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded border border-line bg-subtle">
+                      {product.imageUrl ? (
+                        <Image
+                          src={product.imageUrl}
+                          alt=""
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 object-cover"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-ink">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-ink-muted">
+                        {product.unitType === 'pack' && product.netWeightGrams
+                          ? `Paquete · ${product.netWeightGrams} g`
+                          : 'Por pieza'}
+                      </p>
+                    </div>
                   </div>
+                </TD>
+                <TD muted className="whitespace-nowrap font-mono text-xs">
+                  {product.sku}
+                </TD>
+                <TD muted className="whitespace-nowrap">
+                  {product.categoryName ?? '—'}
+                </TD>
+                <TD numeric className="whitespace-nowrap font-medium">
+                  {formatCentavos(product.priceCents)}
+                </TD>
+                <TD numeric className="whitespace-nowrap">
+                  {product.available}
+                  {product.reserved > 0 ? (
+                    <span className="ml-1 text-xs text-ink-muted">
+                      ({product.reserved} res.)
+                    </span>
+                  ) : null}
+                </TD>
+                <TD>
                   <ProductStatusBadge status={product.status} />
-                </div>
-                <div className="flex w-full items-center justify-between pt-4">
-                  <div>
-                    <p className="text-xl font-medium tabular-nums">
-                      {formatCentavos(product.priceCents)}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {product.categoryName ?? 'Sin categoría'} ·{' '}
-                      {product.available} disp.
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
+                </TD>
+                <TD>
+                  {/*
+                    Row actions sit right and stay quiet until the row is
+                    hovered. They are present for a keyboard user at all times —
+                    hiding them behind `group-hover` would make them
+                    unreachable by tab, which is how a lot of admin tables
+                    quietly lock out keyboard operators.
+                  */}
+                  <div className="flex items-center justify-end gap-1.5">
                     <UpdateProduct id={product.id} name={product.name} />
                     <ProductStatusActions
                       id={product.id}
@@ -70,105 +177,12 @@ export default async function ProductTable({
                       status={product.status}
                     />
                   </div>
-                </div>
-              </div>
+                </TD>
+              </TR>
             ))}
-          </div>
-
-          {/* Desktop */}
-          <table className="hidden min-w-full text-gray-900 md:table">
-            <thead className="rounded-lg text-left text-sm font-normal">
-              <tr>
-                <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
-                  Producto
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  SKU
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Categoría
-                </th>
-                <th scope="col" className="px-3 py-5 text-right font-medium">
-                  Precio
-                </th>
-                <th scope="col" className="px-3 py-5 text-right font-medium">
-                  Disponible
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Estado
-                </th>
-                <th scope="col" className="relative py-3 pl-6 pr-3">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white">
-              {items.map((product) => (
-                <tr
-                  key={product.id}
-                  className="w-full border-b py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-lg [&:first-child>td:last-child]:rounded-tr-lg [&:last-child>td:first-child]:rounded-bl-lg [&:last-child>td:last-child]:rounded-br-lg"
-                >
-                  <td className="py-3 pl-6 pr-3">
-                    <div className="flex items-center gap-3">
-                      {product.imageUrl ? (
-                        <Image
-                          src={product.imageUrl}
-                          alt=""
-                          width={28}
-                          height={28}
-                          className="rounded-full object-cover"
-                        />
-                      ) : null}
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        {product.unitType === 'pack' &&
-                        product.netWeightGrams ? (
-                          <p className="text-xs text-gray-500">
-                            Paquete · {product.netWeightGrams} g
-                          </p>
-                        ) : (
-                          <p className="text-xs text-gray-500">Por pieza</p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 font-mono text-gray-500">
-                    {product.sku}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-gray-500">
-                    {product.categoryName ?? '—'}
-                  </td>
-                  {/* tabular-nums so prices and stock line up down the column */}
-                  <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">
-                    {formatCentavos(product.priceCents)}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">
-                    {product.available}
-                    {product.reserved > 0 ? (
-                      <span className="ml-1 text-xs text-gray-500">
-                        ({product.reserved} res.)
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <ProductStatusBadge status={product.status} />
-                  </td>
-                  <td className="whitespace-nowrap py-3 pl-6 pr-3">
-                    <div className="flex items-center justify-end gap-3">
-                      <UpdateProduct id={product.id} name={product.name} />
-                      <ProductStatusActions
-                        id={product.id}
-                        name={product.name}
-                        status={product.status}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+          </TBody>
+        </Table>
+      </TableShell>
+    </>
   );
 }

@@ -1,5 +1,12 @@
+import { UserGroupIcon } from '@heroicons/react/24/outline';
+
 import { listCustomers } from '../queries';
 import { UpdateCustomer } from './buttons';
+import { TableShell, Table, THead, TH, TBody, TR, TD } from '@/app/ui/kit/table';
+import RecordCard from '@/app/ui/kit/record-card';
+import EmptyState from '@/app/ui/kit/empty-state';
+import Badge from '@/app/ui/kit/badge';
+import { ButtonLink } from '@/app/ui/button';
 
 const dateFormat = new Intl.DateTimeFormat('es-MX', {
   dateStyle: 'medium',
@@ -20,92 +27,81 @@ export default async function CustomerTable({
 
   if (items.length === 0) {
     return (
-      <div className="mt-6 rounded-lg bg-gray-50 p-8 text-center">
-        <p className="text-sm text-gray-500">
-          {query
-            ? `No hay clientes que coincidan con “${query}”.`
-            : 'Todavía no hay clientes. Crea el primero para poder registrar pedidos.'}
-        </p>
+      <div className="rounded-lg border border-line bg-surface">
+        <EmptyState
+          icon={UserGroupIcon}
+          title={query ? 'Sin coincidencias' : 'Todavía no hay clientes'}
+          description={
+            query
+              ? `Ningún cliente coincide con “${query}”. Prueba con el teléfono o parte del nombre.`
+              : 'Crea el primero para poder registrar pedidos por teléfono.'
+          }
+          action={
+            query ? null : (
+              <ButtonLink href="/dashboard/customers/create">
+                Crear cliente
+              </ButtonLink>
+            )
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="mt-6 flow-root">
-      <div className="inline-block min-w-full align-middle">
-        <div className="rounded-lg bg-gray-50 p-2 md:pt-0">
-          {/* Mobile */}
-          <div className="md:hidden">
-            {items.map((customer) => (
-              <div
-                key={customer.id}
-                className="mb-2 w-full rounded-md bg-white p-4"
-              >
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{customer.name}</p>
-                    <Phone value={customer.phone} />
-                  </div>
-                  <UpdateCustomer id={customer.id} name={customer.name} />
-                </div>
-                <p className="pt-4 text-sm text-gray-500">
-                  {customer.email ?? 'Sin correo'}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop */}
-          <table className="hidden min-w-full text-gray-900 md:table">
-            <thead className="rounded-lg text-left text-sm font-normal">
-              <tr>
-                <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
-                  Nombre
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Teléfono
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Correo
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Alta
-                </th>
-                <th scope="col" className="relative py-3 pl-6 pr-3">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white">
-              {items.map((customer) => (
-                <tr
-                  key={customer.id}
-                  className="w-full border-b py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-lg [&:first-child>td:last-child]:rounded-tr-lg [&:last-child>td:first-child]:rounded-bl-lg [&:last-child>td:last-child]:rounded-br-lg"
-                >
-                  <td className="whitespace-nowrap py-3 pl-6 pr-3 font-medium">
-                    {customer.name}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <Phone value={customer.phone} />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-gray-500">
-                    {customer.email ?? '—'}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-gray-500">
-                    {dateFormat.format(customer.createdAt)}
-                  </td>
-                  <td className="whitespace-nowrap py-3 pl-6 pr-3">
-                    <div className="flex justify-end">
-                      <UpdateCustomer id={customer.id} name={customer.name} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <>
+      {/* Mobile */}
+      <div className="flex flex-col gap-2.5 md:hidden">
+        {items.map((customer) => (
+          <RecordCard
+            key={customer.id}
+            title={customer.name}
+            badge={<Phone value={customer.phone} />}
+            rows={[
+              { label: 'Correo', value: customer.email ?? 'Sin correo' },
+              { label: 'Alta', value: dateFormat.format(customer.createdAt) },
+            ]}
+            actions={<UpdateCustomer id={customer.id} name={customer.name} />}
+          />
+        ))}
       </div>
-    </div>
+
+      {/* Desktop */}
+      <TableShell className="hidden md:block">
+        <Table>
+          <THead>
+            <TH>Nombre</TH>
+            <TH>Teléfono</TH>
+            <TH>Correo</TH>
+            <TH>Alta</TH>
+            <TH srOnly>Acciones</TH>
+          </THead>
+          <TBody>
+            {items.map((customer) => (
+              <TR key={customer.id}>
+                <TD className="whitespace-nowrap font-medium">
+                  {customer.name}
+                </TD>
+                <TD className="whitespace-nowrap">
+                  <Phone value={customer.phone} />
+                </TD>
+                <TD muted className="whitespace-nowrap">
+                  {customer.email ?? '—'}
+                </TD>
+                <TD muted className="whitespace-nowrap">
+                  {dateFormat.format(customer.createdAt)}
+                </TD>
+                <TD>
+                  <div className="flex justify-end">
+                    <UpdateCustomer id={customer.id} name={customer.name} />
+                  </div>
+                </TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
+      </TableShell>
+    </>
   );
 }
 
@@ -113,15 +109,14 @@ export default async function CustomerTable({
  * A phone that is really a placeholder is shown as missing data, not as a
  * number. These are the tutorial's customers, carried over so the legacy
  * invoices keep working; they disappear in F4.
+ *
+ * It is a `warn` badge because it is genuinely actionable — the shop confirms
+ * every order by phone, so a customer without one cannot be served.
  */
 function Phone({ value }: { value: string }) {
   if (value === MISSING_PHONE) {
-    return (
-      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-900">
-        Falta teléfono
-      </span>
-    );
+    return <Badge tone="warn">Falta teléfono</Badge>;
   }
 
-  return <span className="text-gray-500">{value}</span>;
+  return <span className="tabular-nums text-ink">{value}</span>;
 }

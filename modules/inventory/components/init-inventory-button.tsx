@@ -19,11 +19,14 @@ export default function InitInventoryButton({
 
   return (
     <form action={init}>
+      {/* Warn-toned, matching the "Sin inventario" badge in the same row: the
+          badge states the problem and this button is its fix, so they should
+          read as one thing rather than as a status and an unrelated action. */}
       <button
         type="submit"
-        className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100"
+        className="inline-flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md border border-warn/50 bg-warn-soft px-2.5 text-xs font-medium text-warn transition-colors hover:bg-warn/15"
       >
-        <WrenchScrewdriverIcon className="w-4" />
+        <WrenchScrewdriverIcon className="h-4 w-4" aria-hidden="true" />
         Inicializar inventario
         <span className="sr-only"> de {name}</span>
       </button>

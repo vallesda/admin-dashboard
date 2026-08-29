@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
 
-import { lusitana } from '@/app/ui/fonts';
 import Search from '@/app/ui/shared/search';
 import Pagination from '@/app/ui/shared/pagination';
-import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
+import { TableSkeleton } from '@/app/ui/skeletons';
+import PageHeader from '@/app/ui/kit/page-header';
 import CustomerTable from '@/modules/customers/components/customer-table';
 import { CreateCustomer } from '@/modules/customers/components/buttons';
 import { listCustomers } from '@/modules/customers/queries';
@@ -19,30 +19,31 @@ export default async function Page(props: {
   const query = searchParams?.query ?? '';
   const currentPage = Number(searchParams?.page) || 1;
 
-  const { totalPages } = await listCustomers(query, currentPage);
+  const { totalPages, total } = await listCustomers(query, currentPage);
 
   return (
-    <div className="w-full">
-      <div className="flex w-full items-center justify-between">
-        <h1 className={`${lusitana.className} text-2xl`}>Clientes</h1>
-      </div>
-      <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Clientes"
+        description="Quién ha comprado. El teléfono es el dato que la pescadería usa para confirmar cada pedido."
+        actions={<CreateCustomer />}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Search
           placeholder="Buscar por nombre, teléfono o correo…"
           label="Buscar clientes"
         />
-        <CreateCustomer />
+        <p className="text-xs tabular-nums text-ink-muted">
+          {total} {total === 1 ? 'cliente' : 'clientes'}
+        </p>
       </div>
 
-      <Suspense key={query + currentPage} fallback={<InvoicesTableSkeleton />}>
+      <Suspense key={query + currentPage} fallback={<TableSkeleton />}>
         <CustomerTable query={query} currentPage={currentPage} />
       </Suspense>
 
-      {totalPages > 1 ? (
-        <div className="mt-5 flex w-full justify-center">
-          <Pagination totalPages={totalPages} />
-        </div>
-      ) : null}
+      {totalPages > 1 ? <Pagination totalPages={totalPages} /> : null}
     </div>
   );
 }

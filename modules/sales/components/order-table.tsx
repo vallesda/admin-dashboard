@@ -1,17 +1,33 @@
 import Link from 'next/link';
-import { TruckIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
+import {
+  TruckIcon,
+  ShoppingBagIcon,
+  ClipboardDocumentListIcon,
+} from '@heroicons/react/24/outline';
 
+import type { OrderStatus } from '@/db/schema/sales';
 import { formatCentavos } from '@/lib/money';
 import { listOrders } from '../queries';
 import { OrderStatusBadge, PaymentStatusBadge } from './order-badges';
-import type { OrderStatus } from '@/db/schema/sales';
+import { TableShell, Table, THead, TH, TBody, TR, TD } from '@/app/ui/kit/table';
+import RecordCard from '@/app/ui/kit/record-card';
+import EmptyState from '@/app/ui/kit/empty-state';
+import { ButtonLink } from '@/app/ui/button';
 
 const dateFormat = new Intl.DateTimeFormat('es-MX', {
-  dateStyle: 'medium',
+  dateStyle: 'short',
   timeStyle: 'short',
   timeZone: 'America/Mexico_City',
 });
 
+/**
+ * The order queue — the screen this panel exists for.
+ *
+ * The whole row is a link on mobile and the order number is the link on desktop.
+ * That asymmetry is deliberate: on a phone a 44px-tall row is the target, and on
+ * a desktop a whole-row link makes text impossible to select, which matters when
+ * someone is reading a phone number aloud to a customer.
+ */
 export default async function OrderTable({
   query,
   currentPage,
@@ -25,133 +41,132 @@ export default async function OrderTable({
 
   if (items.length === 0) {
     return (
-      <div className="mt-6 rounded-lg bg-gray-50 p-8 text-center">
-        <p className="text-sm text-gray-500">
-          {query
-            ? `No hay pedidos que coincidan con “${query}”.`
-            : 'Todavía no hay pedidos.'}
-        </p>
+      <div className="rounded-lg border border-line bg-surface">
+        <EmptyState
+          icon={ClipboardDocumentListIcon}
+          title={
+            query || status ? 'Sin pedidos que mostrar' : 'Todavía no hay pedidos'
+          }
+          description={
+            query
+              ? `Ningún pedido coincide con “${query}”. Prueba con el número, el nombre o el teléfono.`
+              : status
+                ? 'Ningún pedido está en este estado ahora mismo.'
+                : 'Los pedidos de la tienda aparecen aquí en cuanto entran. También puedes registrar uno por teléfono.'
+          }
+          action={
+            query || status ? null : (
+              <ButtonLink href="/dashboard/orders/create">
+                Registrar pedido
+              </ButtonLink>
+            )
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="mt-6 flow-root">
-      <div className="inline-block min-w-full align-middle">
-        <div className="rounded-lg bg-gray-50 p-2 md:pt-0">
-          {/* Mobile */}
-          <div className="md:hidden">
-            {items.map((order) => (
-              <Link
-                key={order.id}
-                href={`/dashboard/orders/${order.id}`}
-                className="mb-2 block w-full rounded-md bg-white p-4"
-              >
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div className="min-w-0">
-                    <p className="font-medium tabular-nums">
-                      Pedido #{order.orderNumber}
-                    </p>
-                    <p className="truncate text-sm text-gray-500">
-                      {order.customerName}
-                    </p>
-                  </div>
-                  <OrderStatusBadge status={order.status} />
-                </div>
-                <div className="flex w-full items-center justify-between pt-4">
-                  <p className="text-xl font-medium tabular-nums">
-                    {formatCentavos(order.totalCents)}
-                  </p>
-                  <PaymentStatusBadge status={order.paymentStatus} />
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Desktop */}
-          <table className="hidden min-w-full text-gray-900 md:table">
-            <thead className="rounded-lg text-left text-sm font-normal">
-              <tr>
-                <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
-                  Pedido
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Cliente
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Entrega
-                </th>
-                <th scope="col" className="px-3 py-5 text-right font-medium">
-                  Piezas
-                </th>
-                <th scope="col" className="px-3 py-5 text-right font-medium">
-                  Total
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Estado
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Pago
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Fecha
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white">
-              {items.map((order) => (
-                <tr
-                  key={order.id}
-                  className="w-full border-b py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-lg [&:first-child>td:last-child]:rounded-tr-lg [&:last-child>td:first-child]:rounded-bl-lg [&:last-child>td:last-child]:rounded-br-lg"
-                >
-                  <td className="whitespace-nowrap py-3 pl-6 pr-3 font-medium tabular-nums">
-                    <Link
-                      href={`/dashboard/orders/${order.id}`}
-                      className="text-brand-600 hover:underline"
-                    >
-                      #{order.orderNumber}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-3">
-                    <p>{order.customerName}</p>
-                    <p className="text-xs text-gray-500">
-                      {order.customerPhone}
-                    </p>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-gray-500">
-                    <span className="inline-flex items-center gap-1">
-                      {order.fulfillmentType === 'delivery' ? (
-                        <>
-                          <TruckIcon className="w-4" /> Domicilio
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingBagIcon className="w-4" /> Recoge
-                        </>
-                      )}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-gray-500">
-                    {order.itemCount}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">
-                    {formatCentavos(order.totalCents)}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <OrderStatusBadge status={order.status} />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <PaymentStatusBadge status={order.paymentStatus} />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-gray-500">
-                    {dateFormat.format(order.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <>
+      {/* Mobile */}
+      <div className="flex flex-col gap-2.5 md:hidden">
+        {items.map((order) => (
+          <Link
+            key={order.id}
+            href={`/dashboard/orders/${order.id}`}
+            className="block rounded-lg transition-colors hover:bg-subtle"
+          >
+            <RecordCard
+              title={
+                <span className="tabular-nums">Pedido #{order.orderNumber}</span>
+              }
+              subtitle={`${order.customerName} · ${order.customerPhone}`}
+              badge={<OrderStatusBadge status={order.status} />}
+              rows={[
+                {
+                  label: 'Total',
+                  value: formatCentavos(order.totalCents),
+                  numeric: true,
+                },
+                { label: 'Piezas', value: order.itemCount, numeric: true },
+                {
+                  label: 'Entrega',
+                  value:
+                    order.fulfillmentType === 'delivery' ? 'Domicilio' : 'Recoge',
+                },
+                { label: 'Fecha', value: dateFormat.format(order.createdAt) },
+              ]}
+              actions={<PaymentStatusBadge status={order.paymentStatus} />}
+            />
+          </Link>
+        ))}
       </div>
-    </div>
+
+      {/* Desktop */}
+      <TableShell className="hidden md:block">
+        <Table>
+          <THead>
+            <TH>Pedido</TH>
+            <TH>Cliente</TH>
+            <TH>Entrega</TH>
+            <TH align="right">Piezas</TH>
+            <TH align="right">Total</TH>
+            <TH>Estado</TH>
+            <TH>Pago</TH>
+            <TH>Fecha</TH>
+          </THead>
+          <TBody>
+            {items.map((order) => (
+              <TR key={order.id}>
+                <TD className="whitespace-nowrap font-medium">
+                  <Link
+                    href={`/dashboard/orders/${order.id}`}
+                    className="rounded text-brand-600 hover:underline"
+                  >
+                    #{order.orderNumber}
+                  </Link>
+                </TD>
+                <TD>
+                  <p className="text-ink">{order.customerName}</p>
+                  <p className="text-xs tabular-nums text-ink-muted">
+                    {order.customerPhone}
+                  </p>
+                </TD>
+                <TD muted className="whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1.5">
+                    {order.fulfillmentType === 'delivery' ? (
+                      <>
+                        <TruckIcon className="h-4 w-4" aria-hidden="true" />
+                        Domicilio
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBagIcon className="h-4 w-4" aria-hidden="true" />
+                        Recoge
+                      </>
+                    )}
+                  </span>
+                </TD>
+                <TD numeric muted className="whitespace-nowrap">
+                  {order.itemCount}
+                </TD>
+                <TD numeric className="whitespace-nowrap font-medium">
+                  {formatCentavos(order.totalCents)}
+                </TD>
+                <TD>
+                  <OrderStatusBadge status={order.status} />
+                </TD>
+                <TD>
+                  <PaymentStatusBadge status={order.paymentStatus} />
+                </TD>
+                <TD muted className="whitespace-nowrap">
+                  {dateFormat.format(order.createdAt)}
+                </TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
+      </TableShell>
+    </>
   );
 }

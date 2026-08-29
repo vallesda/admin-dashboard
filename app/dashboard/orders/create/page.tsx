@@ -1,4 +1,5 @@
 import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
+import PageHeader from '@/app/ui/kit/page-header';
 import OrderForm from '@/modules/sales/components/order-form';
 import { listRecentCustomers } from '@/modules/customers/queries';
 import { listSellableWithStock } from '@/modules/inventory/queries';
@@ -15,7 +16,7 @@ export default async function Page() {
   ]);
 
   return (
-    <main>
+    <div className="flex flex-col gap-5">
       <Breadcrumbs
         breadcrumbs={[
           { label: 'Pedidos', href: '/dashboard/orders' },
@@ -26,7 +27,12 @@ export default async function Page() {
           },
         ]}
       />
+
+      <PageHeader
+        title="Registrar pedido"
+        description="Para pedidos tomados por teléfono. Reserva inventario al guardarse."
+      />
       <OrderForm customers={customers} products={products} />
-    </main>
+    </div>
   );
 }

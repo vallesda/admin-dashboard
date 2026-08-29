@@ -1,12 +1,13 @@
 import { Suspense } from 'react';
-import Link from 'next/link';
 import clsx from 'clsx';
+import Link from 'next/link';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
-import { lusitana } from '@/app/ui/fonts';
 import Search from '@/app/ui/shared/search';
 import Pagination from '@/app/ui/shared/pagination';
-import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
+import { TableSkeleton } from '@/app/ui/skeletons';
+import PageHeader from '@/app/ui/kit/page-header';
+import { ButtonLink } from '@/app/ui/button';
 import OrderTable from '@/modules/sales/components/order-table';
 import { listOrders } from '@/modules/sales/queries';
 import { ORDER_STATUS_LABEL } from '@/modules/sales/state-machine';
@@ -42,31 +43,45 @@ export default async function Page(props: {
     ? searchParams.status
     : undefined;
 
-  const { totalPages } = await listOrders(query, currentPage, status);
+  const { totalPages, total } = await listOrders(query, currentPage, status);
 
   return (
-    <div className="w-full">
-      <div className="flex w-full items-center justify-between">
-        <h1 className={`${lusitana.className} text-2xl`}>Pedidos</h1>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Pedidos"
+        description="La cola de trabajo. El estado de cumplimiento y el de pago avanzan por separado."
+        actions={
+          <ButtonLink href="/dashboard/orders/create">
+            <PlusIcon className="h-4 w-4" />
+            Registrar pedido
+          </ButtonLink>
+        }
+      />
 
-      <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Search
           placeholder="Buscar por número, cliente o teléfono…"
           label="Buscar pedidos"
         />
-        <Link
-          href="/dashboard/orders/create"
-          className="flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-500"
-        >
-          <span className="hidden md:block">Registrar pedido</span>
-          <PlusIcon className="h-5 md:ml-4" />
-        </Link>
+        <p className="text-xs tabular-nums text-ink-muted">
+          {total} {total === 1 ? 'pedido' : 'pedidos'}
+        </p>
       </div>
 
-      {/* Filter state in the URL, like the search: a filtered view is
-          shareable and survives a reload. */}
-      <div className="mt-4 flex flex-wrap gap-2">
+      {/*
+        Filter state in the URL, like the search: a filtered view is shareable
+        and survives a reload.
+
+        The tabs are a `<nav>` with `aria-current` rather than a row of
+        anonymous pills. They were `bg-gray-900 text-white` when active — pure
+        black, a colour used nowhere else in the panel, and the only signal that
+        a filter was on. Now the active one is brand-toned AND carries
+        `aria-current`, so it does not depend on colour alone.
+      */}
+      <nav
+        aria-label="Filtrar por estado"
+        className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
+      >
         {FILTERS.map((f) => {
           const active = f === 'all' ? status === undefined : status === f;
           const href =
@@ -76,31 +91,28 @@ export default async function Page(props: {
             <Link
               key={f}
               href={href}
+              aria-current={active ? 'page' : undefined}
               className={clsx(
-                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                'shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors',
                 active
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                  ? 'border-brand-600 bg-brand-50 text-brand-600'
+                  : 'border-line bg-surface text-ink-muted hover:bg-subtle hover:text-ink',
               )}
             >
               {f === 'all' ? 'Todos' : ORDER_STATUS_LABEL[f]}
             </Link>
           );
         })}
-      </div>
+      </nav>
 
       <Suspense
         key={`${query}${currentPage}${status ?? 'all'}`}
-        fallback={<InvoicesTableSkeleton />}
+        fallback={<TableSkeleton />}
       >
         <OrderTable query={query} currentPage={currentPage} status={status} />
       </Suspense>
 
-      {totalPages > 1 ? (
-        <div className="mt-5 flex w-full justify-center">
-          <Pagination totalPages={totalPages} />
-        </div>
-      ) : null}
+      {totalPages > 1 ? <Pagination totalPages={totalPages} /> : null}
     </div>
   );
 }

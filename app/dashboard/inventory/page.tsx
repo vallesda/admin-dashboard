@@ -1,11 +1,12 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
-import { lusitana } from '@/app/ui/fonts';
 import Search from '@/app/ui/shared/search';
 import Pagination from '@/app/ui/shared/pagination';
-import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
+import { TableSkeleton } from '@/app/ui/skeletons';
+import PageHeader from '@/app/ui/kit/page-header';
 import InventoryTable from '@/modules/inventory/components/inventory-table';
 import { listInventory, countLowStock } from '@/modules/inventory/queries';
 
@@ -22,40 +23,58 @@ export default async function Page(props: {
   const currentPage = Number(searchParams?.page) || 1;
   const lowOnly = searchParams?.low === '1';
 
-  const [{ totalPages }, lowCount] = await Promise.all([
+  const [{ totalPages, total }, lowCount] = await Promise.all([
     listInventory(query, currentPage, lowOnly),
     countLowStock(),
   ]);
 
   return (
-    <div className="w-full">
-      <div className="flex w-full items-center justify-between">
-        <h1 className={`${lusitana.className} text-2xl`}>Inventario</h1>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Inventario"
+        description="Disponible es lo que la tienda puede vender: en mano menos lo reservado por pedidos abiertos."
+      />
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 md:mt-8">
+      <div className="flex flex-wrap items-center gap-3">
         <Search
           placeholder="Buscar por nombre o SKU…"
           label="Buscar en inventario"
         />
-        {/* Filter state lives in the URL like the search, so a filtered view is
-            shareable and survives a reload. */}
+
+        {/*
+          Filter state lives in the URL like the search, so a filtered view is
+          shareable and survives a reload.
+
+          It is a toggle with `aria-pressed` rather than two differently
+          coloured links. Previously the "on" state was an amber pill and the
+          "off" state a grey one, which read as two unrelated buttons rather
+          than one control in two states — and the label changed too ("Solo bajo
+          stock" / "Ver todo"), so nothing stayed constant to anchor it.
+        */}
         <Link
           href={lowOnly ? '/dashboard/inventory' : '/dashboard/inventory?low=1'}
+          aria-pressed={lowOnly}
+          role="button"
           className={clsx(
-            'flex h-10 items-center whitespace-nowrap rounded-lg px-4 text-sm font-medium transition-colors',
+            'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors',
             lowOnly
-              ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              ? 'border-warn/50 bg-warn-soft text-warn'
+              : 'border-line-strong bg-surface text-ink hover:bg-subtle',
           )}
         >
-          {lowOnly ? 'Ver todo' : `Solo bajo stock (${lowCount})`}
+          <ExclamationTriangleIcon className="h-4 w-4" aria-hidden="true" />
+          Solo bajo stock
+          <span className="tabular-nums opacity-70">({lowCount})</span>
         </Link>
+
+        <p className="ml-auto text-xs tabular-nums text-ink-muted">
+          {total} {total === 1 ? 'producto' : 'productos'}
+        </p>
       </div>
 
       <Suspense
         key={`${query}${currentPage}${lowOnly}`}
-        fallback={<InvoicesTableSkeleton />}
+        fallback={<TableSkeleton />}
       >
         <InventoryTable
           query={query}
@@ -64,11 +83,7 @@ export default async function Page(props: {
         />
       </Suspense>
 
-      {totalPages > 1 ? (
-        <div className="mt-5 flex w-full justify-center">
-          <Pagination totalPages={totalPages} />
-        </div>
-      ) : null}
+      {totalPages > 1 ? <Pagination totalPages={totalPages} /> : null}
     </div>
   );
 }

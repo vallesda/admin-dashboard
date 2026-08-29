@@ -1,12 +1,18 @@
+import { TagIcon } from '@heroicons/react/24/outline';
+
 import { listCategories } from '../queries';
 import CategoryStatus from './category-status';
 import { UpdateCategory, ToggleCategory } from './buttons';
+import { TableShell, Table, THead, TH, TBody, TR, TD } from '@/app/ui/kit/table';
+import RecordCard from '@/app/ui/kit/record-card';
+import EmptyState from '@/app/ui/kit/empty-state';
+import { ButtonLink } from '@/app/ui/button';
 
 /**
  * Admin list of categories.
  *
  * Server component that fetches its own data, so it can sit behind its own
- * `<Suspense>` boundary — same shape as `app/ui/invoices/table.tsx`.
+ * `<Suspense>` boundary.
  *
  * No search or pagination on purpose: a flat category list for one shop is tens
  * of rows. Products do need both (RF-CAT-004).
@@ -16,38 +22,77 @@ export default async function CategoryTable() {
 
   if (categories.length === 0) {
     return (
-      <div className="mt-6 rounded-lg bg-gray-50 p-8 text-center">
-        <p className="text-sm text-gray-500">
-          Todavía no hay categorías. Crea la primera para poder clasificar
-          productos.
-        </p>
+      <div className="rounded-lg border border-line bg-surface">
+        <EmptyState
+          icon={TagIcon}
+          title="Todavía no hay categorías"
+          description="Las categorías agrupan el catálogo en la tienda. Crea la primera para poder clasificar productos."
+          action={
+            <ButtonLink href="/dashboard/categories/create">
+              Crear categoría
+            </ButtonLink>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="mt-6 flow-root">
-      <div className="inline-block min-w-full align-middle">
-        <div className="rounded-lg bg-gray-50 p-2 md:pt-0">
-          {/* Mobile */}
-          <div className="md:hidden">
+    <>
+      {/* Mobile */}
+      <div className="flex flex-col gap-2.5 md:hidden">
+        {categories.map((category) => (
+          <RecordCard
+            key={category.id}
+            title={category.name}
+            subtitle={`/${category.slug}`}
+            badge={<CategoryStatus active={category.active} />}
+            rows={[
+              { label: 'Orden', value: category.sortOrder, numeric: true },
+            ]}
+            actions={
+              <>
+                <UpdateCategory id={category.id} name={category.name} />
+                <ToggleCategory
+                  id={category.id}
+                  name={category.name}
+                  active={category.active}
+                />
+              </>
+            }
+          />
+        ))}
+      </div>
+
+      {/* Desktop */}
+      <TableShell className="hidden md:block">
+        <Table>
+          <THead>
+            <TH>Nombre</TH>
+            <TH>URL</TH>
+            <TH align="right">Orden</TH>
+            <TH>Estado</TH>
+            <TH srOnly>Acciones</TH>
+          </THead>
+          <TBody>
             {categories.map((category) => (
-              <div
-                key={category.id}
-                className="mb-2 w-full rounded-md bg-white p-4"
-              >
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div>
-                    <p className="font-medium">{category.name}</p>
-                    <p className="text-sm text-gray-500">/{category.slug}</p>
-                  </div>
+              <TR key={category.id}>
+                <TD className="whitespace-nowrap font-medium">
+                  {category.name}
+                </TD>
+                <TD muted className="whitespace-nowrap font-mono text-xs">
+                  /{category.slug}
+                </TD>
+                {/* Digits line up between rows, which is what makes the sort
+                    order scannable at a glance. */}
+                <TD numeric className="whitespace-nowrap">
+                  {category.sortOrder}
+                </TD>
+                <TD>
                   <CategoryStatus active={category.active} />
-                </div>
-                <div className="flex w-full items-center justify-between pt-4">
-                  <p className="text-sm text-gray-500">
-                    Orden {category.sortOrder}
-                  </p>
-                  <div className="flex justify-end gap-2">
+                </TD>
+                <TD>
+                  <div className="flex items-center justify-end gap-1.5">
                     <UpdateCategory id={category.id} name={category.name} />
                     <ToggleCategory
                       id={category.id}
@@ -55,68 +100,12 @@ export default async function CategoryTable() {
                       active={category.active}
                     />
                   </div>
-                </div>
-              </div>
+                </TD>
+              </TR>
             ))}
-          </div>
-
-          {/* Desktop */}
-          <table className="hidden min-w-full text-gray-900 md:table">
-            <thead className="rounded-lg text-left text-sm font-normal">
-              <tr>
-                <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
-                  Nombre
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  URL
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Orden
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Estado
-                </th>
-                <th scope="col" className="relative py-3 pl-6 pr-3">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white">
-              {categories.map((category) => (
-                <tr
-                  key={category.id}
-                  className="w-full border-b py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-lg [&:first-child>td:last-child]:rounded-tr-lg [&:last-child>td:first-child]:rounded-bl-lg [&:last-child>td:last-child]:rounded-br-lg"
-                >
-                  <td className="whitespace-nowrap py-3 pl-6 pr-3 font-medium">
-                    {category.name}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-gray-500">
-                    /{category.slug}
-                  </td>
-                  {/* Digits line up between rows, which is what makes the sort
-                      order scannable at a glance. */}
-                  <td className="whitespace-nowrap px-3 py-3 tabular-nums">
-                    {category.sortOrder}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <CategoryStatus active={category.active} />
-                  </td>
-                  <td className="whitespace-nowrap py-3 pl-6 pr-3">
-                    <div className="flex justify-end gap-3">
-                      <UpdateCategory id={category.id} name={category.name} />
-                      <ToggleCategory
-                        id={category.id}
-                        name={category.name}
-                        active={category.active}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+          </TBody>
+        </Table>
+      </TableShell>
+    </>
   );
 }

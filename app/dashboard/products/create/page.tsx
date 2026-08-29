@@ -1,4 +1,5 @@
 import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
+import PageHeader from '@/app/ui/kit/page-header';
 import ProductForm from '@/modules/catalog/components/product-form';
 import { listCategoryOptions } from '@/modules/catalog/queries';
 
@@ -14,7 +15,7 @@ export default async function Page() {
   const categories = await listCategoryOptions();
 
   return (
-    <main>
+    <div className="flex flex-col gap-5">
       <Breadcrumbs
         breadcrumbs={[
           { label: 'Productos', href: '/dashboard/products' },
@@ -25,7 +26,12 @@ export default async function Page() {
           },
         ]}
       />
+
+      <PageHeader
+        title="Crear producto"
+        description="Se crea como borrador: no aparece en la tienda hasta que lo actives desde la lista."
+      />
       <ProductForm categories={categories} />
-    </main>
+    </div>
   );
 }

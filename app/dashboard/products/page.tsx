@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
 
-import { lusitana } from '@/app/ui/fonts';
 import Search from '@/app/ui/shared/search';
 import Pagination from '@/app/ui/shared/pagination';
-import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
+import { TableSkeleton } from '@/app/ui/skeletons';
+import PageHeader from '@/app/ui/kit/page-header';
 import ProductTable from '@/modules/catalog/components/product-table';
 import { CreateProduct } from '@/modules/catalog/components/product-buttons';
 import { listProducts } from '@/modules/catalog/queries';
@@ -20,29 +20,35 @@ export default async function Page(props: {
   // Needed by <Pagination> before the shell renders, so it is awaited here
   // rather than inside the Suspense boundary. The count costs one extra query;
   // the table's own read is a separate one that streams.
-  const { totalPages } = await listProducts(query, currentPage);
+  const { totalPages, total } = await listProducts(query, currentPage);
 
   return (
-    <div className="w-full">
-      <div className="flex w-full items-center justify-between">
-        <h1 className={`${lusitana.className} text-2xl`}>Productos</h1>
-      </div>
-      <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Productos"
+        description="El catálogo que ve la tienda. Un producto en borrador no aparece en línea."
+        actions={<CreateProduct />}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Search placeholder="Buscar por nombre o SKU…" label="Buscar productos" />
-        <CreateProduct />
+        {/*
+          The count is stated rather than left to be inferred from the rows.
+          On a paginated list "23 productos" is the only place the operator can
+          see the size of what they are working through.
+        */}
+        <p className="text-xs tabular-nums text-ink-muted">
+          {total} {total === 1 ? 'producto' : 'productos'}
+        </p>
       </div>
 
       {/* The key remounts the boundary on every search or page change, so the
           skeleton reappears instead of showing stale rows. */}
-      <Suspense key={query + currentPage} fallback={<InvoicesTableSkeleton />}>
+      <Suspense key={query + currentPage} fallback={<TableSkeleton />}>
         <ProductTable query={query} currentPage={currentPage} />
       </Suspense>
 
-      {totalPages > 1 ? (
-        <div className="mt-5 flex w-full justify-center">
-          <Pagination totalPages={totalPages} />
-        </div>
-      ) : null}
+      {totalPages > 1 ? <Pagination totalPages={totalPages} /> : null}
     </div>
   );
 }

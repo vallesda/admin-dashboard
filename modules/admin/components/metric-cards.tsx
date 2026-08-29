@@ -7,15 +7,26 @@ import {
 import Link from 'next/link';
 import clsx from 'clsx';
 
-import { lusitana } from '@/app/ui/fonts';
 import { formatCentavos } from '@/lib/money';
 import { getDashboardMetrics } from '../queries';
 
 /**
  * The day's headline figures, from Orders and Inventory (RF-ADM-003).
  *
- * Replaces the tutorial's cards, which read `invoices` and `revenue` — seed
- * data that had nothing to do with anything the shop actually sold.
+ * These were the tutorial's stat-card template: a grey `rounded-xl` tray holding
+ * a white box, the figure centred at `text-2xl` with `py-8` of air above and
+ * below it, and a serif face on the number. Four of them across the top of the
+ * screen took roughly 200px of vertical space to deliver four integers, and
+ * pushed the two lists that an operator actually works from below the fold.
+ *
+ * They are now left-aligned tiles about half the height. Left-aligned because
+ * four centred numbers in a row have no common edge, so comparing them means
+ * four separate fixations; on a shared left margin the eye reads straight down.
+ *
+ * The alert state is a border and an icon colour, not a filled red card. A tile
+ * that floods when stock is low would be the loudest thing on the dashboard for
+ * a condition that is often just "the pulpo is nearly out", and the operator
+ * would learn to ignore it within a week.
  */
 export default async function MetricCards() {
   const m = await getDashboardMetrics();
@@ -41,6 +52,9 @@ export default async function MetricCards() {
         value={m.lowStockCount}
         icon={ExclamationTriangleIcon}
         href="/dashboard/inventory?low=1"
+        hint={
+          m.lowStockCount > 0 ? 'Requieren resurtido' : 'Todo por encima del umbral'
+        }
         alert={m.lowStockCount > 0}
       />
       <Card
@@ -48,6 +62,7 @@ export default async function MetricCards() {
         value={m.unpaidOrders}
         icon={ClockIcon}
         href="/dashboard/orders"
+        hint="Pendientes de cobro"
       />
     </>
   );
@@ -71,21 +86,36 @@ function Card({
   return (
     <Link
       href={href}
-      className="rounded-xl bg-gray-50 p-2 shadow-sm transition-colors hover:bg-gray-100"
+      className={clsx(
+        'group rounded-lg border bg-surface p-3.5 transition-colors',
+        alert
+          ? 'border-warn/40 hover:border-warn'
+          : 'border-line hover:border-line-strong',
+      )}
     >
-      <div className="flex p-4">
+      <div className="flex items-center gap-2">
         <Icon
-          className={clsx('h-5 w-5', alert ? 'text-amber-600' : 'text-gray-700')}
+          className={clsx(
+            'h-4 w-4 shrink-0',
+            alert ? 'text-warn' : 'text-ink-subtle',
+          )}
+          aria-hidden="true"
         />
-        <h3 className="ml-2 text-sm font-medium">{title}</h3>
+        <h3 className="truncate text-xs font-medium uppercase tracking-wider text-ink-muted">
+          {title}
+        </h3>
       </div>
-      <p
-        className={`${lusitana.className} truncate rounded-xl bg-white px-4 py-8 text-center text-2xl tabular-nums`}
-      >
+
+      {/*
+        `tabular-nums` and a fixed leading so the four figures share a baseline
+        even when one is "$12,480.00" and its neighbour is "3".
+      */}
+      <p className="mt-2 truncate text-2xl font-semibold leading-8 tracking-tight tabular-nums text-ink">
         {value}
       </p>
+
       {hint ? (
-        <p className="px-4 py-2 text-center text-xs text-gray-500">{hint}</p>
+        <p className="mt-1 truncate text-xs text-ink-muted">{hint}</p>
       ) : null}
     </Link>
   );

@@ -80,7 +80,7 @@ export default function ImagePicker({
       <input type="hidden" name={name} value={url ?? ''} />
 
       <div className="flex items-start gap-4">
-        <div className="flex h-24 w-24 flex-none items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-white">
+        <div className="flex h-24 w-24 flex-none items-center justify-center overflow-hidden rounded-md border border-line bg-subtle">
           {url ? (
             <Image
               src={url}
@@ -91,7 +91,7 @@ export default function ImagePicker({
               unoptimized
             />
           ) : (
-            <PhotoIcon className="w-8 text-gray-300" />
+            <PhotoIcon className="w-8 text-ink-subtle" aria-hidden="true" />
           )}
         </div>
 
@@ -111,7 +111,7 @@ export default function ImagePicker({
           <div className="flex flex-wrap gap-2">
             <label
               htmlFor={`${name}-file`}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-3 py-2 text-xs font-medium hover:bg-gray-100"
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 text-xs font-medium text-ink transition-colors hover:bg-subtle"
             >
               {busy ? (
                 <>
@@ -130,7 +130,7 @@ export default function ImagePicker({
               <button
                 type="button"
                 onClick={() => setUrl(null)}
-                className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-xs font-medium hover:bg-gray-100"
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-xs font-medium hover:bg-subtle"
               >
                 <TrashIcon className="w-4" />
                 Quitar
@@ -138,13 +138,13 @@ export default function ImagePicker({
             ) : null}
           </div>
 
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-ink-muted">
             JPG, PNG, WebP o AVIF. Máximo 6 MB.
           </p>
 
           <div aria-live="polite" aria-atomic="true">
             {error ? (
-              <p className="mt-2 text-sm text-red-500">{error}</p>
+              <p className="mt-2 text-sm text-danger">{error}</p>
             ) : null}
           </div>
         </div>

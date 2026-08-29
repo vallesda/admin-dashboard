@@ -7,10 +7,10 @@ import {
   BanknotesIcon,
   ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline';
-import clsx from 'clsx';
 
 import type { OrderStatus, PaymentStatus } from '@/db/schema/sales';
 import { ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from '../state-machine';
+import Badge, { type BadgeTone } from '@/app/ui/kit/badge';
 
 const STATUS_ICON = {
   pending: ClockIcon,
@@ -24,31 +24,54 @@ const STATUS_ICON = {
 /**
  * Operational state. Icon plus word, never colour alone: `pending` and
  * `cancelled` are both "not done" but mean opposite things to the shop.
+ *
+ * The tones map to what the operator has to DO, which is the only question this
+ * badge is answering in a queue of forty orders:
+ *
+ *   pending    warn     — nobody has confirmed it yet. Needs a person.
+ *   confirmed  info     — accepted, moving.
+ *   preparing  info     — moving.
+ *   ready      warn     — waiting on the *customer*, and it is the shop's job
+ *                         to chase it. This is the row that goes stale.
+ *   completed  ok       — done.
+ *   cancelled  neutral  — closed. Not a failure to act on, and colouring it red
+ *                         made a normal outcome look like an incident.
+ *
+ * The six ad-hoc palettes this replaced used blue, amber, purple, solid green
+ * and red with no shared meaning, so `bg-green-500` marked a completed order
+ * while `bg-green-100` marked a paid one — two different greens, two different
+ * machines, no way to learn either.
  */
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const Icon = STATUS_ICON[status];
+const STATUS_TONE: Record<OrderStatus, BadgeTone> = {
+  pending: 'warn',
+  confirmed: 'info',
+  preparing: 'info',
+  ready: 'warn',
+  completed: 'ok',
+  cancelled: 'neutral',
+};
 
+export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return (
-    <span
-      className={clsx(
-        'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-xs',
-        {
-          'bg-gray-100 text-gray-600': status === 'pending',
-          'bg-blue-100 text-blue-800': status === 'confirmed',
-          'bg-amber-100 text-amber-900': status === 'preparing',
-          'bg-purple-100 text-purple-800': status === 'ready',
-          'bg-green-500 text-white': status === 'completed',
-          'bg-red-100 text-red-800': status === 'cancelled',
-        },
-      )}
-    >
+    <Badge tone={STATUS_TONE[status]} icon={STATUS_ICON[status]}>
       {ORDER_STATUS_LABEL[status]}
-      <Icon className="w-4" />
-    </span>
+    </Badge>
   );
 }
 
-/** Money state — a separate machine, so a separate badge (RN-006). */
+/**
+ * Money state — a separate machine, so a separate badge (RN-006).
+ *
+ * `unpaid` is `warn`, not neutral: an unpaid order is money the shop is owed,
+ * and the dashboard has a metric card counting them. A refund is `info` — it is
+ * a completed action, not an alarm.
+ */
+const PAYMENT_TONE: Record<PaymentStatus, BadgeTone> = {
+  unpaid: 'warn',
+  paid: 'ok',
+  refunded: 'info',
+};
+
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
   const Icon =
     status === 'refunded'
@@ -58,18 +81,8 @@ export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
         : ClockIcon;
 
   return (
-    <span
-      className={clsx(
-        'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-xs',
-        {
-          'bg-gray-100 text-gray-600': status === 'unpaid',
-          'bg-green-100 text-green-800': status === 'paid',
-          'bg-orange-100 text-orange-800': status === 'refunded',
-        },
-      )}
-    >
+    <Badge tone={PAYMENT_TONE[status]} icon={Icon}>
       {PAYMENT_STATUS_LABEL[status]}
-      <Icon className="w-4" />
-    </span>
+    </Badge>
   );
 }

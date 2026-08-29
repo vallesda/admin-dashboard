@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 
 import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
+import PageHeader from '@/app/ui/kit/page-header';
+import Panel from '@/app/ui/kit/panel';
 import { getInventoryWithProduct } from '@/modules/inventory/queries';
 import MovementHistory from '@/modules/inventory/components/movement-history';
 import {
@@ -24,7 +26,7 @@ export default async function Page(props: {
   if (!item) notFound();
 
   return (
-    <main>
+    <div className="flex flex-col gap-5">
       <Breadcrumbs
         breadcrumbs={[
           { label: 'Inventario', href: '/dashboard/inventory' },
@@ -36,19 +38,32 @@ export default async function Page(props: {
         ]}
       />
 
-      <section className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Figure label="En mano" value={item.onHand} />
-        <Figure label="Reservado" value={item.reserved} muted />
-        <Figure label="Disponible" value={item.available} />
-      </section>
+      <PageHeader
+        title={item.name}
+        description={
+          <>
+            SKU <span className="font-mono text-ink">{item.sku}</span>
+          </>
+        }
+      />
 
-      <p className="mb-6 text-sm text-gray-500">
-        SKU <span className="font-mono">{item.sku}</span> · disponible = en mano
-        − reservado
-      </p>
+      {/*
+        The three figures are one strip rather than three cards, because they
+        are one equation and the operator reads them as such. The minus and
+        equals signs are rendered between them — previously the relationship was
+        explained in a sentence underneath ("disponible = en mano − reservado"),
+        which asked the reader to hold three numbers in their head and apply it.
+      */}
+      <div className="flex flex-wrap items-stretch gap-2">
+        <Figure label="En mano" value={item.onHand} />
+        <Operator symbol="−" />
+        <Figure label="Reservado" value={item.reserved} muted />
+        <Operator symbol="=" />
+        <Figure label="Disponible" value={item.available} emphasis />
+      </div>
 
       {item.hasInventory ? (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid items-start gap-4 lg:grid-cols-3">
           <ReceiveStockForm productId={productId} />
           <AdjustStockForm productId={productId} />
           <ThresholdForm
@@ -57,11 +72,11 @@ export default async function Page(props: {
           />
         </div>
       ) : (
-        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 md:p-6">
-          <h2 className="text-sm font-medium text-amber-900">
+        <div className="rounded-lg border border-warn/40 bg-warn-soft p-4 md:p-5">
+          <h2 className="text-sm font-semibold text-warn">
             Este producto todavía no tiene inventario
           </h2>
-          <p className="mb-4 mt-1 text-sm text-amber-900">
+          <p className="mb-4 mt-1 max-w-[70ch] text-sm text-warn">
             No se le puede recibir mercancía ni venderlo hasta crear su registro
             de existencias. Se creará en cero.
           </p>
@@ -69,21 +84,22 @@ export default async function Page(props: {
         </div>
       )}
 
-      <section className="mt-8">
-        <h2 className="text-lg font-medium">Historial de movimientos</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          El registro no se edita ni se borra. Para corregir un error, registra
-          un ajuste que lo compense.
-        </p>
+      <Panel
+        title="Historial de movimientos"
+        description="El registro no se edita ni se borra. Para corregir un error, registra un ajuste que lo compense."
+        bodyClassName="p-0"
+      >
         <Suspense
           fallback={
-            <p className="mt-4 text-sm text-gray-500">Cargando historial…</p>
+            <p className="p-4 text-sm text-ink-muted">Cargando historial…</p>
           }
         >
-          <MovementHistory productId={productId} />
+          <div className="p-4">
+            <MovementHistory productId={productId} />
+          </div>
         </Suspense>
-      </section>
-    </main>
+      </Panel>
+    </div>
   );
 }
 
@@ -91,19 +107,41 @@ function Figure({
   label,
   value,
   muted = false,
+  emphasis = false,
 }: {
   label: string;
   value: number;
   muted?: boolean;
+  emphasis?: boolean;
 }) {
   return (
-    <div className="rounded-lg bg-gray-50 p-4">
-      <p className="text-sm text-gray-500">{label}</p>
+    <div
+      className={`min-w-32 flex-1 rounded-lg border bg-surface p-3.5 ${
+        emphasis ? 'border-line-strong' : 'border-line'
+      }`}
+    >
+      <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">
+        {label}
+      </p>
       <p
-        className={`mt-1 text-2xl font-medium tabular-nums ${muted ? 'text-gray-500' : ''}`}
+        className={`mt-1.5 text-2xl font-semibold tabular-nums ${
+          muted ? 'text-ink-muted' : 'text-ink'
+        }`}
       >
         {value}
       </p>
+    </div>
+  );
+}
+
+/** Decorative: the equation is restated for screen readers by the labels. */
+function Operator({ symbol }: { symbol: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="hidden items-center px-1 text-lg text-ink-subtle sm:flex"
+    >
+      {symbol}
     </div>
   );
 }

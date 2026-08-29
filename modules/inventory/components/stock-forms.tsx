@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { Button } from '@/app/ui/button';
+import Panel from '@/app/ui/kit/panel';
 import {
   receiveStock,
   adjustStock,
@@ -29,14 +30,14 @@ export function ReceiveStockForm({ productId }: { productId: string }) {
   return (
     <FormShell
       title="Recibir mercancía"
-      icon={<ArrowDownTrayIcon className="w-5 text-gray-500" />}
+      icon={<ArrowDownTrayIcon className="h-4 w-4 text-ink-subtle" />}
       action={formAction}
       state={state}
     >
-      <div className="mb-4">
+      <div className="">
         <label
           htmlFor="receive-quantity"
-          className="mb-2 block text-sm font-medium"
+          className="mb-1.5 block text-sm font-medium text-ink"
         >
           Cantidad recibida
         </label>
@@ -57,9 +58,9 @@ export function ReceiveStockForm({ productId }: { productId: string }) {
         />
       </div>
 
-      <div className="mb-4">
-        <label htmlFor="receive-note" className="mb-2 block text-sm font-medium">
-          Nota <span className="text-gray-500">(opcional)</span>
+      <div className="">
+        <label htmlFor="receive-note" className="mb-1.5 block text-sm font-medium text-ink">
+          Nota <span className="text-ink-muted">(opcional)</span>
         </label>
         <input
           id="receive-note"
@@ -92,14 +93,14 @@ export function AdjustStockForm({ productId }: { productId: string }) {
   return (
     <FormShell
       title="Ajustar existencias"
-      icon={<AdjustmentsHorizontalIcon className="w-5 text-gray-500" />}
+      icon={<AdjustmentsHorizontalIcon className="h-4 w-4 text-ink-subtle" />}
       action={formAction}
       state={state}
     >
-      <div className="mb-4">
+      <div className="">
         <label
           htmlFor="adjust-quantity"
-          className="mb-2 block text-sm font-medium"
+          className="mb-1.5 block text-sm font-medium text-ink"
         >
           Ajuste
         </label>
@@ -113,7 +114,7 @@ export function AdjustStockForm({ productId }: { productId: string }) {
           aria-describedby="adjust-quantity-error adjust-quantity-help"
           className={inputClass}
         />
-        <p id="adjust-quantity-help" className="mt-1 text-xs text-gray-500">
+        <p id="adjust-quantity-help" className="mt-1.5 text-xs text-ink-muted">
           Negativo para restar, positivo para sumar. No puedes bajar de las
           unidades ya reservadas.
         </p>
@@ -123,8 +124,8 @@ export function AdjustStockForm({ productId }: { productId: string }) {
         />
       </div>
 
-      <div className="mb-4">
-        <label htmlFor="adjust-note" className="mb-2 block text-sm font-medium">
+      <div className="">
+        <label htmlFor="adjust-note" className="mb-1.5 block text-sm font-medium text-ink">
           Motivo
         </label>
         <input
@@ -138,7 +139,7 @@ export function AdjustStockForm({ productId }: { productId: string }) {
           aria-describedby="adjust-note-error adjust-note-help"
           className={inputClass}
         />
-        <p id="adjust-note-help" className="mt-1 text-xs text-gray-500">
+        <p id="adjust-note-help" className="mt-1.5 text-xs text-ink-muted">
           Obligatorio: un ajuste sin explicación no se puede auditar.
         </p>
         <FieldError id="adjust-note-error" messages={state.errors?.note} />
@@ -167,14 +168,14 @@ export function ThresholdForm({
   return (
     <FormShell
       title="Umbral de bajo stock"
-      icon={<BellAlertIcon className="w-5 text-gray-500" />}
+      icon={<BellAlertIcon className="h-4 w-4 text-ink-subtle" />}
       action={formAction}
       state={state}
     >
-      <div className="mb-4">
+      <div className="">
         <label
           htmlFor="lowStockThreshold"
-          className="mb-2 block text-sm font-medium"
+          className="mb-1.5 block text-sm font-medium text-ink"
         >
           Avisar cuando el disponible sea igual o menor a
         </label>
@@ -201,6 +202,14 @@ export function ThresholdForm({
   );
 }
 
+/**
+ * The shell the three stock forms share.
+ *
+ * Each is a `Panel` with its own submit, because they are three independent
+ * writes to the ledger — receiving stock, correcting a count and changing the
+ * alert threshold are not steps of one operation and must not share a save
+ * button.
+ */
 function FormShell({
   title,
   icon,
@@ -215,29 +224,38 @@ function FormShell({
   children: React.ReactNode;
 }) {
   return (
-    <form action={action} className="rounded-md bg-gray-50 p-4 md:p-6">
-      <h3 className="mb-4 flex items-center gap-2 text-sm font-medium">
-        {icon}
-        {title}
-      </h3>
-      {children}
-      <div aria-live="polite" aria-atomic="true">
-        {state.message ? (
-          <p className="mt-3 text-sm text-red-500">{state.message}</p>
-        ) : null}
-      </div>
+    <form action={action}>
+      <Panel
+        title={
+          <span className="flex items-center gap-2">
+            {icon}
+            {title}
+          </span>
+        }
+        className="h-full"
+      >
+        <div className="flex flex-col gap-4">
+          {children}
+          {state.message ? (
+            <p role="alert" className="text-sm text-danger">
+              {state.message}
+            </p>
+          ) : null}
+        </div>
+      </Panel>
     </form>
   );
 }
 
-const inputClass =
-  'block w-full rounded-md border border-gray-200 py-2 px-3 text-sm outline-2 placeholder:text-gray-500';
+const inputClass = 'field';
 
 function FieldError({ id, messages }: { id: string; messages?: string[] }) {
+  if (!messages?.length) return null;
+
   return (
-    <div id={id} aria-live="polite" aria-atomic="true">
-      {messages?.map((message) => (
-        <p className="mt-2 text-sm text-red-500" key={message}>
+    <div id={id} role="alert">
+      {messages.map((message) => (
+        <p className="mt-1.5 text-xs text-danger" key={message}>
           {message}
         </p>
       ))}

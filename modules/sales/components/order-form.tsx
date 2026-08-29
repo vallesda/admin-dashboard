@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import { TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 import { Button } from '@/app/ui/button';
+import { FormCard } from '@/app/ui/kit/form';
 import { formatCentavos } from '@/lib/money';
 import { createOrder } from '../actions';
 import { emptyOrderFormState, type OrderFormState } from '../form-state';
@@ -63,12 +64,12 @@ export default function OrderForm({
 
   return (
     <form action={formAction}>
-      <div className="rounded-md bg-gray-50 p-4 md:p-6">
+      <FormCard>
         {/* Cliente */}
         <div className="mb-6">
           <label
             htmlFor="customerId"
-            className="mb-2 block text-sm font-medium"
+            className="mb-1.5 block text-sm font-medium text-ink"
           >
             Cliente
           </label>
@@ -78,7 +79,7 @@ export default function OrderForm({
             defaultValue=""
             required
             aria-describedby="customerId-error"
-            className="block w-full cursor-pointer rounded-md border border-gray-200 py-2 px-3 text-sm outline-2"
+            className="field cursor-pointer"
           >
             <option value="" disabled>
               Selecciona un cliente
@@ -90,7 +91,7 @@ export default function OrderForm({
             ))}
           </select>
           {customers.length === 0 ? (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1.5 text-xs text-ink-muted">
               No hay clientes.{' '}
               <Link
                 href="/dashboard/customers/create"
@@ -109,7 +110,7 @@ export default function OrderForm({
 
         {/* Líneas */}
         <fieldset className="mb-6">
-          <legend className="mb-2 block text-sm font-medium">Productos</legend>
+          <legend className="mb-1.5 block text-sm font-medium text-ink">Productos</legend>
 
           <div className="space-y-2">
             {lines.map((line, index) => {
@@ -123,13 +124,13 @@ export default function OrderForm({
               return (
                 <div
                   key={index}
-                  className="rounded-md border border-gray-200 bg-white p-3"
+                  className="rounded-md border border-line bg-subtle/50 p-3"
                 >
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="min-w-[12rem] flex-1">
                       <label
                         htmlFor={`line-product-${index}`}
-                        className="mb-1 block text-xs text-gray-500"
+                        className="mb-1 block text-xs font-medium uppercase tracking-wider text-ink-muted"
                       >
                         Producto
                       </label>
@@ -140,7 +141,7 @@ export default function OrderForm({
                         onChange={(e) =>
                           setLine(index, { productId: e.target.value })
                         }
-                        className="block w-full cursor-pointer rounded-md border border-gray-200 py-2 px-3 text-sm outline-2"
+                        className="field cursor-pointer"
                       >
                         <option value="">Selecciona…</option>
                         {products.map((p) => (
@@ -164,7 +165,7 @@ export default function OrderForm({
                     <div className="w-24">
                       <label
                         htmlFor={`line-qty-${index}`}
-                        className="mb-1 block text-xs text-gray-500"
+                        className="mb-1 block text-xs font-medium uppercase tracking-wider text-ink-muted"
                       >
                         Cantidad
                       </label>
@@ -178,12 +179,12 @@ export default function OrderForm({
                         onChange={(e) =>
                           setLine(index, { quantity: e.target.value })
                         }
-                        className="block w-full rounded-md border border-gray-200 py-2 px-3 text-sm outline-2"
+                        className="field"
                       />
                     </div>
 
                     <div className="w-28 text-right">
-                      <p className="mb-1 text-xs text-gray-500">Importe</p>
+                      <p className="mb-1 text-xs font-medium uppercase tracking-wider text-ink-muted">Importe</p>
                       <p className="py-2 text-sm tabular-nums">
                         {product && qty > 0
                           ? formatCentavos(product.priceCents * qty)
@@ -199,10 +200,10 @@ export default function OrderForm({
                             prev.filter((_, i) => i !== index),
                           )
                         }
-                        className="rounded-md border p-2 hover:bg-gray-100"
+                        className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-transparent text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
                       >
                         <span className="sr-only">Quitar línea {index + 1}</span>
-                        <TrashIcon className="w-5" />
+                        <TrashIcon className="h-4 w-4" aria-hidden="true" />
                       </button>
                     ) : null}
                   </div>
@@ -210,7 +211,7 @@ export default function OrderForm({
                   {/* Advisory only — the server re-checks stock inside the
                       transaction, which is the check that actually counts. */}
                   {overStock ? (
-                    <p className="mt-2 text-xs text-amber-700">
+                    <p className="mt-2 text-xs text-warn">
                       Solo hay {product.available} disponibles.
                     </p>
                   ) : null}
@@ -220,7 +221,7 @@ export default function OrderForm({
           </div>
 
           {products.length === 0 ? (
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-ink-muted">
               No hay productos activos.{' '}
               <Link href="/dashboard/products" className="text-brand-600 underline">
                 Activa uno
@@ -228,7 +229,7 @@ export default function OrderForm({
               para poder registrar pedidos.
             </p>
           ) : products.every((p) => p.available <= 0) ? (
-            <p className="mt-2 text-xs text-amber-700">
+            <p className="mt-2 text-xs text-warn">
               Ningún producto activo tiene existencias.{' '}
               <Link href="/dashboard/inventory" className="text-brand-600 underline">
                 Recibe mercancía
@@ -242,9 +243,9 @@ export default function OrderForm({
             onClick={() =>
               setLines((prev) => [...prev, { productId: '', quantity: '1' }])
             }
-            className="mt-2 inline-flex items-center gap-1 rounded-md border px-3 py-2 text-xs font-medium hover:bg-gray-100"
+            className="mt-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 text-xs font-medium text-ink transition-colors hover:bg-subtle"
           >
-            <PlusIcon className="w-4" />
+            <PlusIcon className="h-4 w-4" aria-hidden="true" />
             Agregar producto
           </button>
 
@@ -253,8 +254,8 @@ export default function OrderForm({
 
         {/* Entrega */}
         <fieldset className="mb-4">
-          <legend className="mb-2 block text-sm font-medium">Entrega</legend>
-          <div className="rounded-md border border-gray-200 bg-white px-[14px] py-3">
+          <legend className="mb-1.5 block text-sm font-medium text-ink">Entrega</legend>
+          <div className="rounded-md border border-line bg-subtle/50 px-3.5 py-3">
             <div className="flex gap-6">
               {(['pickup', 'delivery'] as const).map((type) => (
                 <div key={type} className="flex items-center">
@@ -265,11 +266,11 @@ export default function OrderForm({
                     value={type}
                     checked={fulfillment === type}
                     onChange={() => setFulfillment(type)}
-                    className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
+                    className="h-4 w-4 cursor-pointer border-line-strong text-brand-600 focus:ring-brand-600"
                   />
                   <label
                     htmlFor={`fulfillment-${type}`}
-                    className="ml-2 cursor-pointer text-sm text-gray-600"
+                    className="ml-2 cursor-pointer text-sm text-ink"
                   >
                     {type === 'pickup' ? 'Recoge en tienda' : 'A domicilio'}
                   </label>
@@ -288,7 +289,7 @@ export default function OrderForm({
             <div>
               <label
                 htmlFor="deliveryAddress"
-                className="mb-2 block text-sm font-medium"
+                className="mb-1.5 block text-sm font-medium text-ink"
               >
                 Dirección de entrega
               </label>
@@ -299,7 +300,7 @@ export default function OrderForm({
                 required
                 placeholder="Av. Reforma 100, Col. Centro"
                 aria-describedby="deliveryAddress-error"
-                className="block w-full rounded-md border border-gray-200 py-2 px-3 text-sm outline-2"
+                className="field"
               />
               <FieldError
                 id="deliveryAddress-error"
@@ -309,7 +310,7 @@ export default function OrderForm({
             <div>
               <label
                 htmlFor="deliveryFeeCents"
-                className="mb-2 block text-sm font-medium"
+                className="mb-1.5 block text-sm font-medium text-ink"
               >
                 Costo de envío (MXN)
               </label>
@@ -322,7 +323,7 @@ export default function OrderForm({
                 value={deliveryFee}
                 onChange={(e) => setDeliveryFee(e.target.value)}
                 aria-describedby="deliveryFeeCents-error"
-                className="block w-full rounded-md border border-gray-200 py-2 px-3 text-sm outline-2"
+                className="field"
               />
               <FieldError
                 id="deliveryFeeCents-error"
@@ -333,8 +334,8 @@ export default function OrderForm({
         ) : null}
 
         <div className="mb-4">
-          <label htmlFor="notes" className="mb-2 block text-sm font-medium">
-            Notas <span className="text-gray-500">(opcional)</span>
+          <label htmlFor="notes" className="mb-1.5 block text-sm font-medium text-ink">
+            Notas <span className="text-ink-muted">(opcional)</span>
           </label>
           <textarea
             id="notes"
@@ -342,20 +343,20 @@ export default function OrderForm({
             rows={2}
             maxLength={2000}
             placeholder="Sin espinas, entregar después de las 6."
-            className="block w-full rounded-md border border-gray-200 py-2 px-3 text-sm outline-2"
+            className="field"
           />
         </div>
 
         {/* Estimación; el total autoritativo lo calcula el servidor */}
-        <div className="rounded-md border border-gray-200 bg-white p-4 text-sm">
+        <div className="rounded-md border border-line bg-subtle/50 p-4 text-sm">
           <Row label="Subtotal" value={formatCentavos(subtotal)} />
           {fulfillment === 'delivery' ? (
             <Row label="Envío" value={formatCentavos(fee)} />
           ) : null}
-          <div className="mt-2 border-t pt-2">
+          <div className="mt-2 border-t border-line pt-2">
             <Row label="Total estimado" value={formatCentavos(subtotal + fee)} bold />
           </div>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-ink-muted">
             El total definitivo lo calcula el servidor con los precios vigentes
             del catálogo.
           </p>
@@ -363,15 +364,15 @@ export default function OrderForm({
 
         <div aria-live="polite" aria-atomic="true">
           {state.message ? (
-            <p className="mt-4 text-sm text-red-500">{state.message}</p>
+            <p className="mt-4 rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">{state.message}</p>
           ) : null}
         </div>
-      </div>
+      </FormCard>
 
       <div className="mt-6 flex justify-end gap-4">
         <Link
           href="/dashboard/orders"
-          className="flex h-10 items-center rounded-lg bg-gray-100 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
+          className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-ink-muted transition-colors hover:bg-subtle hover:text-ink"
         >
           Cancelar
         </Link>
@@ -394,7 +395,7 @@ function Row({
 }) {
   return (
     <div className="flex justify-between">
-      <span className={bold ? 'font-medium' : 'text-gray-500'}>{label}</span>
+      <span className={bold ? 'font-medium text-ink' : 'text-ink-muted'}>{label}</span>
       <span className={`tabular-nums ${bold ? 'font-medium' : ''}`}>
         {value}
       </span>
@@ -406,7 +407,7 @@ function FieldError({ id, messages }: { id: string; messages?: string[] }) {
   return (
     <div id={id} aria-live="polite" aria-atomic="true">
       {messages?.map((message) => (
-        <p className="mt-2 text-sm text-red-500" key={message}>
+        <p className="mt-1.5 text-xs text-danger" key={message}>
           {message}
         </p>
       ))}

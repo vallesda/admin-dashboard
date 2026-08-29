@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
+import PageHeader from '@/app/ui/kit/page-header';
 import CustomerForm from '@/modules/customers/components/customer-form';
 import { getCustomerById } from '@/modules/customers/queries';
 
@@ -13,7 +14,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   if (!customer) notFound();
 
   return (
-    <main>
+    <div className="flex flex-col gap-5">
       <Breadcrumbs
         breadcrumbs={[
           { label: 'Clientes', href: '/dashboard/customers' },
@@ -24,7 +25,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           },
         ]}
       />
+
+      <PageHeader
+        title="Editar cliente"
+      />
       <CustomerForm customer={customer} />
-    </main>
+    </div>
   );
 }

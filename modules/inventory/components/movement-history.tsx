@@ -2,6 +2,7 @@ import clsx from 'clsx';
 
 import { listMovements } from '../queries';
 import type { MovementType } from '@/db/schema/inventory';
+import { TableShell, Table, THead, TH, TBody, TR, TD } from '@/app/ui/kit/table';
 
 const TYPE_LABEL: Record<MovementType, string> = {
   receive: 'Entrada',
@@ -38,67 +39,58 @@ export default async function MovementHistory({
 
   if (movements.length === 0) {
     return (
-      <p className="mt-4 text-sm text-gray-500">
+      <p className="text-sm text-ink-muted">
         Todavía no hay movimientos para este producto.
       </p>
     );
   }
 
   return (
-    <div className="mt-4 overflow-x-auto rounded-lg bg-gray-50 p-2">
-      <table className="min-w-full text-gray-900">
-        <thead className="text-left text-sm font-normal">
-          <tr>
-            <th scope="col" className="px-4 py-4 font-medium">
-              Cuándo
-            </th>
-            <th scope="col" className="px-3 py-4 font-medium">
-              Tipo
-            </th>
-            <th scope="col" className="px-3 py-4 text-right font-medium">
-              En mano
-            </th>
-            <th scope="col" className="px-3 py-4 text-right font-medium">
-              Reservado
-            </th>
-            <th scope="col" className="px-3 py-4 font-medium">
-              Nota
-            </th>
-            <th scope="col" className="px-3 py-4 font-medium">
-              Quién
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white text-sm">
+    <TableShell>
+      <Table>
+        <THead>
+          <TH>Cuándo</TH>
+          <TH>Tipo</TH>
+          <TH align="right">En mano</TH>
+          <TH align="right">Reservado</TH>
+          <TH>Nota</TH>
+          <TH>Quién</TH>
+        </THead>
+        <TBody>
           {movements.map((m) => (
-            <tr key={m.id} className="border-b last-of-type:border-none">
-              <td className="whitespace-nowrap px-4 py-3 text-gray-500">
+            <TR key={m.id}>
+              <TD muted className="whitespace-nowrap">
                 {dateTime.format(m.createdAt)}
-              </td>
-              <td className="whitespace-nowrap px-3 py-3">
-                {TYPE_LABEL[m.type]}
-              </td>
-              <td
+              </TD>
+              <TD className="whitespace-nowrap">{TYPE_LABEL[m.type]}</TD>
+              {/*
+                A signed delta is the one place in the panel where colour is
+                allowed to carry meaning on its own — and it does not have to,
+                because the sign is right there in the text. The colour just
+                makes a column of entries and withdrawals separable at a glance.
+              */}
+              <TD
+                numeric
                 className={clsx(
-                  'whitespace-nowrap px-3 py-3 text-right tabular-nums',
-                  m.onHandDelta < 0 && 'text-red-600',
-                  m.onHandDelta > 0 && 'text-green-700',
+                  'whitespace-nowrap font-medium',
+                  m.onHandDelta < 0 && 'text-danger',
+                  m.onHandDelta > 0 && 'text-ok',
                 )}
               >
                 {m.onHandDelta === 0 ? '—' : signed(m.onHandDelta)}
-              </td>
-              <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-gray-500">
+              </TD>
+              <TD numeric muted className="whitespace-nowrap">
                 {m.reservedDelta === 0 ? '—' : signed(m.reservedDelta)}
-              </td>
-              <td className="px-3 py-3 text-gray-500">{m.note ?? '—'}</td>
-              <td className="whitespace-nowrap px-3 py-3 text-gray-500">
+              </TD>
+              <TD muted>{m.note ?? '—'}</TD>
+              <TD muted className="whitespace-nowrap">
                 {/* Null when the account was deleted: the movement survives. */}
                 {m.actorName ?? 'Usuario eliminado'}
-              </td>
-            </tr>
+              </TD>
+            </TR>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TBody>
+      </Table>
+    </TableShell>
   );
 }

@@ -1,11 +1,12 @@
 import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
+import PageHeader from '@/app/ui/kit/page-header';
 import CategoryForm from '@/modules/catalog/components/category-form';
 
 export const metadata = { title: 'Crear categoría' };
 
 export default function Page() {
   return (
-    <main>
+    <div className="flex flex-col gap-5">
       <Breadcrumbs
         breadcrumbs={[
           { label: 'Categorías', href: '/dashboard/categories' },
@@ -16,7 +17,11 @@ export default function Page() {
           },
         ]}
       />
+
+      <PageHeader
+        title="Crear categoría"
+      />
       <CategoryForm />
-    </main>
+    </div>
   );
 }

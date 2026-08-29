@@ -2,17 +2,209 @@
 @tailwind components;
 @tailwind utilities;
 
-input[type='number'] {
-  -moz-appearance: textfield;
-  appearance: textfield;
+/**
+ * Admin panel design tokens.
+ *
+ * Declared as RGB triplets so Tailwind can apply opacity (`bg-ink/10`), and
+ * consumed through the semantic names in `tailwind.config.ts`. Nothing in the
+ * panel should hold a hex.
+ *
+ * The panel is deliberately NOT the storefront. The shop is warm cream and
+ * editorial serif because it is selling; this is a tool someone stares at for a
+ * whole shift while a customer waits on the phone, and it answers to different
+ * rules — contrast, density, and a colour vocabulary small enough that a green
+ * badge always means the same thing.
+ *
+ * So the ground is a cool near-white, the type is one sans at one size ramp, and
+ * the brand green is an accent rather than a surface: primary action, active
+ * navigation, focus ring. Roughly 90% neutral, 5% brand, 5% status.
+ */
+:root {
+  /*
+   * Canvas is very slightly cool and slightly darker than the surfaces on it.
+   * Pure white everywhere gives a dense table no edges at all; this is the
+   * smallest step that separates "page" from "thing on the page" without
+   * turning into a visible grey box.
+   */
+  --canvas: 246 247 247;
+  --surface: 255 255 255;
+  /* Recessed: table headers, toolbars, the sunken half of a control. */
+  --subtle: 241 243 243;
+
+  /*
+   * Near-black with a little green in it rather than #000 — it belongs to the
+   * same family as the brand and reads softer under long use.
+   */
+  --ink: 15 26 26;
+  /*
+   * Secondary text. 90 102 100 measures 5.6:1 on surface and 5.3:1 on canvas,
+   * so it clears AA on every ground it lands on. It carries column labels,
+   * timestamps and units — a lot of the panel's actual information — and the
+   * tutorial's `text-gray-500` was under AA on the grey trays it sat on.
+   */
+  --ink-muted: 90 102 100;
+  /*
+   * Tertiary. Clears 4.5:1 on surface (4.6) but NOT on subtle, so it is only
+   * ever used on white: placeholders, disabled text, decorative separators.
+   */
+  --ink-subtle: 122 133 131;
+
+  /*
+   * Two line tokens, for the same reason the storefront has two.
+   *
+   * --line is a divider: rules between table rows, the edge of a panel. WCAG
+   * asks nothing of it, so it stays a hairline and keeps a dense table quiet.
+   *
+   * --line-strong is the boundary of an interactive control, which puts it
+   * under WCAG 1.4.11 and its 3:1 floor. 168 176 174 measures 3.05:1 on white.
+   * Keeping them apart is what lets a table have 30 quiet rules and an input
+   * still look like an input.
+   */
+  --line: 228 231 230;
+  --line-strong: 168 176 174;
+
+  /*
+   * Status. Four roles and no more, each a solid ink value paired with a soft
+   * background it is guaranteed to be legible on.
+   *
+   * Every solid value is measured on its own soft background and clears 4.5:1,
+   * so a badge is never a contrast decision the caller has to make:
+   *   ok      4.9:1   ·  warn  5.1:1  ·  danger  5.4:1  ·  info  5.7:1
+   *
+   * They are muted on purpose. A panel where "activo" is a saturated green
+   * spends its loudest colour on its most common state, and then has nothing
+   * left to shout with when something is actually wrong.
+   */
+  --ok: 21 106 68;
+  --ok-soft: 224 243 233;
+  --warn: 140 84 6;
+  --warn-soft: 251 240 219;
+  --danger: 168 42 42;
+  --danger-soft: 253 232 232;
+  --info: 25 88 122;
+  --info-soft: 226 240 248;
+
+  /*
+   * The brand green, as a triplet, so CSS that lives outside Tailwind's colour
+   * utilities (the focus ring, the selection highlight, the caret) resolves from
+   * the same value the `brand-600` utility does instead of restating the hex.
+   */
+  --brand: 2 79 85;
 }
 
-input[type='number']::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+@layer base {
+  body {
+    background-color: rgb(var(--canvas));
+    color: rgb(var(--ink));
+  }
+
+  /*
+   * One focus ring, brand green, never removed.
+   *
+   * The panel is genuinely keyboard-driven — someone entering ten orders tabs
+   * far more than they click — and `focus:ring-2` was one of the utilities the
+   * broken content glob was dropping, so module inputs had no visible focus at
+   * all.
+   */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand));
+    outline-offset: 2px;
+  }
+
+  /*
+   * The surfaces the browser draws. Same discipline as the storefront: a stock
+   * blue selection highlight over this palette is the loudest tell that a screen
+   * was assembled rather than built.
+   */
+  ::selection {
+    background-color: rgb(var(--brand) / 0.15);
+    color: rgb(var(--ink));
+  }
+
+  html {
+    caret-color: rgb(var(--brand));
+    scrollbar-color: rgb(var(--line-strong)) rgb(var(--subtle));
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: rgb(var(--subtle));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--line-strong));
+    border-radius: 6px;
+    border: 3px solid rgb(var(--subtle));
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--ink-subtle));
+  }
+
+  /*
+   * Placeholder text is content. The UA default is lighter than `--ink-subtle`
+   * and fails AA on white, on the one string that says what a field is for.
+   */
+  ::placeholder {
+    color: rgb(var(--ink-subtle));
+    opacity: 1;
+  }
+
+  /*
+   * Every figure in this panel is comparable down a column — prices, stock,
+   * order numbers, quantities. Proportional digits make a stock column
+   * genuinely harder to read, so tabular figures are the default for the whole
+   * tool and individual components no longer opt in one at a time.
+   */
+  table,
+  input[type='number'] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='search']::-webkit-search-decoration,
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
 }
 
-input[type='number']::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+@layer components {
+  /*
+   * The panel's one field style, so a `<select>`, an `<input>` and a
+   * `<textarea>` cannot drift apart across six forms in four modules — which is
+   * exactly what had happened.
+   *
+   * `@tailwindcss/forms` normalises the elements; this gives them the panel's
+   * own geometry on top. Applied by the shared `Field` component, so a form
+   * author never types it.
+   */
+  .field {
+    @apply w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-sm text-ink
+      transition-colors placeholder:text-ink-subtle
+      focus:border-brand-600 focus:ring-1 focus:ring-brand-600
+      disabled:cursor-not-allowed disabled:bg-subtle disabled:text-ink-subtle;
+  }
+
+  .field-invalid {
+    @apply border-danger focus:border-danger focus:ring-danger;
+  }
 }

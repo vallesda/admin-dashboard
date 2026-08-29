@@ -1,12 +1,15 @@
 import Link from 'next/link';
+import { ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 
-import { lusitana } from '@/app/ui/fonts';
 import { formatCentavos } from '@/lib/money';
 import {
   OrderStatusBadge,
   PaymentStatusBadge,
 } from '@/modules/sales/components/order-badges';
 import { listRecentOrders } from '../queries';
+import Panel from '@/app/ui/kit/panel';
+import EmptyState from '@/app/ui/kit/empty-state';
+import { ButtonLink } from '@/app/ui/button';
 
 const dateFormat = new Intl.DateTimeFormat('es-MX', {
   dateStyle: 'short',
@@ -14,61 +17,78 @@ const dateFormat = new Intl.DateTimeFormat('es-MX', {
   timeZone: 'America/Mexico_City',
 });
 
-/** Replaces the tutorial's "Latest Invoices" (RF-ADM-002). */
+/**
+ * Replaces the tutorial's "Latest Invoices" (RF-ADM-002).
+ *
+ * The panel header carries a link to the full list. Previously the only route
+ * from the dashboard to all orders was the sidebar, so the operator had to leave
+ * the thing they were reading to see more of it.
+ *
+ * Both badges show at every width now. They were `hidden sm:flex`, which meant
+ * the dashboard on a phone — the screen most likely to be checked between other
+ * jobs — showed order numbers and totals with no indication of state at all,
+ * which is the only reason to look at this list.
+ */
 export default async function RecentOrders() {
   const orders = await listRecentOrders();
 
   return (
-    <div className="flex w-full flex-col md:col-span-4">
-      <h2 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
-        Pedidos recientes
-      </h2>
-      <div className="flex grow flex-col justify-between rounded-xl bg-gray-50 p-4">
-        {orders.length === 0 ? (
-          <p className="px-2 py-6 text-center text-sm text-gray-500">
-            Todavía no hay pedidos.{' '}
-            <Link
-              href="/dashboard/orders/create"
-              className="text-brand-600 underline"
-            >
-              Registra el primero
-            </Link>
-            .
-          </p>
-        ) : (
-          <div className="bg-white px-6">
-            {orders.map((order, i) => (
+    <Panel
+      title="Pedidos recientes"
+      actions={
+        <Link
+          href="/dashboard/orders"
+          className="text-xs font-medium text-brand-600 hover:underline"
+        >
+          Ver todos
+        </Link>
+      }
+      bodyClassName=""
+    >
+      {orders.length === 0 ? (
+        <EmptyState
+          icon={ClipboardDocumentListIcon}
+          title="Todavía no hay pedidos"
+          description="Cuando entre un pedido de la tienda aparecerá aquí."
+          action={
+            <ButtonLink href="/dashboard/orders/create" variant="secondary" size="sm">
+              Registrar pedido
+            </ButtonLink>
+          }
+        />
+      ) : (
+        <ul>
+          {orders.map((order) => (
+            <li key={order.id} className="border-b border-line last:border-0">
               <Link
-                key={order.id}
                 href={`/dashboard/orders/${order.id}`}
-                className={`flex flex-row items-center justify-between py-4 hover:bg-gray-50 ${
-                  i !== 0 ? 'border-t' : ''
-                }`}
+                className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-subtle"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold md:text-base">
-                    #{order.orderNumber} · {order.customerName}
+                  <p className="truncate text-sm font-medium text-ink">
+                    <span className="tabular-nums">#{order.orderNumber}</span>
+                    <span className="text-ink-subtle"> · </span>
+                    {order.customerName}
                   </p>
-                  <p className="hidden text-sm text-gray-500 sm:block">
+                  <p className="mt-0.5 truncate text-xs text-ink-muted">
                     {dateFormat.format(order.createdAt)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="hidden sm:flex sm:gap-2">
+
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="text-sm font-medium tabular-nums text-ink">
+                    {formatCentavos(order.totalCents)}
+                  </span>
+                  <span className="flex gap-1">
                     <OrderStatusBadge status={order.status} />
                     <PaymentStatusBadge status={order.paymentStatus} />
-                  </div>
-                  <p
-                    className={`${lusitana.className} truncate text-sm font-medium tabular-nums md:text-base`}
-                  >
-                    {formatCentavos(order.totalCents)}
-                  </p>
+                  </span>
                 </div>
               </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }

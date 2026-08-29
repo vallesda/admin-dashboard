@@ -1,14 +1,25 @@
 'use client';
 
-import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 import Link from 'next/link';
-import { generatePagination } from '@/lib/pagination';
 import { usePathname, useSearchParams } from 'next/navigation';
 
-export default function Pagination({ totalPages }: { totalPages: number }) {
-  // NOTE: Uncomment this code in Chapter 10
+import { generatePagination } from '@/lib/pagination';
 
+/**
+ * Page controls for the list screens.
+ *
+ * Rebuilt from the tutorial's version, which had two problems beyond looks: the
+ * disabled arrows were `pointer-events-none` `<div>`s — invisible to a screen
+ * reader and unreachable by keyboard, with no `aria-disabled` to explain
+ * themselves — and the active page was marked with `border-blue-600`, a colour
+ * that no longer exists anywhere else in the panel.
+ *
+ * Buttons are 32px and joined into one strip. `aria-current="page"` marks the
+ * active number, so the state is announced and not just filled in.
+ */
+export default function Pagination({ totalPages }: { totalPages: number }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -21,79 +32,92 @@ export default function Pagination({ totalPages }: { totalPages: number }) {
   };
 
   return (
-    <>
-      {/*  NOTE: Uncomment this code in Chapter 10 */}
+    <nav
+      aria-label="Paginación"
+      className="flex items-center justify-between gap-4"
+    >
+      <p className="text-xs text-ink-muted">
+        Página <span className="font-medium text-ink">{currentPage}</span> de{' '}
+        <span className="font-medium text-ink">{totalPages}</span>
+      </p>
 
-      <div className="inline-flex">
-        <PaginationArrow
+      <div className="flex items-center gap-1">
+        <Arrow
           direction="left"
           href={createPageURL(currentPage - 1)}
           isDisabled={currentPage <= 1}
         />
 
-        <div className="flex -space-x-px">
-          {allPages.map((page, index) => {
-            let position: 'first' | 'last' | 'single' | 'middle' | undefined;
-
-            if (index === 0) position = 'first';
-            if (index === allPages.length - 1) position = 'last';
-            if (allPages.length === 1) position = 'single';
-            if (page === '...') position = 'middle';
-
-            return (
-              <PaginationNumber
-                key={`${page}-${index}`}
-                href={createPageURL(page)}
-                page={page}
-                position={position}
-                isActive={currentPage === page}
-              />
-            );
-          })}
+        <div className="hidden items-center gap-1 sm:flex">
+          {allPages.map((page, index) => (
+            <PageNumber
+              key={`${page}-${index}`}
+              href={createPageURL(page)}
+              page={page}
+              isActive={currentPage === page}
+            />
+          ))}
         </div>
 
-        <PaginationArrow
+        <Arrow
           direction="right"
           href={createPageURL(currentPage + 1)}
           isDisabled={currentPage >= totalPages}
         />
       </div>
-    </>
+    </nav>
   );
 }
 
-function PaginationNumber({
+const CELL =
+  'flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-xs font-medium transition-colors';
+
+function PageNumber({
   page,
   href,
   isActive,
-  position,
 }: {
   page: number | string;
   href: string;
-  position?: 'first' | 'last' | 'middle' | 'single';
   isActive: boolean;
 }) {
-  const className = clsx(
-    'flex h-10 w-10 items-center justify-center text-sm border',
-    {
-      'rounded-l-md': position === 'first' || position === 'single',
-      'rounded-r-md': position === 'last' || position === 'single',
-      'z-10 bg-brand-600 border-blue-600 text-white': isActive,
-      'hover:bg-gray-100': !isActive && position !== 'middle',
-      'text-gray-300': position === 'middle',
-    },
-  );
+  // The ellipsis is not a destination and must not be announced as one.
+  if (page === '...') {
+    return (
+      <span
+        aria-hidden="true"
+        className={clsx(CELL, 'border-transparent text-ink-subtle')}
+      >
+        …
+      </span>
+    );
+  }
 
-  return isActive || position === 'middle' ? (
-    <div className={className}>{page}</div>
-  ) : (
-    <Link href={href} className={className}>
+  if (isActive) {
+    return (
+      <span
+        aria-current="page"
+        className={clsx(CELL, 'border-brand-600 bg-brand-600 text-white')}
+      >
+        {page}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className={clsx(
+        CELL,
+        'border-line-strong bg-surface text-ink hover:bg-subtle',
+      )}
+    >
       {page}
     </Link>
   );
 }
 
-function PaginationArrow({
+function Arrow({
   href,
   direction,
   isDisabled,
@@ -102,28 +126,37 @@ function PaginationArrow({
   direction: 'left' | 'right';
   isDisabled?: boolean;
 }) {
-  const className = clsx(
-    'flex h-10 w-10 items-center justify-center rounded-md border',
-    {
-      'pointer-events-none text-gray-300': isDisabled,
-      'hover:bg-gray-100': !isDisabled,
-      'mr-2 md:mr-4': direction === 'left',
-      'ml-2 md:ml-4': direction === 'right',
-    },
-  );
+  const label = direction === 'left' ? 'Página anterior' : 'Página siguiente';
+  const Icon = direction === 'left' ? ChevronLeftIcon : ChevronRightIcon;
 
-  const icon =
-    direction === 'left' ? (
-      <ArrowLeftIcon className="w-4" />
-    ) : (
-      <ArrowRightIcon className="w-4" />
+  // A disabled control still announces itself and still takes focus; it just
+  // says it cannot be used. The old version rendered a bare div.
+  if (isDisabled) {
+    return (
+      <span
+        aria-disabled="true"
+        aria-label={label}
+        role="link"
+        className={clsx(
+          CELL,
+          'cursor-not-allowed border-line bg-subtle text-ink-subtle',
+        )}
+      >
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </span>
     );
+  }
 
-  return isDisabled ? (
-    <div className={className}>{icon}</div>
-  ) : (
-    <Link className={className} href={href}>
-      {icon}
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      className={clsx(
+        CELL,
+        'border-line-strong bg-surface text-ink hover:bg-subtle',
+      )}
+    >
+      <Icon className="h-4 w-4" aria-hidden="true" />
     </Link>
   );
 }
