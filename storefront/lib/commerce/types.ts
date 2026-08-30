@@ -61,6 +61,40 @@ export type Collection = {
   title: string;
 };
 
+/**
+ * One tile on the home shelf.
+ *
+ * A featured category or a curated package — the shopper is asking the same
+ * question of both ("what am I making?"), so they share a shelf. `kind` is what
+ * tells the storefront which route to build.
+ */
+export type ShelfItem = {
+  kind: 'category' | 'package';
+  handle: string;
+  title: string;
+  tagline: string | null;
+  image: ProductImage | null;
+  /** Packages only. */
+  itemCount: number | null;
+};
+
+export type PackageLine = {
+  product: Product;
+  quantity: number;
+};
+
+export type Bundle = {
+  handle: string;
+  title: string;
+  tagline: string | null;
+  description: string | null;
+  image: ProductImage | null;
+  lines: PackageLine[];
+  /** The sum of the lines. A package has no price of its own. */
+  total: Money;
+  availableForSale: boolean;
+};
+
 export type Paginated<T> = {
   items: T[];
   total: number;

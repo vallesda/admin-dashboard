@@ -55,6 +55,24 @@ const sortOrder = z.coerce
   .max(9999, { message: 'El orden no puede pasar de 9999.' });
 
 /**
+ * Trimmed free text that becomes `null` when blank.
+ *
+ * Declared here rather than beside the product schemas because categories,
+ * packages and products all use it, and a `const` arrow read above its own
+ * declaration is a temporal-dead-zone error the moment this module evaluates.
+ */
+const optionalText = (max: number, label: string) =>
+  z
+    .union([z.string(), z.null(), z.undefined()])
+    .transform((v) => {
+      const s = typeof v === 'string' ? v.trim() : '';
+      return s === '' ? null : s;
+    })
+    .refine((v) => v === null || v.length <= max, {
+      message: `${label} no puede pasar de ${max} caracteres.`,
+    });
+
+/**
  * `slug` is optional on create: when the form leaves it blank we derive it from
  * the name, which is what an admin expects and what keeps URLs tidy.
  */
@@ -63,6 +81,11 @@ export const createCategorySchema = z.object({
   slug: slug.optional(),
   sortOrder: sortOrder.default(0),
   active: z.coerce.boolean().default(true),
+  // Merchandising: what the storefront's home shelf needs to present a
+  // category rather than merely list it.
+  tagline: optionalText(160, 'La frase'),
+  imageUrl: optionalText(2048, 'La URL de la imagen'),
+  isFeatured: z.coerce.boolean().default(false),
 });
 
 export const updateCategorySchema = z.object({
@@ -70,6 +93,9 @@ export const updateCategorySchema = z.object({
   slug,
   sortOrder,
   active: z.coerce.boolean(),
+  tagline: optionalText(160, 'La frase'),
+  imageUrl: optionalText(2048, 'La URL de la imagen'),
+  isFeatured: z.coerce.boolean().default(false),
 });
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
@@ -165,16 +191,6 @@ const costCents = z
     return centavos;
   });
 
-const optionalText = (max: number, label: string) =>
-  z
-    .union([z.string(), z.null(), z.undefined()])
-    .transform((v) => {
-      const s = typeof v === 'string' ? v.trim() : '';
-      return s === '' ? null : s;
-    })
-    .refine((v) => v === null || v.length <= max, {
-      message: `${label} no puede pasar de ${max} caracteres.`,
-    });
 
 const netWeightGrams = z
   .union([z.string(), z.number(), z.null(), z.undefined()])
@@ -245,3 +261,52 @@ export const updateProductSchema = requirePackWeight(
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+
+// ---------------------------------------------------------------------------
+// Package
+// ---------------------------------------------------------------------------
+
+/*
+ * Declared after Product on purpose: it reuses `optionalText`, and a `const`
+ * arrow used above its own declaration would be a temporal-dead-zone error the
+ * moment this module is evaluated.
+ */
+
+export const createPackageSchema = z.object({
+  name,
+  slug: slug.optional(),
+  tagline: optionalText(160, 'La frase'),
+  description: optionalText(2000, 'La descripción'),
+  imageUrl: optionalText(2048, 'La URL de la imagen'),
+  sortOrder: sortOrder.default(0),
+  active: z.coerce.boolean().default(true),
+});
+
+export const updatePackageSchema = z.object({
+  name,
+  slug,
+  tagline: optionalText(160, 'La frase'),
+  description: optionalText(2000, 'La descripción'),
+  imageUrl: optionalText(2048, 'La URL de la imagen'),
+  sortOrder,
+  active: z.coerce.boolean(),
+});
+
+/**
+ * One line of a package.
+ *
+ * The quantity ceiling is a typo guard, not an inventory limit — stock is
+ * checked when the order reserves it, not when the bundle is written.
+ */
+export const packageItemSchema = z.object({
+  productId: z.string().uuid({ message: 'Elige un producto.' }),
+  quantity: z.coerce
+    .number({ invalid_type_error: 'Escribe una cantidad.' })
+    .int({ message: 'La cantidad debe ser un número entero.' })
+    .min(1, { message: 'La cantidad mínima es 1.' })
+    .max(99, { message: 'La cantidad máxima es 99.' }),
+});
+
+export type CreatePackageInput = z.infer<typeof createPackageSchema>;
+export type UpdatePackageInput = z.infer<typeof updatePackageSchema>;
+export type PackageItemInput = z.infer<typeof packageItemSchema>;

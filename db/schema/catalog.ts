@@ -15,6 +15,7 @@ import {
   timestamp,
   index,
   check,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -28,6 +29,19 @@ export const categories = pgTable(
     slug: varchar('slug', { length: 140 }).notNull().unique(),
     sortOrder: integer('sort_order').notNull().default(0),
     active: boolean('active').notNull().default(true),
+
+    /*
+     * Merchandising, for the storefront's home shelf.
+     *
+     * A category is a filter; these three fields are what let one also be
+     * *presented* — a photograph, a line saying what it is for, and a flag the
+     * shop raises to put it on the homepage. Without them the shelf could only
+     * ever show a name, and a name is not an invitation.
+     */
+    imageUrl: text('image_url'),
+    tagline: varchar('tagline', { length: 160 }),
+    isFeatured: boolean('is_featured').notNull().default(false),
+
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -146,3 +160,84 @@ export type ProductRow = typeof products.$inferSelect;
 export type NewProductRow = typeof products.$inferInsert;
 export type ProductStatus = (typeof productStatusEnum.enumValues)[number];
 export type UnitType = (typeof unitTypeEnum.enumValues)[number];
+
+// ---------------------------------------------------------------------------
+// Packages
+// ---------------------------------------------------------------------------
+
+/**
+ * A curated bundle: everything needed for one dish, in one place.
+ *
+ * The storefront used to carry four of these as a hardcoded list in
+ * `lib/occasions.ts` — Sashimi, Ceviche, Parrilla, Cena para dos — with no data
+ * behind them, so their pages showed the whole catalogue under an apology. They
+ * are rows now, and the shop curates them.
+ *
+ * A package has **no price of its own**. Its total is the sum of the lines it
+ * contains, recomputed server-side from the catalogue at checkout like every
+ * other total (RN-008). Giving it a stored price would create a second pricing
+ * path and the first place where what a shopper is charged could drift from
+ * what the product costs.
+ */
+export const packages = pgTable(
+  'packages',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 120 }).notNull(),
+    // The storefront URL is built from this, so it stays unique even across
+    // inactive packages — the same rule categories follow.
+    slug: varchar('slug', { length: 140 }).notNull().unique(),
+    tagline: varchar('tagline', { length: 160 }),
+    description: text('description'),
+    imageUrl: text('image_url'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('packages_sort_order_idx').on(table.sortOrder, table.name),
+  ],
+);
+
+/**
+ * One product inside a package, with how many of it the dish needs.
+ *
+ * `onDelete: cascade` from the package: deleting a bundle should not leave its
+ * lines behind. `restrict` from the product: a product that is part of a
+ * published package must not vanish underneath it — the same protection
+ * categories already give.
+ */
+export const packageItems = pgTable(
+  'package_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    packageId: uuid('package_id')
+      .notNull()
+      .references(() => packages.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'restrict' }),
+    quantity: integer('quantity').notNull().default(1),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('package_items_package_idx').on(table.packageId, table.sortOrder),
+    // A product appears at most once per package: two rows for the same piece
+    // is a quantity, not two lines, and letting both exist makes the total
+    // depend on how the admin happened to enter it.
+    unique('package_items_unique_product').on(table.packageId, table.productId),
+    check('package_items_quantity_positive', sql`${table.quantity} > 0`),
+  ],
+);
+
+export type PackageRow = typeof packages.$inferSelect;
+export type NewPackageRow = typeof packages.$inferInsert;
+export type PackageItemRow = typeof packageItems.$inferSelect;

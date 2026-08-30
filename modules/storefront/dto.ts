@@ -151,6 +151,59 @@ export function toPublicCollection(row: CategoryRow): PublicCollection {
   return { handle: row.slug, title: row.name };
 }
 
+// ---------------------------------------------------------------------------
+// Home shelf
+// ---------------------------------------------------------------------------
+
+/**
+ * One tile on the storefront's home shelf.
+ *
+ * The shelf mixes two different things — a category, which filters the
+ * catalogue, and a package, which is a fixed curated bundle — because from the
+ * shopper's side they answer the same question: "what am I making?" `kind` is
+ * what lets the storefront build the right link without knowing either table.
+ *
+ * The four entries this replaces were hardcoded in the storefront with no data
+ * behind them, so their pages showed the entire catalogue under an apology.
+ */
+export type PublicShelfItem = {
+  kind: 'category' | 'package';
+  handle: string;
+  title: string;
+  tagline: string | null;
+  image: PublicImage | null;
+  /** Packages only: how many pieces the bundle holds. */
+  itemCount: number | null;
+};
+
+export type PublicPackageLine = {
+  product: PublicProduct;
+  quantity: number;
+};
+
+/**
+ * A package and everything in it.
+ *
+ * `total` is the sum of its lines and nothing else — a package has no stored
+ * price. Checkout recomputes every peso from the catalogue inside the same
+ * transaction that reserves the stock (RN-008), so this figure is display data
+ * exactly like a product's price is.
+ *
+ * `availableForSale` is true only when every line can be filled. A bundle sold
+ * as "everything for this dish" that arrives missing a piece is worse than one
+ * that says up front it is incomplete today.
+ */
+export type PublicPackage = {
+  handle: string;
+  title: string;
+  tagline: string | null;
+  description: string | null;
+  image: PublicImage | null;
+  lines: PublicPackageLine[];
+  total: Money;
+  availableForSale: boolean;
+};
+
 export type PublicOrderLine = {
   name: string;
   quantity: number;

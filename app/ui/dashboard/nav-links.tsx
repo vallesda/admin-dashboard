@@ -7,6 +7,7 @@ import {
   CubeIcon,
   ArchiveBoxIcon,
   ClipboardDocumentListIcon,
+  Squares2X2Icon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -28,6 +29,7 @@ const GROUPS: { label: string | null; links: NavLink[] }[] = [
     links: [
       { name: 'Productos', href: '/dashboard/products', icon: CubeIcon },
       { name: 'Categorías', href: '/dashboard/categories', icon: TagIcon },
+      { name: 'Paquetes', href: '/dashboard/packages', icon: Squares2X2Icon },
       { name: 'Inventario', href: '/dashboard/inventory', icon: ArchiveBoxIcon },
     ],
   },

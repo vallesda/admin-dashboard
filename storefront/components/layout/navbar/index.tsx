@@ -4,7 +4,6 @@ import { getCollections } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Logo from '@/components/layout/logo';
 import OpenCart from '@/components/cart/open-cart';
-import SearchField from '@/components/ui/search-field';
 import { INFO_LINKS } from '@/components/layout/nav-links';
 import MobileMenu from './mobile-menu';
 
@@ -59,7 +58,7 @@ export default async function Navbar() {
                     href="/search"
                     className="-my-2 inline-block whitespace-nowrap py-2 hover:text-brand"
                   >
-                    Productos
+                    Catálogo
                   </Link>
                 </li>
                 {collections.map((collection) => (
@@ -91,13 +90,14 @@ export default async function Navbar() {
             </nav>
           </div>
 
+          {/*
+            The search field used to sit here. It is gone from the header: with
+            the catalogue links and the shop's own pages sharing this row it had
+            been squeezed to 208px and a truncated placeholder, and the
+            catalogue page carries a full-width copy of it where a search
+            actually starts. The drawer keeps its own for small screens.
+          */}
           <div className="flex shrink-0 items-center gap-2">
-            {/* Search lives in the header because the returning shopper who
-                already knows what they want should not have to reach the
-                catalogue page first. Hidden below `xl` now that the
-                informational links share the row; the mobile drawer and the
-                catalogue page both carry their own copy. */}
-            <SearchField placeholder="Buscar producto" className="hidden w-52 xl:block" />
             <OpenCart />
           </div>
         </div>

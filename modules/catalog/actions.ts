@@ -21,8 +21,15 @@ import {
   updateCategorySchema,
   createProductSchema,
   updateProductSchema,
+  createPackageSchema,
+  updatePackageSchema,
+  packageItemSchema,
 } from './validators';
-import type { CategoryFormState, ProductFormState } from './form-state';
+import type {
+  CategoryFormState,
+  ProductFormState,
+  PackageFormState,
+} from './form-state';
 import type { ProductStatus } from '@/db/schema/catalog';
 
 const CATEGORIES_PATH = '/dashboard/categories';
@@ -41,6 +48,9 @@ function readForm(formData: FormData) {
     // An unchecked checkbox is absent from FormData entirely, which is the
     // difference between "false" and "missing".
     active: formData.get('active') === 'on',
+    tagline: formData.get('tagline'),
+    imageUrl: formData.get('imageUrl'),
+    isFeatured: formData.get('isFeatured') === 'on',
   };
 }
 
@@ -264,4 +274,161 @@ export async function changeProductStatus(
 
   revalidatePath(PRODUCTS_PATH);
   return ok(PRODUCT_STATUS_DONE[next]);
+}
+
+// ---------------------------------------------------------------------------
+// Package
+// ---------------------------------------------------------------------------
+
+const PACKAGES_PATH = '/dashboard/packages';
+
+/** FormData → the shape the package schemas expect. */
+function readPackageForm(formData: FormData) {
+  const slug = String(formData.get('slug') ?? '').trim();
+
+  return {
+    name: formData.get('name'),
+    // An empty slug means "derive it from the name", so it must reach the
+    // schema as undefined rather than as ''.
+    slug: slug === '' ? undefined : slug,
+    tagline: formData.get('tagline'),
+    description: formData.get('description'),
+    imageUrl: formData.get('imageUrl'),
+    sortOrder: formData.get('sortOrder') ?? 0,
+    // An unchecked checkbox is absent from FormData entirely, which is the
+    // difference between "false" and "missing".
+    active: formData.get('active') === 'on',
+  };
+}
+
+function toPackageFormState(
+  error: unknown,
+  fallback: string,
+): PackageFormState {
+  if (!isDomainError(error)) throw error;
+
+  if (error.field) {
+    return { errors: { [error.field]: [error.message] }, message: null };
+  }
+
+  return { errors: {}, message: error.message ?? fallback };
+}
+
+export async function createPackage(
+  _prevState: PackageFormState,
+  formData: FormData,
+): Promise<PackageFormState> {
+  await requireRole('admin');
+
+  const parsed = createPackageSchema.safeParse(readPackageForm(formData));
+
+  if (!parsed.success) {
+    return {
+      errors: parsed.error.flatten().fieldErrors,
+      message: 'Revisa los campos. No se creó el paquete.',
+    };
+  }
+
+  let created;
+  try {
+    created = await service.createPackage(parsed.data);
+  } catch (error) {
+    return toPackageFormState(error, 'No se pudo crear el paquete.');
+  }
+
+  revalidatePath(PACKAGES_PATH);
+  // Straight to the editor: a package with no lines is not finished, and the
+  // next thing anyone does is add pieces to it.
+  redirectWithFlash(`${PACKAGES_PATH}/${created.id}/edit`, 'package.created');
+}
+
+export async function updatePackage(
+  id: string,
+  _prevState: PackageFormState,
+  formData: FormData,
+): Promise<PackageFormState> {
+  await requireRole('admin');
+
+  const parsed = updatePackageSchema.safeParse(readPackageForm(formData));
+
+  if (!parsed.success) {
+    return {
+      errors: parsed.error.flatten().fieldErrors,
+      message: 'Revisa los campos. No se guardó el paquete.',
+    };
+  }
+
+  try {
+    await service.updatePackage(id, parsed.data);
+  } catch (error) {
+    return toPackageFormState(error, 'No se pudo guardar el paquete.');
+  }
+
+  revalidatePath(PACKAGES_PATH);
+  revalidatePath(`${PACKAGES_PATH}/${id}/edit`);
+  redirectWithFlash(PACKAGES_PATH, 'package.updated');
+}
+
+export async function togglePackageActive(
+  id: string,
+  active: boolean,
+): Promise<ActionResult> {
+  try {
+    await requireRole('admin');
+    await service.setPackageActive(id, active);
+  } catch (error) {
+    if (error instanceof AuthorizationError) return failed(error.message);
+    if (!isDomainError(error)) throw error;
+    return failed(error.message);
+  }
+
+  revalidatePath(PACKAGES_PATH);
+  return ok(active ? 'Paquete publicado.' : 'Paquete despublicado.');
+}
+
+export async function addPackageItem(
+  packageId: string,
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = packageItemSchema.safeParse({
+    productId: formData.get('productId'),
+    quantity: formData.get('quantity') ?? 1,
+  });
+
+  if (!parsed.success) {
+    const first = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
+    return failed(first ?? 'Revisa el producto y la cantidad.');
+  }
+
+  try {
+    await requireRole('admin');
+    await service.addPackageItem(packageId, parsed.data);
+  } catch (error) {
+    if (error instanceof AuthorizationError) return failed(error.message);
+    if (!isDomainError(error)) throw error;
+    return failed(error.message);
+  }
+
+  revalidatePath(`${PACKAGES_PATH}/${packageId}/edit`);
+  revalidatePath(PACKAGES_PATH);
+  return ok('Producto agregado al paquete.');
+}
+
+export async function removePackageItem(
+  packageId: string,
+  productId: string,
+): Promise<ActionResult> {
+  try {
+    await requireRole('admin');
+    await service.removePackageItem(packageId, productId);
+  } catch (error) {
+    if (error instanceof AuthorizationError) return failed(error.message);
+    if (!isDomainError(error)) throw error;
+    return failed(error.message);
+  }
+
+  revalidatePath(`${PACKAGES_PATH}/${packageId}/edit`);
+  revalidatePath(PACKAGES_PATH);
+  return ok('Producto quitado del paquete.');
 }

@@ -26,6 +26,11 @@ export const FLASH = {
   'customer.created': { tone: 'ok', message: 'Cliente creado.' },
   'customer.updated': { tone: 'ok', message: 'Cliente actualizado.' },
   'order.created': { tone: 'ok', message: 'Pedido registrado e inventario apartado.' },
+  'package.created': {
+    tone: 'ok',
+    message: 'Paquete creado. Ahora agrégale productos.',
+  },
+  'package.updated': { tone: 'ok', message: 'Paquete actualizado.' },
 } as const satisfies Record<string, { tone: 'ok' | 'info'; message: string }>;
 
 export type FlashCode = keyof typeof FLASH;

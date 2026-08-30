@@ -11,6 +11,9 @@ export type CategoryFormState = {
     slug?: string[];
     sortOrder?: string[];
     active?: string[];
+    tagline?: string[];
+    imageUrl?: string[];
+    isFeatured?: string[];
   };
   message?: string | null;
 };
@@ -37,6 +40,24 @@ export type ProductFormState = {
 };
 
 export const emptyProductFormState: ProductFormState = {
+  errors: {},
+  message: null,
+};
+
+export type PackageFormState = {
+  errors?: {
+    name?: string[];
+    slug?: string[];
+    tagline?: string[];
+    description?: string[];
+    imageUrl?: string[];
+    sortOrder?: string[];
+    active?: string[];
+  };
+  message?: string | null;
+};
+
+export const emptyPackageFormState: PackageFormState = {
   errors: {},
   message: null,
 };

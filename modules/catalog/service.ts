@@ -15,9 +15,12 @@ import { db } from '@/db';
 import {
   categories,
   products,
+  packages,
+  packageItems,
   type CategoryRow,
   type ProductRow,
   type ProductStatus,
+  type PackageRow,
 } from '@/db/schema/catalog';
 import {
   ConflictError,
@@ -33,6 +36,9 @@ import {
   type UpdateCategoryInput,
   type CreateProductInput,
   type UpdateProductInput,
+  type CreatePackageInput,
+  type UpdatePackageInput,
+  type PackageItemInput,
 } from './validators';
 
 const SLUG_UNIQUE_CONSTRAINT = 'categories_slug_unique';
@@ -75,6 +81,9 @@ export async function createCategory(
         slug,
         sortOrder: input.sortOrder,
         active: input.active,
+        tagline: input.tagline,
+        imageUrl: input.imageUrl,
+        isFeatured: input.isFeatured,
       })
       .returning();
 
@@ -105,6 +114,9 @@ export async function updateCategory(
         slug: input.slug,
         sortOrder: input.sortOrder,
         active: input.active,
+        tagline: input.tagline,
+        imageUrl: input.imageUrl,
+        isFeatured: input.isFeatured,
         updatedAt: new Date(),
       })
       .where(eq(categories.id, id))
@@ -413,4 +425,150 @@ async function productSlugExists(slug: string, exceptId?: string) {
     .limit(1);
 
   return row !== undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Package
+// ---------------------------------------------------------------------------
+
+const PACKAGE_SLUG_TAKEN = () =>
+  new ConflictError(
+    'package.slug_taken',
+    'Ya existe un paquete con esa URL.',
+    'slug',
+  );
+
+async function packageSlugExists(slug: string, exceptId?: string) {
+  const [row] = await db
+    .select({ id: packages.id })
+    .from(packages)
+    .where(
+      exceptId
+        ? and(eq(packages.slug, slug), ne(packages.id, exceptId))
+        : eq(packages.slug, slug),
+    )
+    .limit(1);
+
+  return row !== undefined;
+}
+
+export async function createPackage(
+  input: CreatePackageInput,
+): Promise<PackageRow> {
+  const slug = input.slug ?? slugify(input.name);
+
+  if (slug.length < 2) {
+    throw new ConflictError(
+      'package.slug_underivable',
+      'No se pudo generar una URL a partir del nombre. Escríbela a mano.',
+      'slug',
+    );
+  }
+
+  if (await packageSlugExists(slug)) throw PACKAGE_SLUG_TAKEN();
+
+  const [row] = await db
+    .insert(packages)
+    .values({
+      name: input.name,
+      slug,
+      tagline: input.tagline,
+      description: input.description,
+      imageUrl: input.imageUrl,
+      sortOrder: input.sortOrder,
+      active: input.active,
+    })
+    .returning();
+
+  return row;
+}
+
+export async function updatePackage(
+  id: string,
+  input: UpdatePackageInput,
+): Promise<PackageRow> {
+  if (await packageSlugExists(input.slug, id)) throw PACKAGE_SLUG_TAKEN();
+
+  const [row] = await db
+    .update(packages)
+    .set({
+      name: input.name,
+      slug: input.slug,
+      tagline: input.tagline,
+      description: input.description,
+      imageUrl: input.imageUrl,
+      sortOrder: input.sortOrder,
+      active: input.active,
+      updatedAt: new Date(),
+    })
+    .where(eq(packages.id, id))
+    .returning();
+
+  if (!row) {
+    throw new NotFoundError('package.not_found', 'El paquete no existe.');
+  }
+
+  return row;
+}
+
+export async function setPackageActive(
+  id: string,
+  active: boolean,
+): Promise<PackageRow> {
+  const [row] = await db
+    .update(packages)
+    .set({ active, updatedAt: new Date() })
+    .where(eq(packages.id, id))
+    .returning();
+
+  if (!row) {
+    throw new NotFoundError('package.not_found', 'El paquete no existe.');
+  }
+
+  return row;
+}
+
+/**
+ * Adds a product to a package, or raises its quantity if it is already in it.
+ *
+ * The table refuses a duplicate `(package_id, product_id)` outright, so the
+ * choice is between an error the admin has to understand and the behaviour they
+ * meant: adding "2 more" of something already listed is a quantity change, not
+ * a second line.
+ */
+export async function addPackageItem(
+  packageId: string,
+  input: PackageItemInput,
+): Promise<void> {
+  const [product] = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(eq(products.id, input.productId))
+    .limit(1);
+
+  if (!product) {
+    throw new NotFoundError('product.not_found', 'El producto no existe.');
+  }
+
+  await db
+    .insert(packageItems)
+    .values({ packageId, productId: input.productId, quantity: input.quantity })
+    .onConflictDoUpdate({
+      target: [packageItems.packageId, packageItems.productId],
+      set: { quantity: input.quantity },
+    });
+}
+
+export async function removePackageItem(
+  packageId: string,
+  productId: string,
+): Promise<void> {
+  await db
+    .delete(packageItems)
+    .where(
+      and(
+        eq(packageItems.packageId, packageId),
+        eq(packageItems.productId, productId),
+      ),
+    );
 }

@@ -1,8 +1,12 @@
 import Link from 'next/link';
 
-import { getCollections } from '@/lib/commerce';
-import { OCCASIONS } from '@/lib/occasions';
+import { getCollections, getShelf } from '@/lib/commerce';
 import Eyebrow from '@/components/ui/eyebrow';
+import {
+  GridIcon,
+  PackageIcon,
+  categoryIcon,
+} from '@/components/ui/category-icons';
 
 /**
  * Browsing rails for the collection pages.
@@ -31,7 +35,15 @@ export default async function CollectionNav({
 }: {
   active?: string;
 }) {
-  const collections = await getCollections();
+  const [collections, shelf] = await Promise.all([
+    getCollections(),
+    getShelf().catch(() => []),
+  ]);
+
+  // Only packages here: the categories already have their own rail above, and
+  // listing a category twice would make the second group look like a duplicate
+  // rather than a different question.
+  const bundles = shelf.filter((item) => item.kind === 'package');
 
   return (
     <nav aria-label="Colecciones" className="flex flex-col gap-4">
@@ -39,6 +51,7 @@ export default async function CollectionNav({
         <Item
           href="/search"
           label="Todo el catálogo"
+          icon={GridIcon}
           active={active === undefined}
         />
         {collections.map((c) => (
@@ -46,21 +59,27 @@ export default async function CollectionNav({
             key={c.handle}
             href={`/search/${c.handle}`}
             label={c.title}
+            icon={categoryIcon(c.handle, c.title)}
             active={active === c.handle}
           />
         ))}
       </Group>
 
-      <Group title="Para qué lo quieres">
-        {OCCASIONS.map((o) => (
-          <Item
-            key={o.handle}
-            href={`/search/${o.handle}`}
-            label={o.title}
-            active={active === o.handle}
-          />
-        ))}
-      </Group>
+      {/* Hidden entirely when the shop has not published a package. An empty
+          labelled group reads as a rail that failed to load. */}
+      {bundles.length > 0 ? (
+        <Group title="Para qué lo quieres">
+          {bundles.map((b) => (
+            <Item
+              key={b.handle}
+              href={`/paquete/${b.handle}`}
+              label={b.title}
+              icon={PackageIcon}
+              active={active === b.handle}
+            />
+          ))}
+        </Group>
+      ) : null}
     </nav>
   );
 }
@@ -89,13 +108,23 @@ function Group({
   );
 }
 
+/**
+ * One rail chip.
+ *
+ * The icon is `aria-hidden` and inherits `currentColor`: the label beside it
+ * already carries the meaning, and an icon that repeats its own name is noise in
+ * a screen reader. Inheriting the colour is what lets one drawing work as ink at
+ * rest, brand on hover and cream when the chip is filled.
+ */
 function Item({
   href,
   label,
+  icon: Icon,
   active,
 }: {
   href: string;
   label: string;
+  icon: () => React.ReactElement;
   active: boolean;
 }) {
   return (
@@ -103,12 +132,15 @@ function Item({
       <Link
         href={href}
         aria-current={active ? 'page' : undefined}
-        className={`inline-block rounded-sm border px-3.5 py-2 text-sm transition-colors duration-150 ${
+        className={`inline-flex items-center gap-2 rounded-sm border px-3 py-2 text-sm transition-colors duration-150 ${
           active
             ? 'border-brand bg-brand font-medium text-background'
             : 'border-border bg-surface text-foreground hover:border-brand hover:text-brand'
         }`}
       >
+        <span className="shrink-0">
+          <Icon />
+        </span>
         {label}
       </Link>
     </li>

@@ -18,12 +18,14 @@ import 'server-only';
  */
 import { api, CommerceError } from './api-client';
 import type {
+  Bundle,
   CheckoutInput,
   CheckoutResult,
   Collection,
   Order,
   Paginated,
   Product,
+  ShelfItem,
 } from './types';
 
 export * from './types';
@@ -79,6 +81,28 @@ export async function getProductsByCollection(
 
 export async function getCollections(): Promise<Collection[]> {
   return api.get<Collection[]>('/api/v1/catalog/collections');
+}
+
+/**
+ * The home shelf: featured categories and curated packages, already merged and
+ * ordered by the admin.
+ *
+ * Replaces `lib/occasions.ts`, a hardcoded list of four entries with no data
+ * behind them — their pages showed the whole catalogue under an apology because
+ * there was nothing to filter by. The shop curates these now.
+ */
+export async function getShelf(): Promise<ShelfItem[]> {
+  return api.get<ShelfItem[]>('/api/v1/catalog/shelf');
+}
+
+/** One package and every line in it. Null when the slug is unknown. */
+export async function getPackage(handle: string): Promise<Bundle | null> {
+  try {
+    return await api.get<Bundle>(`/api/v1/catalog/packages/${handle}`);
+  } catch (error) {
+    if (error instanceof CommerceError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 export async function getProductRecommendations(

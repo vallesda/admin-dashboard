@@ -64,6 +64,13 @@
       "when": 1787773155612,
       "tag": "0008_chunky_meltdown",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788051417548,
+      "tag": "0009_fresh_deadpool",
+      "breakpoints": true
     }
   ]
 }

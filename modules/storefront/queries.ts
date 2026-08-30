@@ -14,7 +14,12 @@ import 'server-only';
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { categories, products } from '@/db/schema/catalog';
+import {
+  categories,
+  products,
+  packages,
+  packageItems,
+} from '@/db/schema/catalog';
 import { inventory } from '@/db/schema/inventory';
 import { orders, orderItems } from '@/db/schema/sales';
 import {
@@ -23,6 +28,8 @@ import {
   type PublicProduct,
   type PublicCollection,
   type PublicOrder,
+  type PublicShelfItem,
+  type PublicPackage,
 } from './dto';
 
 export const STOREFRONT_PAGE_SIZE = 24;
@@ -190,6 +197,12 @@ export async function listCollections(): Promise<PublicCollection[]> {
       slug: categories.slug,
       sortOrder: categories.sortOrder,
       active: categories.active,
+      // Selected because `toPublicCollection` takes a whole row. `selectDistinct`
+      // needs every column named explicitly, so a new column on the table is a
+      // compile error here rather than a silent omission.
+      imageUrl: categories.imageUrl,
+      tagline: categories.tagline,
+      isFeatured: categories.isFeatured,
       createdAt: categories.createdAt,
       updatedAt: categories.updatedAt,
     })
@@ -246,5 +259,194 @@ export async function getOrderByToken(
     deliveryFee: mxn(order.deliveryFeeCents),
     total: mxn(order.totalCents),
     createdAt: order.createdAt.toISOString(),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Home shelf and packages
+// ---------------------------------------------------------------------------
+
+/**
+ * What the storefront's "Para qué lo quieres" shelf shows.
+ *
+ * Two sources, one list. A featured category filters the catalogue; a package is
+ * a fixed curated bundle. The shopper is asking the same question of both — what
+ * am I making tonight — so they share a shelf, and `kind` is what tells the
+ * storefront which link to build.
+ *
+ * Both are filtered the same way the collections nav already is: nothing appears
+ * unless it has something to sell. A category needs an active product; a package
+ * needs at least one line whose product is active. An empty tile is a promise
+ * the catalogue cannot keep, and this shop's whole design is built on not making
+ * those.
+ *
+ * A category with no image of its own borrows the photograph of a product
+ * actually in it. That keeps the shelf populated from day one without anybody
+ * uploading anything, and — more to the point — every picture on it is a real
+ * photograph of something really in that category, which is the rule the rest of
+ * the storefront runs on.
+ */
+export async function listHomeShelf(): Promise<PublicShelfItem[]> {
+  const categoryImage = sql<string | null>`(
+    select p.image_url from products p
+    where p.category_id = ${categories.id}
+      and p.status = 'active'
+      and p.image_url is not null
+    order by p.is_featured desc, p.name asc
+    limit 1
+  )`;
+
+  const categoryRows = await db
+    .select({
+      handle: categories.slug,
+      title: categories.name,
+      tagline: categories.tagline,
+      imageUrl: sql<string | null>`coalesce(${categories.imageUrl}, ${categoryImage})`,
+      sortOrder: categories.sortOrder,
+    })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.active, true),
+        eq(categories.isFeatured, true),
+        sql`exists (select 1 from products p where p.category_id = ${categories.id} and p.status = 'active')`,
+      ),
+    )
+    .orderBy(asc(categories.sortOrder), asc(categories.name));
+
+  /*
+   * The line count comes from its own grouped query rather than a correlated
+   * subquery in the select list. Drizzle does not qualify a column reference
+   * used inside `sql` in that position — `${packages.id}` renders as a bare
+   * `"id"`, which Postgres rejects — while the same reference inside `where`
+   * qualifies correctly. Two small queries over a handful of rows are cheaper
+   * than a trap that only shows up at runtime.
+   */
+  const counts = await db
+    .select({
+      packageId: packageItems.packageId,
+      itemCount: sql<number>`count(*)`.mapWith(Number),
+    })
+    .from(packageItems)
+    .innerJoin(products, eq(products.id, packageItems.productId))
+    .where(eq(products.status, 'active'))
+    .groupBy(packageItems.packageId);
+
+  const countOf = new Map(counts.map((c) => [c.packageId, c.itemCount]));
+
+  const packageRows = await db
+    .select({
+      id: packages.id,
+      handle: packages.slug,
+      title: packages.name,
+      tagline: packages.tagline,
+      imageUrl: packages.imageUrl,
+      sortOrder: packages.sortOrder,
+    })
+    .from(packages)
+    .where(
+      and(
+        eq(packages.active, true),
+        sql`exists (
+          select 1 from package_items i
+          join products p on p.id = i.product_id
+          where i.package_id = ${packages.id} and p.status = 'active'
+        )`,
+      ),
+    )
+    .orderBy(asc(packages.sortOrder), asc(packages.name));
+
+  // `sortOrder` rides along only to merge the two sources, then is stripped:
+  // it is an admin concern and has no business in the public contract.
+  const items: (PublicShelfItem & { sortOrder: number })[] = [
+    ...categoryRows.map((row) => ({
+      kind: 'category' as const,
+      handle: row.handle,
+      title: row.title,
+      tagline: row.tagline,
+      image: row.imageUrl ? { url: row.imageUrl, altText: row.title } : null,
+      itemCount: null,
+      sortOrder: row.sortOrder,
+    })),
+    ...packageRows.map((row) => ({
+      kind: 'package' as const,
+      handle: row.handle,
+      title: row.title,
+      tagline: row.tagline,
+      image: row.imageUrl ? { url: row.imageUrl, altText: row.title } : null,
+      itemCount: countOf.get(row.id) ?? 0,
+      sortOrder: row.sortOrder,
+    })),
+  ];
+
+  // Packages sort after categories at equal weight: the shop's own curation is
+  // the more specific answer, so it should not be buried, but a category is the
+  // safer default when both carry sort order 0.
+  return items
+    .sort((a, b) =>
+      a.sortOrder !== b.sortOrder
+        ? a.sortOrder - b.sortOrder
+        : a.title.localeCompare(b.title, 'es'),
+    )
+    .map(({ sortOrder: _sortOrder, ...item }) => item);
+}
+
+/**
+ * One package, with every line it holds.
+ *
+ * Returns `undefined` for an unknown or inactive slug so the route can answer a
+ * real 404 rather than an empty page — the same treatment `getProductByHandle`
+ * gives a missing product.
+ *
+ * Lines whose product is no longer active are dropped rather than shown as
+ * unavailable: a piece the shop archived is not part of the recipe any more, and
+ * listing it would invite the shopper to go looking for it.
+ */
+export async function getPackageByHandle(
+  handle: string,
+): Promise<PublicPackage | undefined> {
+  const [row] = await db
+    .select()
+    .from(packages)
+    .where(and(eq(packages.slug, handle), eq(packages.active, true)))
+    .limit(1);
+
+  if (!row) return undefined;
+
+  const lineRows = await publicProducts()
+    .innerJoin(packageItems, eq(packageItems.productId, products.id))
+    .where(and(eq(packageItems.packageId, row.id), eq(products.status, 'active')))
+    .orderBy(asc(packageItems.sortOrder), asc(products.name));
+
+  const quantities = await db
+    .select({ productId: packageItems.productId, quantity: packageItems.quantity })
+    .from(packageItems)
+    .where(eq(packageItems.packageId, row.id));
+
+  const quantityOf = new Map(quantities.map((q) => [q.productId, q.quantity]));
+
+  const lines = lineRows.map((line) => ({
+    product: toPublicProduct(line),
+    quantity: quantityOf.get(line.id) ?? 1,
+  }));
+
+  const amountCents = lines.reduce(
+    (sum, line) => sum + line.product.price.amountCents * line.quantity,
+    0,
+  );
+
+  return {
+    handle: row.slug,
+    title: row.name,
+    tagline: row.tagline,
+    description: row.description,
+    image: row.imageUrl ? { url: row.imageUrl, altText: row.name } : null,
+    lines,
+    total: { amountCents, currency: 'MXN' },
+    // Every line has to be fillable. A bundle sold as "everything for this dish"
+    // that arrives short a piece is worse than one that says so up front.
+    availableForSale:
+      lines.length > 0 &&
+      lines.every((line) => line.product.available >= line.quantity),
   };
 }

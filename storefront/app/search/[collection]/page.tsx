@@ -1,12 +1,9 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
-import { getCollections, getProducts } from '@/lib/commerce';
-import { findOccasion } from '@/lib/occasions';
+import { getCollections, getProducts, getShelf } from '@/lib/commerce';
 import Container from '@/components/ui/container';
-import Heading from '@/components/ui/heading';
 import SectionHeader from '@/components/ui/section-header';
 import ProductGrid from '@/components/grid/product-grid';
 import ResultRule from '@/components/grid/result-rule';
@@ -24,23 +21,20 @@ type Props = { params: Promise<{ collection: string }> };
  */
 
 /**
- * Resolves a handle to either a real category or a merchandising occasion.
+ * Resolves a handle to a real category.
  *
- * The two are different things and the page has to say so. A category filters
- * the catalogue; an occasion is a promise the data cannot keep yet, because the
- * admin has no notion of "sashimi" — it will, and then this collapses to one
- * branch.
+ * It used to resolve to a category *or* a hardcoded "occasion" — Sashimi,
+ * Ceviche — which had no data behind it, so those pages rendered the entire
+ * catalogue under a note apologising for it. Occasions are packages now, they
+ * live at `/paquete/[handle]`, and this route went back to doing one thing.
+ *
+ * A handle that is not a category but *is* a published package is redirected
+ * rather than 404'd: those four URLs were live on this route until today, and
+ * anyone holding one should land on the thing it became.
  */
 async function resolve(handle: string) {
   const collections = await getCollections();
-  const collection = collections.find((c) => c.handle === handle);
-
-  if (collection) return { kind: 'collection' as const, collection };
-
-  const occasion = findOccasion(handle);
-  if (occasion) return { kind: 'occasion' as const, occasion };
-
-  return null;
+  return collections.find((c) => c.handle === handle);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -49,78 +43,41 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!found) return { title: 'Colección no encontrada' };
 
-  const title =
-    found.kind === 'collection' ? found.collection.title : found.occasion.title;
-
   return {
-    title,
-    description:
-      found.kind === 'occasion'
-        ? found.occasion.description
-        : `${title} disponibles hoy en Amor a Mar.`,
+    title: found.title,
+    description: `${found.title} disponibles hoy en Amor a Mar.`,
   };
 }
 
 /**
- * A collection page.
+ * A collection page: one category, filtered.
  *
- * The two kinds of header are deliberately different weights of the same thing.
- * An occasion has an editorial photograph behind it because it is a proposition
- * — "you are making ceviche" — and a category does not, because "Mariscos" is a
- * filter and dressing a filter up as a campaign is how a shop starts lying to
- * itself about which of its pages are merchandising.
- *
- * What they now share is everything below: the same rails, the same rule, the
- * same grid at the same width. Before, a category page opened on a bare `<h1>`
- * against cream while an occasion opened on a full-bleed photograph, and the
- * two read as pages from different sites.
+ * It carries a plain ruled header rather than an editorial photograph, and that
+ * is the distinction worth keeping. "Mariscos" is a filter; dressing a filter up
+ * as a campaign is how a shop starts lying to itself about which of its pages
+ * are merchandising. The proposition pages — "you are making ceviche" — are
+ * packages, and they get the photograph.
  */
 export default async function Page({ params }: Props) {
   const { collection: handle } = await params;
   const found = await resolve(handle);
 
-  // Neither a category nor a known occasion: a genuine 404, not an empty grid.
-  if (!found) notFound();
+  if (!found) {
+    // The four occasion slugs used to answer on this route. If the handle is a
+    // package now, send the visitor to it instead of a dead end.
+    const shelf = await getShelf().catch(() => []);
+    const bundle = shelf.find(
+      (item) => item.kind === 'package' && item.handle === handle,
+    );
+    if (bundle) redirect(`/paquete/${handle}`);
 
-  const title =
-    found.kind === 'collection' ? found.collection.title : found.occasion.title;
+    // Neither a category nor a package: a genuine 404, not an empty grid.
+    notFound();
+  }
 
   return (
     <Container className={RHYTHM.sm}>
-      {found.kind === 'occasion' ? (
-        <div className="relative mb-10 aspect-[16/9] overflow-hidden rounded-sm sm:aspect-[16/7] md:aspect-[21/6]">
-          <Image
-            src={found.occasion.image.url}
-            alt={found.occasion.image.altText}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-          {/* Scrim, not decoration: the title fails contrast over a bright
-              plate without it. */}
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/30 to-transparent" />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 rounded-sm plate-on-brand"
-          />
-
-          <div className="absolute inset-x-0 bottom-0 p-5 md:p-10">
-            <span
-              aria-hidden="true"
-              className="block h-px w-10 bg-background/70"
-            />
-            <Heading as="h1" className="mt-4 text-background">
-              {title}
-            </Heading>
-            <p className="mt-2 max-w-[44ch] text-background/85">
-              {found.occasion.description}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <SectionHeader as="h1" title={title} className="mb-10" />
-      )}
+      <SectionHeader as="h1" title={found.title} className="mb-10" />
 
       <div className="mb-10">
         <Suspense fallback={null}>
@@ -129,11 +86,7 @@ export default async function Page({ params }: Props) {
       </div>
 
       <Suspense key={handle} fallback={<GridSkeleton />}>
-        {found.kind === 'collection' ? (
-          <CollectionProducts handle={handle} />
-        ) : (
-          <OccasionProducts title={title} />
-        )}
+        <CollectionProducts handle={handle} />
       </Suspense>
     </Container>
   );
@@ -155,37 +108,6 @@ async function CollectionProducts({ handle }: { handle: string }) {
 
   return (
     <div>
-      <ResultRule total={total} />
-      <ProductGrid products={items} />
-    </div>
-  );
-}
-
-/**
- * An occasion has no filter behind it yet, so the page shows the full catalogue
- * and says why.
- *
- * The alternative — an empty grid under a beautiful photograph — reads as a
- * broken shop. Sending the shopper to everything we sell keeps them buying
- * while the curation is still being built, and the note is honest about what
- * they are looking at.
- *
- * The note sits on Verde Espuma rather than on the elevated cream surface it
- * used before. It is the one informational aside on the page and it has to be
- * distinguishable from the product surfaces around it — which is exactly the
- * job the design system gives that token.
- */
-async function OccasionProducts({ title }: { title: string }) {
-  const { items, total } = await getProducts();
-
-  return (
-    <div>
-      <p className="mb-8 rounded-sm bg-brand-soft px-4 py-3 text-sm text-foreground">
-        Todavía estamos armando la selección de{' '}
-        <span className="font-medium">{title}</span>. Mientras tanto, esto es
-        todo lo que tenemos disponible hoy.
-      </p>
-
       <ResultRule total={total} />
       <ProductGrid products={items} />
     </div>

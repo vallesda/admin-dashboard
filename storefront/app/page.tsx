@@ -8,7 +8,7 @@ import ProductGrid from '@/components/grid/product-grid';
 import GridSkeleton from '@/components/grid/grid-skeleton';
 import Hero from '@/components/merchandising/hero';
 import BestSellers from '@/components/merchandising/best-sellers';
-import OccasionGrid from '@/components/merchandising/occasion-grid';
+import ShelfGrid from '@/components/merchandising/shelf-grid';
 import CatchOfTheWeek from '@/components/merchandising/catch-of-the-week';
 import LearnMore from '@/components/merchandising/learn-more';
 
@@ -47,7 +47,7 @@ import LearnMore from '@/components/merchandising/learn-more';
  * Section order, and why:
  *   1. Hero        — where the fish comes from, and what is on the board today
  *   2. Catalogue   — the purchasable thing, before any argument for it
- *   3. Occasions   — the "por ocasión" shopper's own way of choosing
+ *   3. Shelf       — categories and packages the shop curates from the panel
  *   4. Catch       — one green moment, the week's pick
  *   5. Selection   — the shop's hand-picked row, when there is one
  *   6. Learn more  — the way out to the pages that explain the shop
@@ -80,7 +80,9 @@ export default function Page() {
         </Container>
       </Section>
 
-      <OccasionGrid />
+      <Suspense fallback={null}>
+        <ShelfGrid />
+      </Suspense>
 
       <Suspense fallback={null}>
         <CatchOfTheWeek />

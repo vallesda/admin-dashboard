@@ -9,6 +9,7 @@ import {
   FormError,
   FormActions,
 } from '@/app/ui/kit/form';
+import ImagePicker from './image-picker';
 import { createCategory, updateCategory } from '../actions';
 import { emptyCategoryFormState, type CategoryFormState } from '../form-state';
 import type { CategoryListItem } from '../queries';
@@ -98,6 +99,63 @@ export default function CategoryForm({ category }: Props) {
               />
             )}
           </Field>
+        </FormSection>
+
+        <FormSection
+          title="En la portada"
+          description="Una categoría destacada aparece en el estante «Para qué lo quieres» de la tienda, junto a los paquetes."
+        >
+          <div className="flex items-start gap-2.5">
+            <input
+              id="isFeatured"
+              name="isFeatured"
+              type="checkbox"
+              defaultChecked={category?.isFeatured ?? false}
+              className="mt-0.5 h-4 w-4 cursor-pointer rounded border-line-strong text-brand-600 focus:ring-brand-600"
+            />
+            <label
+              htmlFor="isFeatured"
+              className="cursor-pointer text-sm text-ink"
+            >
+              Destacar en la portada
+            </label>
+          </div>
+
+          <Field
+            name="tagline"
+            label="Frase corta (opcional)"
+            hint="Se muestra bajo el nombre en el estante."
+            error={state.errors?.tagline}
+          >
+            {(props) => (
+              <input
+                {...props}
+                type="text"
+                defaultValue={category?.tagline ?? ''}
+                placeholder="Cortes limpios para comer crudos"
+                maxLength={160}
+              />
+            )}
+          </Field>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink">
+              Imagen (opcional)
+            </span>
+            {/*
+              Optional on purpose. With no image the storefront borrows the
+              photograph of a product actually in this category, so the shelf is
+              never empty and every picture on it is a real photo of something
+              really in there. This field is an override, not a requirement.
+            */}
+            <ImagePicker
+              name="imageUrl"
+              defaultValue={category?.imageUrl ?? null}
+            />
+            <p className="text-xs text-ink-muted">
+              Si la dejas vacía se usa la foto de un producto de esta categoría.
+            </p>
+          </div>
         </FormSection>
 
         <FormSection

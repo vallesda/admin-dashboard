@@ -9,6 +9,8 @@ import { asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
+  packages,
+  packageItems,
   categories,
   products,
   type CategoryRow,
@@ -21,7 +23,15 @@ import { inventory } from '@/db/schema/inventory';
 /** Shape the admin list needs. Kept narrow so the table can't drift. */
 export type CategoryListItem = Pick<
   CategoryRow,
-  'id' | 'name' | 'slug' | 'sortOrder' | 'active'
+  | 'id'
+  | 'name'
+  | 'slug'
+  | 'sortOrder'
+  | 'active'
+  // Merchandising, needed by the edit form and the admin list.
+  | 'tagline'
+  | 'imageUrl'
+  | 'isFeatured'
 >;
 
 /** Option shape for the Product form's category selector (HU-CAT-001). */
@@ -38,6 +48,9 @@ export async function listCategories(): Promise<CategoryListItem[]> {
   return db
     .select({
       id: categories.id,
+      tagline: categories.tagline,
+      imageUrl: categories.imageUrl,
+      isFeatured: categories.isFeatured,
       name: categories.name,
       slug: categories.slug,
       sortOrder: categories.sortOrder,
@@ -199,6 +212,124 @@ export async function listSellableProducts(): Promise<
       id: products.id,
       sku: products.sku,
       name: products.name,
+      priceCents: products.priceCents,
+    })
+    .from(products)
+    .where(eq(products.status, 'active'))
+    .orderBy(asc(products.name));
+}
+
+// ---------------------------------------------------------------------------
+// Package
+// ---------------------------------------------------------------------------
+
+export type PackageListItem = {
+  id: string;
+  name: string;
+  slug: string;
+  tagline: string | null;
+  imageUrl: string | null;
+  sortOrder: number;
+  active: boolean;
+  itemCount: number;
+  /** Lines whose product is not `active`: the bundle cannot be sold complete. */
+  inactiveCount: number;
+};
+
+/**
+ * The admin's package list.
+ *
+ * `inactiveCount` is the column that earns its place. A package looks fine until
+ * one of its pieces is archived, and from the storefront that failure is silent
+ * — the line simply disappears from the bundle. Surfacing it here is the only
+ * way the shop finds out before a customer does.
+ */
+export async function listPackages(): Promise<PackageListItem[]> {
+  const rows = await db
+    .select({
+      id: packages.id,
+      name: packages.name,
+      slug: packages.slug,
+      tagline: packages.tagline,
+      imageUrl: packages.imageUrl,
+      sortOrder: packages.sortOrder,
+      active: packages.active,
+    })
+    .from(packages)
+    .orderBy(asc(packages.sortOrder), asc(packages.name));
+
+  const counts = await db
+    .select({
+      packageId: packageItems.packageId,
+      total: sql<number>`count(*)`.mapWith(Number),
+      inactive: sql<number>`count(*) filter (where ${products.status} <> 'active')`.mapWith(
+        Number,
+      ),
+    })
+    .from(packageItems)
+    .innerJoin(products, eq(products.id, packageItems.productId))
+    .groupBy(packageItems.packageId);
+
+  const byId = new Map(counts.map((c) => [c.packageId, c]));
+
+  return rows.map((row) => ({
+    ...row,
+    itemCount: byId.get(row.id)?.total ?? 0,
+    inactiveCount: byId.get(row.id)?.inactive ?? 0,
+  }));
+}
+
+export async function getPackageById(id: string) {
+  const [row] = await db
+    .select()
+    .from(packages)
+    .where(eq(packages.id, id))
+    .limit(1);
+
+  return row;
+}
+
+export type PackageItemRowView = {
+  productId: string;
+  name: string;
+  sku: string;
+  priceCents: number;
+  status: string;
+  imageUrl: string | null;
+  quantity: number;
+};
+
+export async function listPackageItems(
+  packageId: string,
+): Promise<PackageItemRowView[]> {
+  return db
+    .select({
+      productId: products.id,
+      name: products.name,
+      sku: products.sku,
+      priceCents: products.priceCents,
+      status: products.status,
+      imageUrl: products.imageUrl,
+      quantity: packageItems.quantity,
+    })
+    .from(packageItems)
+    .innerJoin(products, eq(products.id, packageItems.productId))
+    .where(eq(packageItems.packageId, packageId))
+    .orderBy(asc(packageItems.sortOrder), asc(products.name));
+}
+
+/**
+ * Products the admin can put in a package.
+ *
+ * Only `active` ones: adding a draft to a bundle would publish a piece the shop
+ * has not finished, through a side door.
+ */
+export async function listPackageProductOptions() {
+  return db
+    .select({
+      id: products.id,
+      name: products.name,
+      sku: products.sku,
       priceCents: products.priceCents,
     })
     .from(products)
