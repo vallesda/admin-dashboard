@@ -219,13 +219,52 @@ export type PublicOrderLine = {
  * details. The number is still returned — it is what the customer quotes on the
  * phone — but it is not the key.
  */
+/**
+ * What the money looks like to a customer.
+ *
+ * Every field is either a number or a sentence already written for a person to
+ * read. No provider names, no method codes, no enum the storefront would have
+ * to translate — see DOCS/PAGOS.md §8.2 on why that matters once the storefront
+ * is its own deployment.
+ */
+export type PublicPayment = {
+  status: string;
+  /** "Tarjeta", "OXXO", "Al recibir". Null when there is nothing to name yet. */
+  methodLabel: string | null;
+  amountPaid: Money;
+  amountRefunded: Money;
+  /** The OXXO voucher, if one is live. */
+  actionUrl: string | null;
+  expiresAt: string | null;
+};
+
 export type PublicOrder = {
   orderNumber: number;
   status: string;
   paymentStatus: string;
+  paymentMode: string;
+  payment: PublicPayment;
+  /** One sentence about what to do next, or null when nothing is owed. */
+  instructions: string | null;
   fulfillmentType: string;
   customerName: string;
+  /** The composed one-line snapshot, for printing. */
   deliveryAddress: string | null;
+  /**
+   * The same address in parts, for anything that has to act on it — a route, a
+   * delivery zone, a courier's form. Null on a pickup order, and null on orders
+   * placed before addresses were structured.
+   */
+  delivery: {
+    street: string;
+    extNumber: string;
+    intNumber: string | null;
+    neighborhood: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    references: string | null;
+  } | null;
   lines: PublicOrderLine[];
   subtotal: Money;
   deliveryFee: Money;

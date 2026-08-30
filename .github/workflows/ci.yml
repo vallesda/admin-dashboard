@@ -1,0 +1,69 @@
+name: CI
+
+# `DT-008`: hasta ahora nada impedía una regresión. Los bugs que aparecieron
+# operando este panel — `itemCount` siempre 0, la categoría que se borraba al
+# editar, el producto invisible sin inventario — fallaban **en silencio**, que
+# es exactamente la clase que un chequeo automático atrapa y una revisión manual
+# no. Ahora además hay dinero de por medio.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # Un push nuevo sobre la misma rama cancela el anterior: nadie espera el
+  # resultado de un commit que ya quedó atrás.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # Valores de relleno. Ninguno de los cuatro pasos toca la base ni la red:
+      # se comprobó que `next build` compila con una URL de Postgres inalcanzable
+      # porque cada página del panel es `force-dynamic` y la tienda no consulta
+      # el catálogo al construir.
+      #
+      # NUNCA poner aquí una clave real. Si algún día un paso necesita una,
+      # va en los secretos del repositorio y sólo para ese paso.
+      POSTGRES_URL: postgres://ci:ci@127.0.0.1:5432/ci
+      AUTH_SECRET: ci-placeholder-secret
+      STOREFRONT_API_TOKEN: ci-placeholder-token
+      STOREFRONT_ALLOWED_ORIGINS: http://localhost:3001
+      ADMIN_API_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_STORE_URL: http://localhost:3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # El orden es de más barato a más caro, y de más específico a más general:
+      # un error de tipos se ve en segundos y no hace falta construir nada para
+      # descubrirlo.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Tests de dominio
+        run: pnpm test
+
+      - name: Build del panel
+        run: pnpm build
+
+      - name: Build de la tienda
+        run: pnpm --filter ./storefront build

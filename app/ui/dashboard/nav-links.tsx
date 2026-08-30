@@ -9,6 +9,7 @@ import {
   ClipboardDocumentListIcon,
   Squares2X2Icon,
   KeyIcon,
+  TruckIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -46,6 +47,7 @@ const GROUPS: { label: string | null; role?: Role; links: NavLink[] }[] = [
         icon: ClipboardDocumentListIcon,
       },
       { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
+      { name: 'Reparto', href: '/dashboard/delivery', icon: TruckIcon },
     ],
   },
   {

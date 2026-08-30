@@ -10,14 +10,21 @@ import {
   OrderStatusBadge,
   PaymentStatusBadge,
 } from '@/modules/sales/components/order-badges';
-import {
-  OrderStatusActions,
-  PaymentStatusActions,
-} from '@/modules/sales/components/order-actions';
+import { OrderStatusActions } from '@/modules/sales/components/order-actions';
+import MoneyPanel from '@/modules/payments/components/money-panel';
+import { moneySummary } from '@/modules/payments/queries';
 
 export const metadata = { title: 'Detalle de pedido' };
 
 export const dynamic = 'force-dynamic';
+
+/** Por qué el envío costó lo que costó, en la voz del mostrador. */
+const FEE_REASON_LABEL: Record<string, string> = {
+  zone: 'tarifa de zona',
+  free_over_threshold: 'gratis por monto',
+  waived: 'perdonado',
+  none: '',
+};
 
 const dateFormat = new Intl.DateTimeFormat('es-MX', {
   dateStyle: 'long',
@@ -42,6 +49,15 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const order = await getOrderById(id);
 
   if (!order) notFound();
+
+  /*
+   * Read here rather than inside the buttons: the gates need the same two
+   * numbers the money panel shows, and fetching them twice would let the
+   * heading and the actions disagree about how much is owed.
+   */
+  const money = await moneySummary(order.id);
+  const outstandingCents = Math.max(0, order.totalCents - money.paidCents);
+  const heldCents = Math.max(0, money.paidCents - money.refundedCents);
 
   return (
     <div className="flex flex-col gap-5">
@@ -91,7 +107,31 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               ? 'Entrega a domicilio'
               : 'Recoge en tienda'}
           </p>
-          {order.deliveryAddress ? (
+          {/*
+            The parts when they exist, the old one-line snapshot when they do
+            not. Orders placed before addresses were structured keep the
+            sentence they were written with — parsing one into a street and a
+            postal code would be inventing data.
+          */}
+          {order.deliveryStreet ? (
+            <address className="mt-0.5 not-italic text-sm text-ink-muted">
+              <span className="block">
+                {order.deliveryStreet} {order.deliveryExtNumber}
+                {order.deliveryIntNumber ? `, Int. ${order.deliveryIntNumber}` : ''}
+              </span>
+              <span className="block">
+                Col. {order.deliveryNeighborhood} · C.P. {order.deliveryPostalCode}
+              </span>
+              <span className="block">
+                {order.deliveryCity}, {order.deliveryState}
+              </span>
+              {order.deliveryReferences ? (
+                <span className="mt-1 block text-ink">
+                  Referencias: {order.deliveryReferences}
+                </span>
+              ) : null}
+            </address>
+          ) : order.deliveryAddress ? (
             <p className="mt-0.5 text-sm text-ink-muted">
               {order.deliveryAddress}
             </p>
@@ -102,7 +142,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           title="Estado del pedido"
           description="Cumplimiento: qué falta para entregarlo."
         >
-          <OrderStatusActions orderId={order.id} status={order.status} />
+          <OrderStatusActions
+            orderId={order.id}
+            status={order.status}
+            paymentStatus={order.paymentStatus}
+            paymentMode={order.paymentMode}
+            outstandingCents={outstandingCents}
+            heldCents={heldCents}
+          />
           {order.completedAt ? (
             <p className="mt-3 text-xs text-ink-muted">
               Completado el {dateFormat.format(order.completedAt)}
@@ -117,11 +164,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
         <Panel
           title="Pago"
-          description="Independiente del estado del pedido."
+          description={
+            order.paymentMode === 'online'
+              ? 'Se cobra en línea. El libro de abajo es lo que decide el estado.'
+              : 'Se cobra al recibir. El libro de abajo es lo que decide el estado.'
+          }
         >
-          <PaymentStatusActions
+          <MoneyPanel
             orderId={order.id}
+            totalCents={order.totalCents}
             paymentStatus={order.paymentStatus}
+            paymentMode={order.paymentMode}
+            isClosed={
+              order.status === 'cancelled' || order.status === 'completed'
+            }
           />
         </Panel>
       </div>
@@ -170,11 +226,25 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                 {formatCentavos(order.subtotalCents)}
               </td>
             </tr>
-            {order.deliveryFeeCents > 0 ? (
+            {/*
+              El envío se muestra siempre que aplique, aunque valga cero.
+              
+              Un cero omitido y un envío que no aplica se ven igual, y no lo
+              son: uno significa «se lo regalamos» y el otro «lo recoge él».
+              Al lado va **por qué** costó lo que costó, porque el importe solo
+              no distingue entre la promoción por monto y una exención que
+              alguien decidió y tuvo que justificar.
+            */}
+            {order.deliveryFeeReason !== 'none' ? (
               <tr>
                 <td colSpan={3} />
                 <td className="px-4 py-2 text-right text-xs uppercase tracking-wider text-ink-muted">
                   Envío
+                  {order.deliveryZoneName ? (
+                    <span className="block font-normal normal-case tracking-normal text-ink-subtle">
+                      {order.deliveryZoneName} · {FEE_REASON_LABEL[order.deliveryFeeReason]}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="px-4 py-2 text-right text-sm tabular-nums">
                   {formatCentavos(order.deliveryFeeCents)}
@@ -193,6 +263,15 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </tfoot>
         </Table>
       </TableShell>
+
+      {/* La razón escrita de una exención vive junto al pedido, no en un log:
+          es la frase que alguien va a tener que justificar meses después. */}
+      {order.deliveryFeeNote ? (
+        <p className="rounded-md border border-line bg-subtle px-3.5 py-2.5 text-sm text-ink-muted">
+          <span className="font-medium text-ink">Envío perdonado:</span>{' '}
+          {order.deliveryFeeNote}
+        </p>
+      ) : null}
 
       {order.notes ? (
         <Panel title="Notas">

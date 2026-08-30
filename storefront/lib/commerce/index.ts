@@ -19,6 +19,7 @@ import 'server-only';
 import { api, CommerceError } from './api-client';
 import type {
   Bundle,
+  DeliveryQuote,
   CheckoutInput,
   CheckoutResult,
   Collection,
@@ -128,6 +129,57 @@ export async function createOrder(
   return api.post<CheckoutResult>('/api/v1/checkout', input, {
     authenticated: true,
   });
+}
+
+/**
+ * Cotiza el envío para un código postal y un subtotal.
+ *
+ * Vista previa para el checkout: el importe que se cobra lo vuelve a calcular la
+ * API al crear el pedido, desde el mismo código postal. Nunca se manda de vuelta
+ * — la tienda pregunta cuánto cuesta, no lo propone.
+ */
+export async function quoteDelivery(
+  postalCode: string,
+  subtotalCents: number,
+): Promise<DeliveryQuote | null> {
+  try {
+    return await api.get<DeliveryQuote>(
+      `/api/v1/delivery/quote?postalCode=${encodeURIComponent(postalCode)}&subtotal=${subtotalCents}`,
+      { authenticated: true },
+    );
+  } catch {
+    // Un fallo aquí no puede bloquear la compra: el checkout muestra «lo
+    // calculamos al confirmar» y la API decide al crear el pedido.
+    return null;
+  }
+}
+
+/**
+ * Confirms a payment from the page the shopper lands on after paying.
+ *
+ * Belt to the webhook's braces (DOCS/PAGOS.md §11.1). The webhook is the
+ * authority and always runs; this exists because webhooks are sometimes delayed
+ * and the shopper is looking at the screen *now* — without it, somebody pays
+ * and comes back to an order that says "Pendiente".
+ *
+ * Returns the order either way. A confirmation that fails is not the shopper's
+ * problem: the order is real, the webhook will settle it, and showing an error
+ * page over a payment that went through would be the worse outcome.
+ */
+export async function confirmOrder(
+  token: string,
+  sessionId: string,
+): Promise<Order | null> {
+  try {
+    return await api.post<Order>(
+      `/api/v1/orders/${encodeURIComponent(token)}/confirm`,
+      { sessionId },
+      { authenticated: true },
+    );
+  } catch (error) {
+    console.error('confirmOrder failed:', error);
+    return null;
+  }
 }
 
 /**

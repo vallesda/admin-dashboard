@@ -2,7 +2,8 @@
 
 import { redirect } from 'next/navigation';
 
-import { createOrder } from '@/lib/commerce';
+import { createOrder, quoteDelivery } from '@/lib/commerce';
+import type { DeliveryQuote } from '@/lib/commerce/types';
 import { CommerceError } from '@/lib/commerce/api-client';
 import type { CheckoutState } from './form-state';
 
@@ -30,11 +31,34 @@ export async function placeOrder(
   const phone = String(formData.get('phone') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim();
   const rawFulfillment = String(formData.get('fulfillmentType') ?? '');
+  const rawPaymentMode = String(formData.get('paymentMode') ?? '');
+  const paymentMode =
+    rawPaymentMode === 'online' || rawPaymentMode === 'on_site'
+      ? rawPaymentMode
+      : null;
   const fulfillmentType =
     rawFulfillment === 'pickup' || rawFulfillment === 'delivery'
       ? rawFulfillment
       : null;
-  const deliveryAddress = String(formData.get('deliveryAddress') ?? '').trim();
+  const text = (key: string) => String(formData.get(key) ?? '').trim();
+
+  /*
+   * The address in parts, exactly as the API now expects it.
+   *
+   * Validated here for the person filling the form and again by the admin,
+   * which is the check that counts. This one exists so a missing colonia is a
+   * red line under the colonia field rather than a rejected order.
+   */
+  const address = {
+    street: text('street'),
+    extNumber: text('extNumber'),
+    intNumber: text('intNumber') || null,
+    neighborhood: text('neighborhood'),
+    city: text('city'),
+    state: text('state'),
+    postalCode: text('postalCode'),
+    references: text('references') || null,
+  };
   const notes = String(formData.get('notes') ?? '').trim();
 
   const fieldErrors: Record<string, string> = {};
@@ -55,8 +79,29 @@ export async function placeOrder(
     fieldErrors.fulfillmentType = 'Elige cómo quieres recibirlo.';
   }
 
-  if (fulfillmentType === 'delivery' && deliveryAddress.length < 10) {
-    fieldErrors.deliveryAddress = 'Escribe la dirección completa de entrega.';
+  if (paymentMode === null) {
+    fieldErrors.paymentMode = 'Elige cómo quieres pagar.';
+  }
+
+  if (fulfillmentType === 'delivery') {
+    if (!address.street) fieldErrors.street = 'Escribe la calle.';
+    if (!address.extNumber) fieldErrors.extNumber = 'Falta el número.';
+    if (!address.neighborhood) fieldErrors.neighborhood = 'Escribe la colonia.';
+    if (!address.city) fieldErrors.city = 'Escribe el municipio o alcaldía.';
+    if (!address.state) fieldErrors.state = 'Elige tu estado.';
+    if (!/^[0-9]{5}$/.test(address.postalCode)) {
+      fieldErrors.postalCode = 'El código postal son 5 dígitos.';
+    }
+  }
+
+  /*
+   * Cash is collected across the shop's counter, never from a driver. The form
+   * already hides the option once delivery is chosen; this is the check that
+   * holds when the form is not the thing posting.
+   */
+  if (paymentMode === 'on_site' && fulfillmentType === 'delivery') {
+    fieldErrors.paymentMode =
+      'Los pedidos a domicilio se pagan en línea.';
   }
 
   let lines: { productId: string; quantity: number }[] = [];
@@ -77,21 +122,46 @@ export async function placeOrder(
 
   // `fulfillmentType === null` is already recorded in fieldErrors above; naming
   // it again here is what lets the compiler see it cannot be null below.
-  if (Object.keys(fieldErrors).length > 0 || fulfillmentType === null) {
+  if (
+    Object.keys(fieldErrors).length > 0 ||
+    fulfillmentType === null ||
+    paymentMode === null
+  ) {
     return { error: null, fieldErrors };
   }
 
   let token: string;
+  let checkoutUrl: string | null = null;
 
   try {
     const result = await createOrder({
       customer: { name, phone, email: email || null },
       fulfillmentType,
-      deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress : undefined,
+      // The API validates `state` against the 32 federal entities; sending an
+      // unknown one comes back as a 422 with a message the shopper can read.
+      deliveryAddress: fulfillmentType === 'delivery' ? address : undefined,
       notes: notes || undefined,
       lines,
+      paymentMode,
+      // Sent from here, not hard-coded in the admin: this storefront is going
+      // to become its own deployment and the admin must not carry its domain.
+      // The admin validates the origin against an allow-list before handing
+      // either URL to the payment provider, so this cannot become an open
+      // redirect (DOCS/PAGOS.md §8.2).
+      returnUrls:
+        paymentMode === 'online'
+          ? {
+              success: `${storeOrigin()}/pedido/{TOKEN}`,
+              cancel: `${storeOrigin()}/checkout?cancelado=1`,
+            }
+          : undefined,
     });
     token = result.token;
+    // Null when the order is payable online but no page could be opened. The
+    // order is real either way, so the shopper goes to their confirmation
+    // rather than to an error.
+    checkoutUrl =
+      result.paymentMode === 'online' ? result.payment.checkoutUrl : null;
   } catch (error) {
     // A DomainError from the admin — out of stock, product no longer sellable —
     // arrives as 422 with a message already written for a customer to read.
@@ -111,5 +181,42 @@ export async function placeOrder(
 
   // Outside the try: `redirect` works by throwing, and catching it here would
   // turn a successful order into an error message.
-  redirect(`/pedido/${token}`);
+  //
+  // An online order goes straight to the payment page; one to be paid at the
+  // counter goes to its confirmation. Either way the order already exists and
+  // its stock is already reserved, so a shopper who abandons the payment page
+  // still has a real order they can pay in person.
+  redirect(checkoutUrl ?? `/pedido/${token}`);
+}
+
+/**
+ * This storefront's own origin, for the URLs it asks to be returned to.
+ *
+ * Read from the environment rather than from the request so a preview
+ * deployment cannot talk the admin into bouncing customers somewhere else — and
+ * so the value is one the admin's allow-list can actually be configured with.
+ */
+function storeOrigin(): string {
+  return (
+    process.env.NEXT_PUBLIC_STORE_URL ??
+    process.env.STORE_URL ??
+    'http://localhost:3001'
+  );
+}
+
+/**
+ * Cotiza el envío desde el cliente, pasando por el servidor.
+ *
+ * Existe sólo porque el token de servicio no puede llegar al navegador. El
+ * componente llama a esta acción, la acción llama a la costura, y la credencial
+ * se queda donde debe — la misma razón por la que `placeOrder` es una Server
+ * Action y no un `fetch`.
+ */
+export async function quoteDeliveryAction(
+  postalCode: string,
+  subtotalCents: number,
+): Promise<DeliveryQuote | null> {
+  if (!/^[0-9]{5}$/.test(postalCode)) return null;
+
+  return quoteDelivery(postalCode, Math.max(0, Math.trunc(subtotalCents)));
 }

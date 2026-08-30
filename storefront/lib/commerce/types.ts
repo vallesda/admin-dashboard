@@ -129,13 +129,39 @@ export type OrderLine = {
  * Carries no phone and no email: the confirmation page is reachable by anyone
  * holding the link, and the link travels through browser history and referrers.
  */
+export type OrderPayment = {
+  status: string;
+  methodLabel: string | null;
+  amountPaid: Money;
+  amountRefunded: Money;
+  /** A live payment voucher the customer may need to reopen. */
+  actionUrl: string | null;
+  expiresAt: string | null;
+};
+
 export type Order = {
   orderNumber: number;
   status: string;
   paymentStatus: string;
+  paymentMode: string;
+  payment: OrderPayment;
+  /** One sentence about what to do next, already written for a person. */
+  instructions: string | null;
   fulfillmentType: string;
   customerName: string;
+  /** The composed one-line snapshot, for printing. */
   deliveryAddress: string | null;
+  /** The same address in parts, for anything that has to act on it. */
+  delivery: {
+    street: string;
+    extNumber: string;
+    intNumber: string | null;
+    neighborhood: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    references: string | null;
+  } | null;
   lines: OrderLine[];
   subtotal: Money;
   deliveryFee: Money;
@@ -146,12 +172,87 @@ export type Order = {
 export type CheckoutInput = {
   customer: { name: string; phone: string; email: string | null };
   fulfillmentType: 'pickup' | 'delivery';
-  deliveryAddress?: string;
+  /** Whether the shopper pays now or when the order is handed over. */
+  paymentMode: 'online' | 'on_site';
+  /**
+   * The address in parts. Required for a delivery, absent for a pickup.
+   *
+   * `state` must be one of the 32 federal entities as INEGI names them; the API
+   * rejects anything else. A closed list is what keeps "CDMX" and "Ciudad de
+   * México" from being two places.
+   */
+  deliveryAddress?: {
+    street: string;
+    extNumber: string;
+    intNumber: string | null;
+    neighborhood: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    references: string | null;
+  };
   notes?: string;
   lines: { productId: string; quantity: number }[];
+  /**
+   * Where to come back to after paying. Only meaningful for `online`.
+   *
+   * `success` may contain `{TOKEN}`, replaced with the order's public token by
+   * the API — this side cannot know it before the order exists. The API also
+   * checks both URLs against an allow-list of origins, so a rogue value is
+   * rejected rather than turned into a redirect wearing the shop's branding.
+   */
+  returnUrls?: { success: string; cancel: string };
 };
 
+/**
+ * Discriminated by `paymentMode`, so this code cannot read an at-the-counter
+ * result as if it carried a payment URL.
+ *
+ * Note what is absent: any mention of the payment provider. `checkoutUrl` is a
+ * string to redirect to, and which company serves that page is the admin's
+ * business — which is what lets this storefront move to its own repository
+ * without carrying a payment integration with it.
+ */
 export type CheckoutResult = {
   orderNumber: number;
   token: string;
-};
+} & (
+  | {
+      paymentMode: 'online';
+      payment: {
+        status: 'pending';
+        /**
+         * Where to pay, or null when no payment page could be opened.
+         *
+         * Null is not an error: the order exists and its stock is reserved, and
+         * the shop will send a payment link. Redirect when there is a URL,
+         * otherwise show the confirmation.
+         */
+        checkoutUrl: string | null;
+        expiresAt: string | null;
+      };
+    }
+  | {
+      paymentMode: 'on_site';
+      payment: { status: 'on_delivery'; instructions: string };
+    }
+);
+
+/**
+ * Cuánto cuesta llevar el carrito a un código postal.
+ *
+ * `covered: false` no es un error ni «cuesta cero»: es un sitio a donde la
+ * tienda no llega. La diferencia importa porque el checkout tiene que decirlo
+ * antes de aceptar el pedido, no después.
+ */
+export type DeliveryQuote =
+  | {
+      covered: true;
+      zoneId: string;
+      zoneName: string;
+      feeCents: number;
+      reason: 'zone' | 'free_over_threshold';
+      /** Cuánto falta de mercancía para que salga gratis. `null` si no aplica. */
+      missingForFreeCents: number | null;
+    }
+  | { covered: false; reason: 'out_of_range' };

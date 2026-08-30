@@ -14,6 +14,8 @@ import 'server-only';
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { moneySummary, findOpenAttempt } from '@/modules/payments/queries';
+import { methodLabel } from '@/modules/payments/stripe';
 import {
   categories,
   products,
@@ -240,15 +242,64 @@ export async function getOrderByToken(
 
   const mxn = (amountCents: number) => ({ amountCents, currency: 'MXN' as const });
 
+  /*
+   * The money block, redacted here on purpose.
+   *
+   * The alternative — shipping `payment_method_type: "oxxo"` and keeping a
+   * dictionary in the storefront — is exactly the leak of provider knowledge
+   * that would tie a separate deployment to Stripe (DOCS/PAGOS.md §8.2). A new
+   * payment method is added here and the storefront never notices.
+   */
+  const [money, attempt] = await Promise.all([
+    moneySummary(order.id),
+    findOpenAttempt(order.id),
+  ]);
+
   return {
     orderNumber: order.orderNumber,
     status: order.status,
     paymentStatus: order.paymentStatus,
+    paymentMode: order.paymentMode,
+    payment: {
+      status: order.paymentStatus,
+      methodLabel: attempt?.paymentMethodType
+        ? methodLabel(attempt.paymentMethodType)
+        : order.paymentMode === 'on_site'
+          ? 'Al recibir'
+          : null,
+      amountPaid: mxn(money.paidCents),
+      amountRefunded: mxn(money.refundedCents),
+      // The OXXO voucher: the customer's actual instrument, and the one thing
+      // on this page they may need to open again days later.
+      actionUrl: attempt?.hostedVoucherUrl ?? null,
+      expiresAt: attempt?.expiresAt ? attempt.expiresAt.toISOString() : null,
+    },
+    instructions: paymentInstructions(order),
     fulfillmentType: order.fulfillmentType,
     // The snapshot taken when the order was placed, not the customer's current
     // record — and deliberately no phone or email in a token-addressed response.
     customerName: order.customerName,
     deliveryAddress: order.deliveryAddress,
+    // Present only when every required part is there. A half-filled address is
+    // worse than none: it looks routable and is not.
+    delivery:
+      order.deliveryStreet &&
+      order.deliveryExtNumber &&
+      order.deliveryNeighborhood &&
+      order.deliveryCity &&
+      order.deliveryState &&
+      order.deliveryPostalCode
+        ? {
+            street: order.deliveryStreet,
+            extNumber: order.deliveryExtNumber,
+            intNumber: order.deliveryIntNumber,
+            neighborhood: order.deliveryNeighborhood,
+            city: order.deliveryCity,
+            state: order.deliveryState,
+            postalCode: order.deliveryPostalCode,
+            references: order.deliveryReferences,
+          }
+        : null,
     lines: lines.map((l) => ({
       name: l.productName,
       quantity: l.quantity,
@@ -449,4 +500,34 @@ export async function getPackageByHandle(
       lines.length > 0 &&
       lines.every((line) => line.product.available >= line.quantity),
   };
+}
+
+/**
+ * What the customer has to do next about money, in one sentence.
+ *
+ * Written on this side of the API because it depends on how the order is handed
+ * over and how it was agreed to be paid — both of which are domain knowledge.
+ * The storefront prints the sentence; it does not compose it.
+ */
+function paymentInstructions(order: {
+  paymentMode: 'online' | 'on_site';
+  paymentStatus: string;
+  fulfillmentType: string;
+}): string | null {
+  if (order.paymentStatus === 'paid') return null;
+
+  // `on_site` can only ever be a pickup now: cash is collected across the
+  // counter and never from a driver.
+  if (order.paymentMode === 'on_site') {
+    return 'Paga en efectivo al recoger tu pedido en la tienda.';
+  }
+
+  if (order.paymentStatus === 'processing') {
+    return 'Ya generamos tu referencia de pago. En cuanto se registre el pago preparamos tu pedido.';
+  }
+
+  // Online and unpaid with no live attempt: the payment page could not be
+  // opened, so the shop sends a link instead. Said plainly, because "esperando
+  // el pago" with no way to pay is the kind of dead end that generates a call.
+  return 'Tu pedido está apartado. Te enviaremos una liga para pagarlo en línea.';
 }

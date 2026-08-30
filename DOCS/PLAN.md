@@ -264,6 +264,35 @@ Una confirmación externa cambia el dinero, no el inventario directamente.
 
 ---
 
+## 9bis. Fase 6 — Pagos
+
+El desglose completo vive en [PAGOS.md](PAGOS.md) §14, porque las decisiones que lo
+sostienen (Checkout alojado, pedido primero, `paymentStatus` como proyección, la tienda
+sin llaves de Stripe) necesitan argumentarse y no caben en una tabla.
+
+Resumen del estado:
+
+- `F6.01`–`F6.16`: **implementados**.
+- `F6.16` abre `DT-008`: hay `pnpm test` con 60 pruebas de dominio puro (las puertas
+  P1–P4, la proyección del estado de pago, los validadores de cobro y reembolso, y la
+  lista blanca de URLs de retorno). Sigue faltando CI y cualquier prueba que toque la
+  base de datos.
+- Verificación contra Stripe real: **bloqueada** hasta que exista cuenta de Stripe MX.
+  Sin `STRIPE_SECRET_KEY` el checkout cae al camino de «pagar al recibir», que es una
+  degradación deliberada y no un fallo.
+
+**Criterio de salida**
+
+```text
+un comprador paga con tarjeta         → el pedido se confirma solo
+un comprador aparta y paga al recoger → avanza sin pagar, pero no se entrega sin cobro
+un admin devuelve $180 de $540        → reembolso parcial con autor y fecha
+un admin devuelve efectivo            → misma fila en el libro, sin llamar a Stripe
+el mismo evento llega tres veces      → el pedido cambia una sola vez
+```
+
+---
+
 ## 10. Definition of Done
 
 Aplica a cada feature:
@@ -347,7 +376,7 @@ Estado a cierre de F4.
 
 | ID | Deuda | Impacto | Prioridad |
 |---|---|---|---|
-| `DT-008` | **Sin tests ni CI** | nada impide una regresión; los bugs silenciosos de F3/F4 volverían sin aviso | 🔴 alta |
+| `DT-008` | **Sin CI; tests sólo de dominio puro** | `pnpm test` cubre las reglas (60 pruebas), pero nada corre solo en un push y nada prueba una transacción real contra Postgres | 🔴 alta |
 | `DT-006` | 5 clientes del tutorial sin usar, con `phone = 'SIN TELEFONO'` | ensucian la lista de clientes reales | 🟡 media |
 | `DT-011` | `backfillInventory()` existe pero nada lo invoca | reparación masiva sin punto de entrada | 🟢 baja |
 | `DT-012` | Un pedido no se puede corregir tras crearlo | cambiar una cantidad obliga a cancelar y rehacer | 🟡 media |

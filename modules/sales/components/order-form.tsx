@@ -9,6 +9,7 @@ import { FormCard } from '@/app/ui/kit/form';
 import { formatCentavos } from '@/lib/money';
 import { createOrder } from '../actions';
 import { emptyOrderFormState, type OrderFormState } from '../form-state';
+import { MEXICAN_STATES } from '../address';
 
 type CustomerOption = { id: string; name: string; phone: string };
 type ProductOption = {
@@ -44,7 +45,6 @@ export default function OrderForm({
   const [fulfillment, setFulfillment] = useState<'pickup' | 'delivery'>(
     'pickup',
   );
-  const [deliveryFee, setDeliveryFee] = useState('0');
 
   const byId = new Map(products.map((p) => [p.id, p]));
 
@@ -54,8 +54,6 @@ export default function OrderForm({
     if (!product || !Number.isFinite(qty) || qty <= 0) return sum;
     return sum + product.priceCents * qty;
   }, 0);
-
-  const fee = fulfillment === 'delivery' ? Number(deliveryFee) * 100 || 0 : 0;
 
   const setLine = (index: number, patch: Partial<(typeof lines)[number]>) =>
     setLines((prev) =>
@@ -285,49 +283,44 @@ export default function OrderForm({
         </fieldset>
 
         {fulfillment === 'delivery' ? (
-          <div className="mb-4 grid gap-4 md:grid-cols-2">
+          <div className="mb-4 flex flex-col gap-4">
+            {/* The shop takes cash across its own counter, never from a driver.
+                Saying so here means the operator learns the rule while taking
+                the order rather than from a rejected submit. */}
+            <p className="rounded-md border border-line bg-subtle px-3 py-2 text-xs text-ink-muted">
+              Un pedido a domicilio se cobra en línea. Al guardarlo, usa
+              «Enviar liga de pago» para mandársela al cliente.
+            </p>
+
+            <AddressFields errors={state.errors} />
+            {/*
+              No hay campo de costo: lo cotiza el servidor desde el código
+              postal. Lo único que se puede hacer con él aquí es perdonarlo, y
+              sólo escribiendo por qué — una exención sin motivo no se audita.
+            */}
             <div>
               <label
-                htmlFor="deliveryAddress"
+                htmlFor="waiveDeliveryFeeNote"
                 className="mb-1.5 block text-sm font-medium text-ink"
               >
-                Dirección de entrega
+                Perdonar el envío{' '}
+                <span className="text-ink-muted">(opcional, requiere admin)</span>
               </label>
               <input
-                id="deliveryAddress"
-                name="deliveryAddress"
+                id="waiveDeliveryFeeNote"
+                name="waiveDeliveryFeeNote"
                 type="text"
-                required
-                placeholder="Av. Reforma 100, Col. Centro"
-                aria-describedby="deliveryAddress-error"
+                maxLength={500}
+                placeholder="Se retrasó el pedido anterior"
+                aria-describedby="waiveDeliveryFeeNote-error"
                 className="field"
               />
+              <p className="mt-1 text-xs text-ink-muted">
+                Déjalo vacío para cobrar la tarifa de la zona del código postal.
+              </p>
               <FieldError
-                id="deliveryAddress-error"
-                messages={state.errors?.deliveryAddress}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="deliveryFeeCents"
-                className="mb-1.5 block text-sm font-medium text-ink"
-              >
-                Costo de envío (MXN)
-              </label>
-              <input
-                id="deliveryFeeCents"
-                name="deliveryFeeCents"
-                type="number"
-                min="0"
-                step="1"
-                value={deliveryFee}
-                onChange={(e) => setDeliveryFee(e.target.value)}
-                aria-describedby="deliveryFeeCents-error"
-                className="field"
-              />
-              <FieldError
-                id="deliveryFeeCents-error"
-                messages={state.errors?.deliveryFeeCents}
+                id="waiveDeliveryFeeNote-error"
+                messages={state.errors?.waiveDeliveryFeeNote}
               />
             </div>
           </div>
@@ -351,14 +344,22 @@ export default function OrderForm({
         <div className="rounded-md border border-line bg-subtle/50 p-4 text-sm">
           <Row label="Subtotal" value={formatCentavos(subtotal)} />
           {fulfillment === 'delivery' ? (
-            <Row label="Envío" value={formatCentavos(fee)} />
+            /* El envío no se estima aquí: depende del código postal y del
+               subtotal, y sale de las zonas configuradas. Poner un número
+               inventado sería peor que no ponerlo — el operador lo leería en
+               voz alta al cliente. */
+            <Row label="Envío" value="según la zona" />
           ) : null}
           <div className="mt-2 border-t border-line pt-2">
-            <Row label="Total estimado" value={formatCentavos(subtotal + fee)} bold />
+            <Row
+              label={fulfillment === 'delivery' ? 'Mercancía' : 'Total estimado'}
+              value={formatCentavos(subtotal)}
+              bold
+            />
           </div>
           <p className="mt-2 text-xs text-ink-muted">
-            El total definitivo lo calcula el servidor con los precios vigentes
-            del catálogo.
+            El total definitivo lo calcula el servidor: los precios vigentes del
+            catálogo más el envío que corresponda al código postal.
           </p>
         </div>
 
@@ -411,6 +412,128 @@ function FieldError({ id, messages }: { id: string; messages?: string[] }) {
           {message}
         </p>
       ))}
+    </div>
+  );
+}
+
+/**
+ * The delivery address, in the pieces a route can be built from.
+ *
+ * One free-text box was enough while "a domicilio" meant a phone call and
+ * someone who knew the neighbourhood. It stops being enough as soon as anyone
+ * wants to sort a route or check a postal code against a zone — see
+ * `modules/sales/address.ts`.
+ *
+ * The layout follows how a Mexican address is dictated: street and number,
+ * then colonia and postal code, then municipio and state. An operator taking
+ * this down over the phone fills it in the order the customer says it.
+ */
+function AddressFields({
+  errors,
+}: {
+  errors?: Record<string, string[] | undefined>;
+}) {
+  return (
+    <div className="flex flex-col gap-4 rounded-md border border-line bg-subtle/50 px-3.5 py-3.5">
+      <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
+        <Text name="street" label="Calle" required errors={errors} />
+        <Text name="extNumber" label="Núm. ext." required errors={errors} />
+        <Text name="intNumber" label="Interior" errors={errors} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Text name="neighborhood" label="Colonia" required errors={errors} />
+        <Text
+          name="postalCode"
+          label="Código postal"
+          required
+          inputMode="numeric"
+          maxLength={5}
+          placeholder="06000"
+          errors={errors}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Text name="city" label="Municipio o alcaldía" required errors={errors} />
+        <div>
+          <label
+            htmlFor="state"
+            className="mb-1.5 block text-sm font-medium text-ink"
+          >
+            Estado <span aria-hidden="true" className="text-danger">*</span>
+          </label>
+          {/* A closed list, not free text: "CDMX" and "Ciudad de México" being
+              two values makes a delivery zone impossible to define. */}
+          <select
+            id="state"
+            name="state"
+            required
+            defaultValue=""
+            aria-describedby="state-error"
+            className="field"
+          >
+            <option value="" disabled>
+              Elige un estado
+            </option>
+            {MEXICAN_STATES.map((state) => (
+              <option key={state} value={state}>
+                {state}
+              </option>
+            ))}
+          </select>
+          <FieldError id="state-error" messages={errors?.state} />
+        </div>
+      </div>
+
+      <Text
+        name="references"
+        label="Referencias"
+        placeholder="Entre qué calles, color de la fachada"
+        errors={errors}
+      />
+    </div>
+  );
+}
+
+function Text({
+  name,
+  label,
+  required,
+  errors,
+  ...props
+}: {
+  name: string;
+  label: string;
+  required?: boolean;
+  errors?: Record<string, string[] | undefined>;
+} & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div>
+      <label
+        htmlFor={name}
+        className="mb-1.5 block text-sm font-medium text-ink"
+      >
+        {label}
+        {required ? (
+          <>
+            {' '}
+            <span aria-hidden="true" className="text-danger">
+              *
+            </span>
+          </>
+        ) : null}
+      </label>
+      <input
+        {...props}
+        id={name}
+        name={name}
+        type="text"
+        required={required}
+        aria-describedby={`${name}-error`}
+        className="field"
+      />
+      <FieldError id={`${name}-error`} messages={errors?.[name]} />
     </div>
   );
 }

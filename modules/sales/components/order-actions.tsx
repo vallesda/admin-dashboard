@@ -7,32 +7,54 @@
  * fine: only serialisable props (ids, names, a status string) pass over, and a
  * bound server action is itself a serialisable reference.
  */
-import type { OrderStatus, PaymentStatus } from '@/db/schema/sales';
+import type {
+  OrderStatus,
+  PaymentStatus,
+  PaymentMode,
+} from '@/db/schema/sales';
 import { Button } from '@/app/ui/button';
 import ActionRunner from '@/app/ui/kit/action-runner';
-import { changeOrderStatus, changePaymentStatus } from '../actions';
-import { Can } from '@/app/ui/kit/role';
+import { changeOrderStatus } from '../actions';
 import {
-  nextStatuses,
-  nextPaymentStatuses,
-  TRANSITION_LABEL,
-  PAYMENT_TRANSITION_LABEL,
-} from '../state-machine';
+  SettleAndComplete,
+  CancelWithMoney,
+  CancelOrder,
+} from '@/modules/payments/components/money-actions';
+import { availableTransitions, TRANSITION_LABEL } from '../state-machine';
 
 /**
- * Buttons for the transitions this order can actually make.
+ * Buttons for the transitions this order can actually make *right now*.
  *
- * Driven by the same policy the service enforces, so the UI can never offer a
- * move that is going to be rejected. A terminal order renders nothing.
+ * Driven by `availableTransitions`, the same function the service applies, so
+ * the panel can never offer a move that is going to be rejected. That was
+ * already true of the operational rules; what is new is that the money is part
+ * of the question (DOCS/PAGOS.md §7).
+ *
+ * A blocked move is shown as an explanation rather than hidden. A button that
+ * simply vanishes leaves the operator wondering whether the screen is broken;
+ * "el pago está en proceso" tells them what to do next, which is wait.
  */
 export function OrderStatusActions({
   orderId,
   status,
+  paymentStatus,
+  paymentMode,
+  outstandingCents,
+  heldCents,
 }: {
   orderId: string;
   status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  paymentMode: PaymentMode;
+  /** What is still owed, so "Cobrar y entregar" can pre-fill the amount. */
+  outstandingCents: number;
+  /** What has been collected, so cancelling knows there is money at stake. */
+  heldCents: number;
 }) {
-  const options = nextStatuses(status);
+  const options = availableTransitions(status, {
+    status: paymentStatus,
+    mode: paymentMode,
+  });
 
   if (options.length === 0) {
     return (
@@ -42,83 +64,70 @@ export function OrderStatusActions({
     );
   }
 
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((next) => (
-        <ActionRunner
-          key={next}
-          action={changeOrderStatus.bind(null, orderId, next)}
-        >
-          {(pending, run) => (
-            /* Cancelling is the one irreversible move on this screen, so it is
-               the one that looks different. Everything else advances the order
-               and takes the primary tone. */
-            <Button
-              type="button"
-              onClick={run}
-              size="sm"
-              variant={next === 'cancelled' ? 'danger' : 'primary'}
-              disabled={pending}
-            >
-              {TRANSITION_LABEL[next]}
-            </Button>
-          )}
-        </ActionRunner>
-      ))}
-    </div>
-  );
-}
-
-/**
- * Money moves at `admin` (see `changePaymentStatus`). A `staff` sees the state
- * on the badge above but is not offered the transitions.
- */
-export function PaymentStatusActions({
-  orderId,
-  paymentStatus,
-}: {
-  orderId: string;
-  paymentStatus: PaymentStatus;
-}) {
-  const options = nextPaymentStatuses(paymentStatus);
-
-  if (options.length === 0) {
-    return (
-      <p className="text-sm text-ink-muted">
-        Un pago reembolsado no se puede revertir.
-      </p>
-    );
-  }
+  const blocked = options.filter((o) => !o.verdict.allowed);
 
   return (
-    <Can
-      role="admin"
-      fallback={
-        <p className="text-sm text-ink-muted">
-          Registrar un cobro o un reembolso requiere el rol admin.
-        </p>
-      }
-    >
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-2">
-        {options.map((next) => (
-          <ActionRunner
-            key={next}
-            action={changePaymentStatus.bind(null, orderId, next)}
-          >
-            {(pending, run) => (
-              <Button
-                type="button"
-                onClick={run}
-                size="sm"
-                variant="secondary"
-                disabled={pending}
-              >
-                {PAYMENT_TRANSITION_LABEL[next]}
-              </Button>
-            )}
-          </ActionRunner>
-        ))}
+        {options.map(({ to, verdict }) => {
+          if (!verdict.allowed) {
+            // Gate P3: the refusal comes with the action that resolves it.
+            // Blocking the handover without offering the collection would send
+            // the counter to another screen with a customer waiting.
+            if (to === 'completed') {
+              return (
+                <SettleAndComplete
+                  key={to}
+                  orderId={orderId}
+                  outstandingCents={outstandingCents}
+                />
+              );
+            }
+            return null;
+          }
+
+          if (to === 'cancelled') {
+            // Gate P4: cancelling an order that holds money is a decision about
+            // the money, so it opens a dialog instead of firing straight away.
+            // Either way cancellation goes through `PAG`, because it also has
+            // to close whatever payment page is still open.
+            return heldCents > 0 ? (
+              <CancelWithMoney key={to} orderId={orderId} heldCents={heldCents} />
+            ) : (
+              <CancelOrder key={to} orderId={orderId} />
+            );
+          }
+
+          return (
+            <ActionRunner
+              key={to}
+              action={changeOrderStatus.bind(null, orderId, to)}
+            >
+              {(pending, run) => (
+                    <Button
+                  type="button"
+                  onClick={run}
+                  size="sm"
+                  variant="primary"
+                  disabled={pending}
+                >
+                  {TRANSITION_LABEL[to]}
+                </Button>
+              )}
+            </ActionRunner>
+          );
+        })}
       </div>
-    </Can>
+
+      {blocked.length > 0 ? (
+        <ul className="flex flex-col gap-1">
+          {blocked.map(({ to, verdict }) => (
+            <li key={to} className="text-xs text-ink-muted">
+              {!verdict.allowed ? verdict.reason : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }

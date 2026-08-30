@@ -5,6 +5,7 @@ import PageHeader from '@/app/ui/kit/page-header';
 import MetricCards from '@/modules/admin/components/metric-cards';
 import RecentOrders from '@/modules/admin/components/recent-orders';
 import LowStockList from '@/modules/admin/components/low-stock-list';
+import StaleHoldsList from '@/modules/payments/components/stale-holds-list';
 
 export const metadata = { title: 'Panel' };
 
@@ -43,6 +44,15 @@ export default function Page() {
         </Suspense>
         <Suspense fallback={<PanelListSkeleton />}>
           <LowStockList />
+        </Suspense>
+        {/*
+          Third panel, below the other two. Stock held for orders nobody has
+          come for is the same class of problem as stock running out — both are
+          "producto que no está donde debería" — so it belongs on this screen
+          rather than buried in the order list (DOCS/PAGOS.md §10).
+        */}
+        <Suspense fallback={<PanelListSkeleton />}>
+          <StaleHoldsList />
         </Suspense>
       </div>
     </div>

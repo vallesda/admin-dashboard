@@ -16,6 +16,7 @@ import { db } from '@/db';
 import { products } from '@/db/schema/catalog';
 import { customers } from '@/db/schema/customers';
 import { inventory, inventoryMovements } from '@/db/schema/inventory';
+import type { DeliveryFeeReason } from '@/db/schema/sales';
 import {
   orders,
   orderItems,
@@ -23,10 +24,14 @@ import {
   type OrderStatus,
   type PaymentStatus,
 } from '@/db/schema/sales';
-import { DomainError, NotFoundError } from '@/lib/errors';
+import { ConflictError, DomainError, NotFoundError } from '@/lib/errors';
+import { toDeliveryColumns, EMPTY_DELIVERY_COLUMNS } from './address';
+import { findZoneForPostalCode } from '@/modules/delivery/queries';
+import { applyWaiver, quoteDelivery } from '@/modules/delivery/quote';
 import {
   canTransition,
   canTransitionPayment,
+  canTransitionWithPayment,
   ORDER_STATUS_LABEL,
   PAYMENT_STATUS_LABEL,
 } from './state-machine';
@@ -138,6 +143,55 @@ export async function createOrder(
 
     const subtotalCents = items.reduce((sum, i) => sum + i.lineTotalCents, 0);
 
+    /*
+     * El envío lo cotiza el servidor desde el código postal, nunca lo manda el
+     * cliente. Es `RN-008` aplicado al envío: el carrito dice a dónde va, y la
+     * tienda dice cuánto cuesta llevarlo.
+     *
+     * El umbral de «gratis a partir de X» se compara contra el **subtotal de
+     * mercancía**, que es la cifra que se acaba de calcular arriba. Contra el
+     * total, el propio envío empujaría el pedido por encima del umbral y
+     * acabaría pagándose a sí mismo.
+     */
+    let delivery = {
+      deliveryFeeCents: 0,
+      deliveryZoneId: null as string | null,
+      deliveryZoneName: null as string | null,
+      deliveryFeeReason: 'none' as DeliveryFeeReason,
+      deliveryFeeNote: null as string | null,
+      deliveryFeeWaivedBy: null as string | null,
+    };
+
+    if (input.fulfillmentType === 'delivery' && input.deliveryAddress) {
+      const zone = await findZoneForPostalCode(input.deliveryAddress.postalCode);
+      const quote = quoteDelivery(zone, subtotalCents);
+
+      if (!quote.covered) {
+        // No es «el envío cuesta cero»: es un sitio a donde la tienda no llega.
+        // Decirlo así evita aceptar un pedido que nadie va a poder entregar.
+        throw new DomainError(
+          'order.out_of_delivery_range',
+          `No hacemos entregas en el código postal ${input.deliveryAddress.postalCode}.`,
+          'postalCode',
+        );
+      }
+
+      const applied = input.waiveDeliveryFeeNote
+        ? applyWaiver(quote, input.waiveDeliveryFeeNote)
+        : { feeCents: quote.feeCents, reason: quote.reason, note: null };
+
+      delivery = {
+        deliveryFeeCents: applied.feeCents,
+        deliveryZoneId: quote.zoneId,
+        // Copia, no lectura: las zonas se renombran y las tarifas cambian, y
+        // este pedido tiene que poder explicar su cobro dentro de un año.
+        deliveryZoneName: quote.zoneName,
+        deliveryFeeReason: applied.reason,
+        deliveryFeeNote: applied.note,
+        deliveryFeeWaivedBy: applied.reason === 'waived' ? actorId : null,
+      };
+    }
+
     const [order] = await tx
       .insert(orders)
       .values({
@@ -148,10 +202,21 @@ export async function createOrder(
         customerPhone: customer.phone,
         customerEmail: customer.email,
         fulfillmentType: input.fulfillmentType,
-        deliveryAddress: input.deliveryAddress,
+        paymentMode: input.paymentMode,
+        /*
+         * The address is stored twice on purpose: in parts, which is what a
+         * route or a delivery zone can be built from, and as one composed line,
+         * which is the snapshot every screen prints. The line is written once
+         * here and never recomputed — the same rule `orderItems` follows for
+         * names and prices (RN-005), so changing the format tomorrow cannot
+         * rewrite an order from today.
+         */
+        ...(input.fulfillmentType === 'delivery' && input.deliveryAddress
+          ? toDeliveryColumns(input.deliveryAddress)
+          : EMPTY_DELIVERY_COLUMNS),
         subtotalCents,
-        deliveryFeeCents: input.deliveryFeeCents,
-        totalCents: subtotalCents + input.deliveryFeeCents,
+        ...delivery,
+        totalCents: subtotalCents + delivery.deliveryFeeCents,
         notes: input.notes,
       })
       .returning();
@@ -205,8 +270,9 @@ export async function changeOrderStatus(
   orderId: string,
   next: OrderStatus,
   actorId: string | null,
+  options?: { confirmed?: boolean; tx?: Tx },
 ): Promise<OrderRow> {
-  return db.transaction(async (tx) => {
+  const run = async (tx: Tx): Promise<OrderRow> => {
     // Lock the order first: two staff members clicking "Completar" at the same
     // moment must not both convert the same reservation into a sale.
     const [order] = await tx
@@ -224,10 +290,33 @@ export async function changeOrderStatus(
       return order;
     }
 
-    if (!canTransition(order.status, next)) {
-      throw new DomainError(
-        'order.illegal_transition',
-        `Un pedido ${ORDER_STATUS_LABEL[order.status].toLowerCase()} no puede pasar a ${ORDER_STATUS_LABEL[next].toLowerCase()}.`,
+    /*
+     * The gates (DOCS/PAGOS.md §7).
+     *
+     * `canTransitionWithPayment` subsumes `canTransition`: it checks the
+     * operational move first and then asks the money machine whether this
+     * particular order may make it. The same function draws the buttons, so
+     * the panel never offers a move this will refuse.
+     */
+    const verdict = canTransitionWithPayment(order.status, next, {
+      status: order.paymentStatus,
+      mode: order.paymentMode,
+    });
+
+    if (!verdict.allowed) {
+      throw new DomainError('order.illegal_transition', verdict.reason);
+    }
+
+    /*
+     * A verdict that needs confirming is not a warning the service may ignore.
+     * The caller has to say it showed the operator the consequence and got a
+     * yes; otherwise this is a mis-click, and mis-clicks that hand over unpaid
+     * fish are exactly what these gates exist to stop.
+     */
+    if (verdict.requiresConfirmation && !options?.confirmed) {
+      throw new ConflictError(
+        'order.needs_confirmation',
+        verdict.requiresConfirmation,
       );
     }
 
@@ -251,7 +340,11 @@ export async function changeOrderStatus(
       .returning();
 
     return updated;
-  });
+  };
+
+  // `tx` lets "cobrar y entregar" fold the collection and the handover into one
+  // transaction: money recorded and goods released together, or neither.
+  return options?.tx ? run(options.tx) : db.transaction(run);
 }
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -338,47 +431,16 @@ async function releaseReservations(
   }
 }
 
-/**
- * Moves the payment machine, which is independent of the operational one
- * (RN-006, INV-ORD-07).
+/*
+ * `changePaymentStatus` used to live here.
  *
- * Marking an order paid does not advance it, and completing it does not claim
- * it was charged. Touching Inventory from here would be a category error: money
- * moving is not goods moving.
+ * It is gone on purpose. `orders.paymentStatus` is now a projection of the
+ * `payments`/`refunds` ledger and has exactly one writer —
+ * `modules/payments/service.recomputePaymentStatus` — which runs inside the
+ * transaction that changed the money (DOCS/PAGOS.md §6).
+ *
+ * A function here that set the column directly would be a second writer with no
+ * ledger behind it, which is precisely the situation that made Stripe and the
+ * counter impossible to reconcile. Collecting is `recordPayment`; giving money
+ * back is `refundOrder`.
  */
-export async function changePaymentStatus(
-  orderId: string,
-  next: PaymentStatus,
-): Promise<OrderRow> {
-  const [order] = await db
-    .select({ id: orders.id, paymentStatus: orders.paymentStatus })
-    .from(orders)
-    .where(eq(orders.id, orderId))
-    .limit(1);
-
-  if (!order) throw new NotFoundError('el pedido', orderId);
-
-  if (order.paymentStatus === next) {
-    const [row] = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.id, orderId))
-      .limit(1);
-    return row;
-  }
-
-  if (!canTransitionPayment(order.paymentStatus, next)) {
-    throw new DomainError(
-      'order.illegal_payment_transition',
-      `Un pago ${PAYMENT_STATUS_LABEL[order.paymentStatus].toLowerCase()} no puede pasar a ${PAYMENT_STATUS_LABEL[next].toLowerCase()}.`,
-    );
-  }
-
-  const [updated] = await db
-    .update(orders)
-    .set({ paymentStatus: next, updatedAt: new Date() })
-    .where(eq(orders.id, orderId))
-    .returning();
-
-  return updated;
-}

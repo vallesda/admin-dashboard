@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
-import { getOrder } from '@/lib/commerce';
+import { confirmOrder, getOrder } from '@/lib/commerce';
 import { formatMoney } from '@/lib/format';
 import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
@@ -28,6 +28,26 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: 'Cancelado',
 };
 
+/**
+ * The money state, in the customer's words.
+ *
+ * "Cobrando" would be honest and useless to a shopper; what they need to know
+ * is that the shop is waiting on their payment. The detail — which voucher,
+ * until when — is in the instructions block below, written by the API.
+ */
+const PAYMENT_LABEL: Record<string, string> = {
+  unpaid: 'Pendiente',
+  processing: 'Esperando tu pago',
+  paid: 'Pagado',
+  partially_refunded: 'Reembolso parcial',
+  refunded: 'Reembolsado',
+};
+
+const dateFormat = new Intl.DateTimeFormat('es-MX', {
+  dateStyle: 'long',
+  timeZone: 'America/Mexico_City',
+});
+
 const FULFILLMENT_LABEL: Record<string, string> = {
   pickup: 'Recoger en tienda',
   delivery: 'Entrega a domicilio',
@@ -35,11 +55,31 @@ const FULFILLMENT_LABEL: Record<string, string> = {
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { token } = await params;
-  const order = await getOrder(token);
+  const { session_id: sessionParam } = await searchParams;
+  const sessionId = typeof sessionParam === 'string' ? sessionParam : null;
+
+  /*
+   * Coming back from paying, this page confirms the payment itself instead of
+   * waiting for the webhook (DOCS/PAGOS.md §11.1).
+   *
+   * The webhook is the authority and always runs; it is also sometimes delayed,
+   * and the shopper is looking at the screen *now*. Without this they pay and
+   * land on an order that says "Pendiente", which is how a shop gets a phone
+   * call about money it already has.
+   *
+   * `confirmOrder` returns the order in the same round trip, so the confirmed
+   * state renders on this paint rather than after a refresh. If it fails it
+   * returns null and the plain read takes over — the order is real either way.
+   */
+  const order = sessionId
+    ? ((await confirmOrder(token, sessionId)) ?? (await getOrder(token)))
+    : await getOrder(token);
 
   // A wrong or expired link is a genuine 404, not a page apologising. The
   // storefront never says whether the token merely does not exist — it cannot
@@ -95,13 +135,78 @@ export default async function Page({
             <Eyebrow as="dt">
               Pago
             </Eyebrow>
+            {/*
+              Every word here was written by the API. This page prints the
+              label; it does not compose it from a status code, and it has no
+              idea which company processed the money — see DOCS/PAGOS.md §8.2.
+            */}
             <dd className="mt-1 text-sm">
-              {order.paymentStatus === 'paid' ? 'Pagado' : 'Al recibir'}
+              {PAYMENT_LABEL[order.payment.status] ??
+                order.payment.methodLabel ??
+                'Al recibir'}
             </dd>
           </div>
         </dl>
 
-        {order.deliveryAddress ? (
+        {/*
+          The one thing on this page a customer may come back for days later: an
+          OXXO voucher, and the date it stops working. It sits above the line
+          items because someone who reopens this link is looking for it, not for
+          what they ordered.
+        */}
+        {order.instructions ? (
+          <div className="mb-10 border border-border-strong bg-surface p-5">
+            <p className="text-sm">{order.instructions}</p>
+
+            {order.payment.actionUrl ? (
+              <a
+                href={order.payment.actionUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center border border-border-strong bg-surface px-4 py-2.5 text-sm font-medium transition-colors hover:border-gold hover:bg-gold hover:text-foreground"
+              >
+                Ver mi referencia de pago
+              </a>
+            ) : null}
+
+            {order.payment.expiresAt ? (
+              <p className="mt-2 text-xs text-muted">
+                Vence el {dateFormat.format(new Date(order.payment.expiresAt))}.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {order.delivery ? (
+          <div className="mb-10">
+            <Eyebrow as="h2">Dirección de entrega</Eyebrow>
+            {/*
+              Broken into lines the way it is written on an envelope, so the
+              customer can check it at a glance — this is the field that decides
+              whether their fish arrives.
+            */}
+            <address className="mt-1 not-italic text-sm">
+              <span className="block">
+                {order.delivery.street} {order.delivery.extNumber}
+                {order.delivery.intNumber
+                  ? `, Int. ${order.delivery.intNumber}`
+                  : ''}
+              </span>
+              <span className="block">
+                Col. {order.delivery.neighborhood} · C.P.{' '}
+                {order.delivery.postalCode}
+              </span>
+              <span className="block">
+                {order.delivery.city}, {order.delivery.state}
+              </span>
+              {order.delivery.references ? (
+                <span className="mt-1 block text-muted">
+                  {order.delivery.references}
+                </span>
+              ) : null}
+            </address>
+          </div>
+        ) : order.deliveryAddress ? (
           <div className="mb-10">
             <Eyebrow as="h2">Dirección</Eyebrow>
             <p className="mt-1 text-sm">{order.deliveryAddress}</p>

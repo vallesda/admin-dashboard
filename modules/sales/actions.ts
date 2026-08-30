@@ -53,14 +53,60 @@ function readOrderForm(formData: FormData) {
     return value === '' ? undefined : value;
   };
 
+  const fulfillmentType = formData.get('fulfillmentType');
+  const isDelivery = fulfillmentType === 'delivery';
+
   return {
     customerId: text('customerId') ?? '',
-    fulfillmentType: formData.get('fulfillmentType'),
-    deliveryAddress: text('deliveryAddress'),
-    deliveryFeeCents: formData.get('deliveryFeeCents') ?? 0,
+    fulfillmentType,
+    /*
+     * Derived, not asked for.
+     *
+     * The shop collects cash across its own counter and never from a driver, so
+     * a delivery taken over the phone has exactly one way to be paid: online,
+     * with the link the counter sends afterwards. A radio group whose second
+     * option is always illegal is a control that exists only to be refused.
+     */
+    paymentMode: isDelivery ? 'online' : 'on_site',
+    deliveryAddress: isDelivery
+      ? {
+          street: text('street'),
+          extNumber: text('extNumber'),
+          intNumber: text('intNumber') ?? null,
+          neighborhood: text('neighborhood'),
+          city: text('city'),
+          state: text('state'),
+          postalCode: text('postalCode'),
+          references: text('references') ?? null,
+        }
+      : undefined,
+    // Sin costo de envío en el formulario: lo cotiza el servidor. Lo único
+    // que un operador puede hacer con él es perdonarlo, y sólo con motivo.
+    waiveDeliveryFeeNote: text('waiveDeliveryFeeNote'),
     notes: text('notes'),
     lines,
   };
+}
+
+/**
+ * Flattens Zod issues, including the ones inside `deliveryAddress`.
+ *
+ * `error.flatten()` only reaches the top level, so every problem with the
+ * address arrived as one message on `deliveryAddress` and the operator was told
+ * "revisa el pedido" with no indication of which of eight fields was wrong.
+ * Nested paths are lifted to their own key, which is what the inputs are named.
+ */
+function fieldErrorsOf(error: {
+  issues: { path: (string | number)[]; message: string }[];
+}): Record<string, string[]> {
+  const errors: Record<string, string[]> = {};
+
+  for (const issue of error.issues) {
+    const key = String(issue.path[issue.path.length - 1] ?? 'form');
+    (errors[key] ??= []).push(issue.message);
+  }
+
+  return errors;
 }
 
 /** `staff`: taking an order is counter work, not administration. */
@@ -72,10 +118,31 @@ export async function createOrder(
 
   const parsed = createOrderSchema.safeParse(readOrderForm(formData));
 
+  /*
+   * Perdonar el envío es dinero, y el dinero es de `admin` (SRS §4). Tomar el
+   * pedido sigue siendo trabajo de mostrador; regalar el envío no.
+   *
+   * Se comprueba después de validar para que un `staff` que se equivoca de
+   * campo vea el error del campo, y no un rechazo de permisos que no explica
+   * nada.
+   */
+  if (parsed.success && parsed.data.waiveDeliveryFeeNote) {
+    try {
+      await requireRole('admin');
+    } catch (error) {
+      if (error instanceof AuthorizationError) {
+        return {
+          errors: { waiveDeliveryFeeNote: [error.message] },
+          message: 'Perdonar el envío requiere el rol admin.',
+        };
+      }
+      throw error;
+    }
+  }
+
   if (!parsed.success) {
-    const fieldErrors = parsed.error.flatten().fieldErrors;
     return {
-      errors: fieldErrors,
+      errors: fieldErrorsOf(parsed.error),
       message: 'Revisa el pedido. No se registró.',
     };
   }
@@ -135,34 +202,4 @@ export async function changeOrderStatus(
   return ok(ORDER_STATUS_DONE[next]);
 }
 
-/**
- * Moves the payment machine.
- *
- * `admin`, unlike the operational transitions: marking money received or
- * refunded is an accounting statement, and it is the one action in Sales that
- * nobody can undo (`refunded` is terminal).
- */
-const PAYMENT_STATUS_DONE: Record<PaymentStatus, string> = {
-  unpaid: 'Pedido marcado como no pagado.',
-  paid: 'Pago registrado.',
-  refunded: 'Reembolso registrado. Este estado no se puede revertir.',
-};
 
-export async function changePaymentStatus(
-  orderId: string,
-  next: PaymentStatus,
-): Promise<ActionResult> {
-  try {
-    await requireRole('admin');
-    await service.changePaymentStatus(orderId, next);
-  } catch (error) {
-    if (error instanceof AuthorizationError) return failed(error.message);
-    if (!isDomainError(error)) throw error;
-    return failed(error.message);
-  }
-
-  revalidatePath(ORDERS_PATH);
-  revalidatePath(`${ORDERS_PATH}/${orderId}`);
-
-  return ok(PAYMENT_STATUS_DONE[next]);
-}

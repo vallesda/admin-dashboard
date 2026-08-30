@@ -55,3 +55,24 @@ export function isUniqueViolation(error: unknown, constraint?: string): boolean 
   if (e.code !== PG_UNIQUE_VIOLATION) return false;
   return constraint ? e.constraint_name === constraint : true;
 }
+
+const PG_FOREIGN_KEY_VIOLATION = '23503';
+
+/**
+ * Whether Postgres refused a write because something still points at the row.
+ *
+ * Lets a service turn `ON DELETE RESTRICT` into a sentence a person can act on,
+ * without having to query for the referencing rows first — and, more usefully,
+ * without having to import the module that owns them. A context can enforce
+ * "you cannot delete this while it is in use" against tables it is not allowed
+ * to know about.
+ */
+export function isForeignKeyViolation(
+  error: unknown,
+  constraint?: string,
+): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const e = error as { code?: string; constraint_name?: string };
+  if (e.code !== PG_FOREIGN_KEY_VIOLATION) return false;
+  return constraint ? e.constraint_name === constraint : true;
+}

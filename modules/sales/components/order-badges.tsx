@@ -68,16 +68,22 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
  */
 const PAYMENT_TONE: Record<PaymentStatus, BadgeTone> = {
   unpaid: 'warn',
+  // `info`, not `warn`: an issued OXXO voucher is not a problem, it is a wait.
+  // The counter needs to read it as "hold on", not as "chase this customer".
+  processing: 'info',
   paid: 'ok',
+  partially_refunded: 'info',
   refunded: 'info',
 };
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
   const Icon =
-    status === 'refunded'
+    status === 'refunded' || status === 'partially_refunded'
       ? ArrowUturnLeftIcon
-      : status === 'paid'
-        ? BanknotesIcon
+      : status === 'processing'
+        ? ClockIcon
+        : status === 'paid'
+          ? BanknotesIcon
         : ClockIcon;
 
   return (

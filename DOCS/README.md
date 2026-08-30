@@ -30,8 +30,11 @@ La arquitectura sigue un enfoque **Domain-Driven Design pragmático** sobre un *
 | [SRS.md](SRS.md) | Alcance, requisitos funcionales/no funcionales y reglas de negocio | cambia el producto o una regla |
 | [MODELO-DATOS.md](MODELO-DATOS.md) | Agregados, entidades, columnas, relaciones, invariantes y estados | cambia el modelo persistente |
 | [FLUJOS.md](FLUJOS.md) | Casos de uso end-to-end y fronteras transaccionales | cambia una operación |
+| [FLUJO-INVENTARIO-PEDIDO.md](FLUJO-INVENTARIO-PEDIDO.md) | Explicación a fondo de cómo se mueve el stock y cómo nace un pedido | cambia el modelo de inventario o `createOrder` |
 | [HISTORIAS.md](HISTORIAS.md) | Backlog priorizado con criterios de aceptación | se planifica implementación |
 | [PLAN.md](PLAN.md) | Roadmap de fases/PRs, Definition of Done, deuda y trazabilidad | cambia el orden de construcción |
+| [PAGOS.md](PAGOS.md) | Plan de integración de pagos y devoluciones con Stripe (`PAG`) | cambia el proveedor, un método de pago o la política de reembolso |
+| [PAGOS-VERIFICACION.md](PAGOS-VERIFICACION.md) | Qué de los pagos está probado, qué nunca se ha ejecutado y el plan de verificación en modo de prueba | se verifica un escenario o se encuentra un hueco |
 
 La separación es por **ritmo de cambio**. El SRS dice *qué debe hacer*; el modelo dice *qué debe ser verdad en datos*; los flujos dicen *cómo ocurre*; las historias dicen *qué implementamos ahora*.
 
@@ -49,7 +52,7 @@ La separación es por **ritmo de cambio**. El SRS dice *qué debe hacer*; el mod
 | `ADM` | Admin Read Models | métricas y vistas operativas; no posee datos de dominio | ✅ |
 | `TDA` | Storefront | superficie pública que orquesta CAT/INV/SAL | después del admin |
 | `PAG` | Payments | integración con proveedor de pago | después del storefront |
-| `DEL` | Delivery | logística/ventanas/rutas | extensión futura |
+| `DEL` | Delivery | zonas de reparto y costo del envío | ✅ zonas; rutas y ventanas siguen pendientes |
 
 `ADM` y `TDA` son **capas de aplicación/read-models**, no dueños de las entidades centrales. No deben duplicar reglas de negocio.
 
@@ -73,7 +76,7 @@ CLI ───────────────┤
                            ▼
                           PAG
 
-DEL  ← extensión futura de SAL/TDA
+DEL  ← no depende de nadie; SAL lo consulta para cotizar el envío
 ```
 
 Regla: una dependencia apunta hacia un contexto que posee el dato; no se crean ciclos entre módulos.
