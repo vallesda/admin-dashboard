@@ -78,23 +78,44 @@ export default function CartDrawer({ catalogue }: { catalogue: Product[] }) {
           /*
            * The empty state names the shop's own situation rather than the
            * shopper's mistake. "Todavía no has agregado nada" told them what
-           * they had failed to do; this tells them what is waiting, and sends
-           * them to the catalogue rather than to the homepage — the homepage
-           * would have meant scrolling past a hero to reach a product again.
+           * they had failed to do; this tells them why it is worth looking, and
+           * sends them to the catalogue rather than to the homepage — the
+           * homepage would have meant scrolling past a hero to reach a product
+           * again.
+           *
+           * Centred, and the only centred composition in the storefront. The
+           * rest of the shop is a left-ruled board because it is all lists and
+           * comparisons; this panel has one message and one action, with no
+           * column for the eye to run down, and a left edge with nothing under
+           * it reads as content that failed to load.
+           *
+           * `pb-12` biases the block above true centre. Optically centred beats
+           * mathematically centred in a tall narrow panel — dead centre always
+           * reads as sitting slightly low.
+           *
+           * The mark stays neutral. An isolated brand-green icon is exactly what
+           * the Green Block rule forbids: green is a whole surface or it is
+           * nothing, and a lone green glyph spends the one colour the brand owns
+           * on decoration.
            */
-          <div className="flex flex-1 flex-col items-start justify-center gap-5 px-5 pb-16">
+          <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 pb-12 text-center">
             <span aria-hidden="true" className="text-border-strong">
               <EmptyIcon />
             </span>
+
             <div>
-              <p className="font-display text-xl font-light">
-                Tu pedido está vacío.
+              <p className="font-display text-2xl font-light leading-tight">
+                Tu pedido está vacío
               </p>
-              <p className="mt-2 max-w-[32ch] text-sm leading-relaxed text-muted">
-                El catálogo cambia con lo que llega. Mira lo que hay hoy.
+              <p className="mx-auto mt-2 max-w-[30ch] text-sm leading-relaxed text-muted">
+                El mar decide el catálogo: lo que hay hoy puede no estar mañana.
               </p>
             </div>
-            <ButtonLink href="/search" onClick={close}>
+
+            {/* Full width, like "Ir a confirmar" in the filled state. The two
+                panels then present their action at the same weight and in the
+                same place, so the drawer never looks like two screens. */}
+            <ButtonLink href="/search" onClick={close} fullWidth className="mt-1">
               Ver lo que hay hoy
             </ButtonLink>
           </div>
@@ -226,15 +247,22 @@ function CloseIcon() {
   );
 }
 
-/** The shop's own bag mark, drawn at the empty state's scale. */
+/**
+ * The shop's own bag mark, drawn at the empty state's scale.
+ *
+ * The stroke thins as the glyph grows. It is authored on a 20-unit grid, so a
+ * width of 1 renders at 2.4px once scaled to 48 — heavy enough to read as an
+ * illustration rather than as the header's icon. 0.7 lands near 1.7px, which
+ * keeps it the same optical weight as the 20px icons elsewhere in the drawer.
+ */
 function EmptyIcon() {
   return (
-    <svg width="40" height="40" viewBox="0 0 20 20" aria-hidden="true">
+    <svg width="48" height="48" viewBox="0 0 20 20" aria-hidden="true">
       <path
         d="M5 6h10l-.8 9.2a1.5 1.5 0 01-1.5 1.3H7.3a1.5 1.5 0 01-1.5-1.3L5 6zM7.5 6V4.75a2.5 2.5 0 015 0V6"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1"
+        strokeWidth="0.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

@@ -199,6 +199,20 @@
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4vw), 0 100%);
   }
 
+  /*
+   * The vertical cousin of `.edge-top`, for the hero.
+   *
+   * Slants the RIGHT edge of a brand surface so it cuts across a photograph
+   * behind it rather than butting against one beside it. Same 4vw angle as the
+   * horizontal pair, so the site has one diagonal, not two that nearly match.
+   *
+   * Only meaningful from `md`, where the hero stops stacking and the wedge
+   * actually overlaps the image; below that `.edge-top` still does the work.
+   */
+  .edge-right {
+    clip-path: polygon(0 0, 100% 0, calc(100% - 4vw) 100%, 0 100%);
+  }
+
   @media (max-width: 767px) {
     /* Mobile keeps a hint of the angle instead of the full desktop geometry. */
     .edge-top {

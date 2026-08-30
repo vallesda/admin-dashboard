@@ -335,10 +335,26 @@ de arriba aunque su fondo no lo esté.
 en móvil y no una: el comprador de despensa semanal está comparando, y una sola
 columna convierte la comparación en scroll.
 
-**Hero:** rejilla asimétrica `5fr 7fr` desde `md` — la fotografía se lleva la
-parte mayor. En móvil colapsa a pila con la foto primero (`order-1` / `order-2`),
-porque forzar la diagonal del escritorio en un viewport estrecho convierte una
-composición en una cuña de nada.
+**Hero:** la fotografía es el **suelo**, no un vecino. Sangra a todo el ancho
+(`absolute inset-0` desde `md`) y la superficie de marca se apoya encima como una
+cuña del 62% —56% desde `lg`— recortada en su borde derecho por `.edge-right`.
+Antes eran dos columnas contiguas en una rejilla `5fr 7fr`: prolijo, pero ahí la
+imagen siempre era un panel en vez de un lugar.
+
+En móvil colapsa a pila con la foto primero en 4:3 y el bloque verde debajo con
+el corte horizontal — una cuña de texto sobre una foto de 390px no deja legibles
+ni las palabras ni la imagen.
+
+**El hero no consulta datos.** Llevaba un conteo del catálogo en vivo al pie del
+bloque verde, tras su propio Suspense. Se retiró, y con él la última razón por la
+que este componente tocaba la API. Es lo primero que se pinta del sitio y ahora
+no depende de nada para pintarse. La fecha se queda: sale del reloj, no del
+catálogo.
+
+**Dos salidas, no una.** El botón primario va al catálogo —lo único que quiere
+quien llegó a comprar— y a su lado un enlace de texto discreto a «Cómo funciona»
+para quien necesita entender una tienda cuyo catálogo cambia cada día. Con un
+solo botón, esa segunda persona tenía que salir por el encabezado.
 
 **Checkout:** `1fr 22rem` desde `md`, con el resumen de pedido en `position:
 sticky; top: 1.5rem`. El resumen es la única superficie pegajosa del sitio
@@ -433,12 +449,18 @@ La escala real, tal como se computa hoy:
 — entre encabezado y página, entre resumen y total, alrededor de todo control
 secundario.
 
-**La diagonal.** La única geometría expresiva del sistema: `.edge-top` y
-`.edge-bottom` en `globals.css` recortan una superficie de marca con
-`clip-path: polygon(...)` a `4vw` de inclinación. Se eligió `clip-path` sobre un
-pseudo-elemento rotado porque nunca desborda, no exige `overflow-hidden` en el
+**La diagonal.** La única geometría expresiva del sistema: `.edge-top`,
+`.edge-bottom` y `.edge-right` en `globals.css` recortan una superficie de marca
+con `clip-path: polygon(...)` a `4vw` de inclinación. Se eligió `clip-path` sobre
+un pseudo-elemento rotado porque nunca desborda, no exige `overflow-hidden` en el
 padre, y el ángulo puede encogerse a `24px` bajo `768px` sin que la composición
 se rompa.
+
+Las dos primeras cortan un borde horizontal, contra la crema. `.edge-right`
+corta el borde **derecho** y existe para el hero, donde la cuña verde se apoya
+encima de una fotografía a sangre en vez de junto a ella. Es el mismo ángulo de
+4vw a propósito: un sitio con dos diagonales que casi coinciden se ve como un
+error, no como dos gestos.
 
 ### Named Rules
 
