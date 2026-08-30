@@ -53,3 +53,39 @@ export async function requireRole(minimum: Role) {
 
   return session;
 }
+
+/**
+ * The signed-in user's role, or `null` when there is no session.
+ *
+ * For rendering decisions only — never for authorization. Every mutation still
+ * calls `requireRole`, because a hidden button is a courtesy and a Server Action
+ * is a public POST endpoint. This is what lets the interface stop offering a
+ * `staff` the buttons that were going to reject them, which PRODUCT.md records
+ * as known debt.
+ */
+export async function currentRole(): Promise<Role | null> {
+  const session = await auth();
+  return session?.user?.role ?? null;
+}
+
+/**
+ * The page-level counterpart to `requireRole`.
+ *
+ * `requireRole` throws, which is right for an action — a forged POST deserves
+ * an exception — but wrong for a navigation: an uncaught throw in a Server
+ * Component renders "A server error occurred", which is exactly the broken
+ * screen this whole feature exists to replace. Typing a URL you are not
+ * entitled to is not a crash; it is an answer.
+ *
+ * Returns the session when the role is sufficient, and `null` when it is not,
+ * so the page can render a real refusal. Unauthenticated visitors never reach
+ * here — the `authorized` callback redirects them to /login first — but the
+ * session is still required, so `null` covers that case too.
+ */
+export async function pageRole(minimum: Role) {
+  const session = await auth();
+
+  if (!session?.user || !hasRole(session.user.role, minimum)) return null;
+
+  return session;
+}

@@ -8,10 +8,14 @@ import {
   ArchiveBoxIcon,
   ClipboardDocumentListIcon,
   Squares2X2Icon,
+  KeyIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+
+import { useRole } from '@/app/ui/kit/role';
+import { hasRole, type Role } from '@/lib/auth/roles';
 
 /**
  * Sidebar navigation.
@@ -22,7 +26,7 @@ import clsx from 'clsx';
  * "Operación" are the two halves of this job and they are rarely done in the
  * same sitting.
  */
-const GROUPS: { label: string | null; links: NavLink[] }[] = [
+const GROUPS: { label: string | null; role?: Role; links: NavLink[] }[] = [
   { label: null, links: [{ name: 'Panel', href: '/dashboard', icon: HomeIcon }] },
   {
     label: 'Catálogo',
@@ -43,6 +47,14 @@ const GROUPS: { label: string | null; links: NavLink[] }[] = [
       },
       { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
     ],
+  },
+  {
+    label: 'Administración',
+    // Hidden below `owner`. The routes refuse anyone else anyway, so showing
+    // the link would only offer a door that opens onto an error page — the
+    // same lie the role gating was built to stop telling.
+    role: 'owner',
+    links: [{ name: 'Usuarios', href: '/dashboard/users', icon: KeyIcon }],
   },
 ];
 
@@ -66,6 +78,8 @@ function isActive(pathname: string, href: string) {
 
 export default function NavLinks() {
   const pathname = usePathname();
+  const role = useRole();
+  const groups = GROUPS.filter((g) => !g.role || hasRole(role, g.role));
 
   // The group wrapper is `display: contents` at every width, not just from
   // `md`. As a plain block below `md` each group stayed a single flex child of
@@ -75,7 +89,7 @@ export default function NavLinks() {
   // row.
   return (
     <>
-      {GROUPS.map((group, i) => (
+      {groups.map((group, i) => (
         <div key={group.label ?? 'root'} className="contents">
           {group.label ? (
             <p

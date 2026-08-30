@@ -340,15 +340,15 @@ Estado a cierre de F4.
 | `DT-004` | `invoices` domina navegación y dashboard | F4 — UI retirada, tabla dropeada |
 | `DT-005` | tabla `revenue` es dato derivable | F4 — dropeada; las métricas salen de Orders |
 | `DT-007` | roles no persistidos | F0 — `admin_users.role` + `requireRole` real |
+| `DT-009` | la UI no respeta roles | F5 — `RoleProvider` + `<Can>`; los botones de `admin` no se dibujan para `staff`, y las rutas de owner responden con una pantalla de rechazo en lugar de un error de servidor |
+| `DT-010` | alta de usuarios solo por SQL | F5 — `/dashboard/users`: crear, editar rol, activar/desactivar y restablecer contraseña |
 
 ### Pendiente
 
 | ID | Deuda | Impacto | Prioridad |
 |---|---|---|---|
 | `DT-008` | **Sin tests ni CI** | nada impide una regresión; los bugs silenciosos de F3/F4 volverían sin aviso | 🔴 alta |
-| `DT-009` | **La UI no respeta roles** | un `staff` ve botones de `admin` que le devuelven error al pulsarlos | 🔴 alta |
 | `DT-006` | 5 clientes del tutorial sin usar, con `phone = 'SIN TELEFONO'` | ensucian la lista de clientes reales | 🟡 media |
-| `DT-010` | `RF-IAM-004`: el owner no puede dar de alta usuarios desde la UI | alta de personal solo por SQL | 🟡 media |
 | `DT-011` | `backfillInventory()` existe pero nada lo invoca | reparación masiva sin punto de entrada | 🟢 baja |
 | `DT-012` | Un pedido no se puede corregir tras crearlo | cambiar una cantidad obliga a cancelar y rehacer | 🟡 media |
 | `DT-013` | Navegación en `/dashboard`, no en `/admin` (`F1.07`) | desvío respecto a la estructura objetivo | 🟢 baja |

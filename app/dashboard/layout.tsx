@@ -3,6 +3,8 @@ import { Suspense } from 'react';
 import SideNav from '@/app/ui/dashboard/sidenav';
 import { ToastProvider } from '@/app/ui/kit/toast';
 import FlashListener from '@/app/ui/kit/flash-listener';
+import { RoleProvider } from '@/app/ui/kit/role';
+import { currentRole } from '@/lib/auth/guard';
 
 /**
  * Dashboard shell.
@@ -25,9 +27,19 @@ import FlashListener from '@/app/ui/kit/flash-listener';
  * `useSearchParams`, so it needs its own Suspense boundary or it would opt every
  * dashboard route out of static rendering.
  */
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Read once here rather than in every component that renders a button: the
+  // layout already has the session, and a per-button lookup would be a request
+  // each.
+  const role = await currentRole();
+
   return (
-    <ToastProvider>
+    <RoleProvider role={role}>
+      <ToastProvider>
       <div className="flex h-screen flex-col bg-canvas md:flex-row md:overflow-hidden">
         <div className="w-full flex-none md:w-60">
           <SideNav />
@@ -35,9 +47,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="grow p-4 md:overflow-y-auto lg:p-6">{children}</div>
       </div>
 
-      <Suspense fallback={null}>
-        <FlashListener />
-      </Suspense>
-    </ToastProvider>
+        <Suspense fallback={null}>
+          <FlashListener />
+        </Suspense>
+      </ToastProvider>
+    </RoleProvider>
   );
 }

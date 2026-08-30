@@ -19,26 +19,31 @@ import type { ProductStatus } from '@/db/schema/catalog';
 import { changeProductStatus } from '../actions';
 import { Button, ButtonLink } from '@/app/ui/button';
 import ActionRunner from '@/app/ui/kit/action-runner';
+import { Can } from '@/app/ui/kit/role';
 
 export function CreateProduct() {
   return (
-    <ButtonLink href="/dashboard/products/create">
-      <PlusIcon className="h-4 w-4" />
-      Crear producto
-    </ButtonLink>
+    <Can role="admin">
+      <ButtonLink href="/dashboard/products/create">
+        <PlusIcon className="h-4 w-4" />
+        Crear producto
+      </ButtonLink>
+    </Can>
   );
 }
 
 export function UpdateProduct({ id, name }: { id: string; name: string }) {
   return (
-    <ButtonLink
+    <Can role="admin">
+      <ButtonLink
       href={`/dashboard/products/${id}/edit`}
       variant="ghost"
       size="icon"
     >
-      <span className="sr-only">Editar {name}</span>
-      <PencilIcon className="h-4 w-4" aria-hidden="true" />
-    </ButtonLink>
+        <span className="sr-only">Editar {name}</span>
+        <PencilIcon className="h-4 w-4" aria-hidden="true" />
+      </ButtonLink>
+    </Can>
   );
 }
 
@@ -68,8 +73,10 @@ export function ProductStatusActions({
   status: ProductStatus;
 }) {
   return (
-    <div className="flex gap-1.5">
-      {status === 'draft' && (
+    // Publishing state is an `admin` decision (see `changeProductStatus`).
+    <Can role="admin">
+      <div className="flex gap-1.5">
+        {status === 'draft' && (
         <StatusButton id={id} name={name} next="active" label="Activar">
           <CheckIcon className="h-4 w-4" aria-hidden="true" />
         </StatusButton>
@@ -90,8 +97,9 @@ export function ProductStatusActions({
         >
           <ArrowUturnLeftIcon className="h-4 w-4" aria-hidden="true" />
         </StatusButton>
-      )}
-    </div>
+        )}
+      </div>
+    </Can>
   );
 }
 

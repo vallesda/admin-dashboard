@@ -1,7 +1,7 @@
 'use client';
 
 /*
- * A Client Component because its buttons submit through `ActionForm`, which
+ * A Client Component because its buttons run their action through `ActionRunner`, which
  * hands a `pending` flag to a render prop — and a function cannot cross the
  * server/client boundary. Rendering this from a server-side table is still
  * fine: only serialisable props (ids, names, a status string) pass over, and a
@@ -11,6 +11,7 @@ import type { OrderStatus, PaymentStatus } from '@/db/schema/sales';
 import { Button } from '@/app/ui/button';
 import ActionRunner from '@/app/ui/kit/action-runner';
 import { changeOrderStatus, changePaymentStatus } from '../actions';
+import { Can } from '@/app/ui/kit/role';
 import {
   nextStatuses,
   nextPaymentStatuses,
@@ -68,6 +69,10 @@ export function OrderStatusActions({
   );
 }
 
+/**
+ * Money moves at `admin` (see `changePaymentStatus`). A `staff` sees the state
+ * on the badge above but is not offered the transitions.
+ */
 export function PaymentStatusActions({
   orderId,
   paymentStatus,
@@ -86,25 +91,34 @@ export function PaymentStatusActions({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((next) => (
-        <ActionRunner
-          key={next}
-          action={changePaymentStatus.bind(null, orderId, next)}
-        >
-          {(pending, run) => (
-            <Button
-              type="button"
-              onClick={run}
-              size="sm"
-              variant="secondary"
-              disabled={pending}
-            >
-              {PAYMENT_TRANSITION_LABEL[next]}
-            </Button>
-          )}
-        </ActionRunner>
-      ))}
-    </div>
+    <Can
+      role="admin"
+      fallback={
+        <p className="text-sm text-ink-muted">
+          Registrar un cobro o un reembolso requiere el rol admin.
+        </p>
+      }
+    >
+      <div className="flex flex-wrap gap-2">
+        {options.map((next) => (
+          <ActionRunner
+            key={next}
+            action={changePaymentStatus.bind(null, orderId, next)}
+          >
+            {(pending, run) => (
+              <Button
+                type="button"
+                onClick={run}
+                size="sm"
+                variant="secondary"
+                disabled={pending}
+              >
+                {PAYMENT_TRANSITION_LABEL[next]}
+              </Button>
+            )}
+          </ActionRunner>
+        ))}
+      </div>
+    </Can>
   );
 }

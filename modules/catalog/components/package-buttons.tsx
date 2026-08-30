@@ -11,26 +11,31 @@ import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { togglePackageActive, removePackageItem } from '../actions';
 import { Button, ButtonLink } from '@/app/ui/button';
 import ActionRunner from '@/app/ui/kit/action-runner';
+import { Can } from '@/app/ui/kit/role';
 
 export function CreatePackage() {
   return (
-    <ButtonLink href="/dashboard/packages/create">
-      <PlusIcon className="h-4 w-4" />
-      Crear paquete
-    </ButtonLink>
+    <Can role="admin">
+      <ButtonLink href="/dashboard/packages/create">
+        <PlusIcon className="h-4 w-4" />
+        Crear paquete
+      </ButtonLink>
+    </Can>
   );
 }
 
 export function EditPackage({ id, name }: { id: string; name: string }) {
   return (
-    <ButtonLink
-      href={`/dashboard/packages/${id}/edit`}
-      variant="ghost"
-      size="icon"
-    >
-      <span className="sr-only">Editar {name}</span>
-      <PencilIcon className="h-4 w-4" aria-hidden="true" />
-    </ButtonLink>
+    <Can role="admin">
+      <ButtonLink
+        href={`/dashboard/packages/${id}/edit`}
+        variant="ghost"
+        size="icon"
+      >
+        <span className="sr-only">Editar {name}</span>
+        <PencilIcon className="h-4 w-4" aria-hidden="true" />
+      </ButtonLink>
+    </Can>
   );
 }
 
@@ -51,7 +56,8 @@ export function TogglePackage({
   active: boolean;
 }) {
   return (
-    <ActionRunner action={togglePackageActive.bind(null, id, !active)}>
+    <Can role="admin">
+      <ActionRunner action={togglePackageActive.bind(null, id, !active)}>
       {(pending, run) => (
         <Button
           type="button"
@@ -60,11 +66,12 @@ export function TogglePackage({
           size="sm"
           disabled={pending}
         >
-          {active ? 'Despublicar' : 'Publicar'}
-          <span className="sr-only"> {name}</span>
-        </Button>
-      )}
-    </ActionRunner>
+            {active ? 'Despublicar' : 'Publicar'}
+            <span className="sr-only"> {name}</span>
+          </Button>
+        )}
+      </ActionRunner>
+    </Can>
   );
 }
 
@@ -78,7 +85,8 @@ export function RemoveItem({
   name: string;
 }) {
   return (
-    <ActionRunner action={removePackageItem.bind(null, packageId, productId)}>
+    <Can role="admin">
+      <ActionRunner action={removePackageItem.bind(null, packageId, productId)}>
       {(pending, run) => (
         <Button
           type="button"
@@ -87,10 +95,11 @@ export function RemoveItem({
           size="icon"
           disabled={pending}
         >
-          <span className="sr-only">Quitar {name} del paquete</span>
-          <TrashIcon className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      )}
-    </ActionRunner>
+            <span className="sr-only">Quitar {name} del paquete</span>
+            <TrashIcon className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        )}
+      </ActionRunner>
+    </Can>
   );
 }

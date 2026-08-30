@@ -31,6 +31,8 @@ export const FLASH = {
     message: 'Paquete creado. Ahora agrégale productos.',
   },
   'package.updated': { tone: 'ok', message: 'Paquete actualizado.' },
+  'user.created': { tone: 'ok', message: 'Cuenta creada. Ya puede entrar.' },
+  'user.updated': { tone: 'ok', message: 'Cuenta actualizada.' },
 } as const satisfies Record<string, { tone: 'ok' | 'info'; message: string }>;
 
 export type FlashCode = keyof typeof FLASH;

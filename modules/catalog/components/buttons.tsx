@@ -12,28 +12,33 @@ import { PencilIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { toggleCategoryActive } from '../actions';
 import { Button, ButtonLink } from '@/app/ui/button';
 import ActionRunner from '@/app/ui/kit/action-runner';
+import { Can } from '@/app/ui/kit/role';
 
 export function CreateCategory() {
   return (
-    <ButtonLink href="/dashboard/categories/create">
-      <PlusIcon className="h-4 w-4" />
-      Crear categoría
-    </ButtonLink>
+    <Can role="admin">
+      <ButtonLink href="/dashboard/categories/create">
+        <PlusIcon className="h-4 w-4" />
+        Crear categoría
+      </ButtonLink>
+    </Can>
   );
 }
 
 export function UpdateCategory({ id, name }: { id: string; name: string }) {
   return (
-    <ButtonLink
-      href={`/dashboard/categories/${id}/edit`}
-      variant="ghost"
-      size="icon"
-    >
+    <Can role="admin">
+      <ButtonLink
+        href={`/dashboard/categories/${id}/edit`}
+        variant="ghost"
+        size="icon"
+      >
       {/* The icon alone would announce as "link" to a screen reader; naming the
           category makes each row's action distinguishable in a list of links. */}
-      <span className="sr-only">Editar {name}</span>
-      <PencilIcon className="h-4 w-4" aria-hidden="true" />
-    </ButtonLink>
+        <span className="sr-only">Editar {name}</span>
+        <PencilIcon className="h-4 w-4" aria-hidden="true" />
+      </ButtonLink>
+    </Can>
   );
 }
 
@@ -57,7 +62,8 @@ export function ToggleCategory({
   const toggle = toggleCategoryActive.bind(null, id, !active);
 
   return (
-    <ActionRunner action={toggle}>
+    <Can role="admin">
+      <ActionRunner action={toggle}>
       {(pending, run) => (
         <Button
           type="button"
@@ -69,7 +75,8 @@ export function ToggleCategory({
           {active ? 'Desactivar' : 'Activar'}
           <span className="sr-only"> {name}</span>
         </Button>
-      )}
-    </ActionRunner>
+        )}
+      </ActionRunner>
+    </Can>
   );
 }
