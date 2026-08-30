@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
 import { getCollections, getProducts, getShelf } from '@/lib/commerce';
+import { LOCALITY, REGION } from '@/lib/shop';
 import Container from '@/components/ui/container';
 import SectionHeader from '@/components/ui/section-header';
 import ProductGrid from '@/components/grid/product-grid';
@@ -44,8 +45,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!found) return { title: 'Colección no encontrada' };
 
   return {
-    title: found.title,
-    description: `${found.title} disponibles hoy en Amor a Mar.`,
+    title: `${found.title} en ${LOCALITY}`,
+    description: `${found.title} frescos en ${LOCALITY}, ${REGION}. Selección del día en Amor a Mar, con entrega a domicilio en la zona metropolitana de Monterrey.`,
+    alternates: { canonical: `/search/${handle}` },
   };
 }
 

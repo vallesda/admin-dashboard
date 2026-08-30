@@ -60,6 +60,13 @@ const productColumns = {
   preparationSuggestions: products.preparationSuggestions,
   isFeatured: products.isFeatured,
   isSeasonal: products.isSeasonal,
+  // De dónde sale el producto: la captura del día, el congelador, o un encargo
+  // que la tienda va a ir a comprar. Decide si hay existencia que consultar.
+  supplyType: products.supplyType,
+  preorderCutoffWeekday: products.preorderCutoffWeekday,
+  preorderCutoffHour: products.preorderCutoffHour,
+  preorderArrivalWeekday: products.preorderArrivalWeekday,
+  preorderNote: products.preorderNote,
   createdAt: products.createdAt,
   updatedAt: products.updatedAt,
   categoryName: categories.name,
@@ -275,6 +282,7 @@ export async function getOrderByToken(
       expiresAt: attempt?.expiresAt ? attempt.expiresAt.toISOString() : null,
     },
     instructions: paymentInstructions(order),
+    promisedFor: order.promisedFor ? order.promisedFor.toISOString() : null,
     fulfillmentType: order.fulfillmentType,
     // The snapshot taken when the order was placed, not the customer's current
     // record — and deliberately no phone or email in a token-addressed response.

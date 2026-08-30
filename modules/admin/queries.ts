@@ -10,7 +10,7 @@ import 'server-only';
  * read models, and only for read models. Nothing here mutates, and no business
  * rule is restated: "sold" means an Order reached `completed`, decided by Sales.
  */
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, ne, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { products } from '@/db/schema/catalog';
@@ -65,10 +65,19 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         WHERE "orders"."created_at" >= ${TODAY_START}
       )`.mapWith(Number),
 
+      /*
+       * Los productos por encargo se excluyen del bajo stock.
+       *
+       * Su existencia es cero por definición —la tienda los compra cuando
+       * alguien los pide— así que estarían permanentemente «por resurtir» y
+       * ahogarían la alerta que sí importa: la del congelador vaciándose. Una
+       * alarma que siempre suena es una alarma que nadie mira.
+       */
       lowStockCount: sql<number>`(
         SELECT count(*) FROM "inventory"
         JOIN "products" ON "products"."id" = "inventory"."product_id"
         WHERE "products"."status" = 'active'
+          AND "products"."supply_type" <> 'preorder'
           AND ("inventory"."on_hand" - "inventory"."reserved") <= "inventory"."low_stock_threshold"
       )`.mapWith(Number),
 
@@ -144,6 +153,9 @@ export async function listLowStock(limit = 5): Promise<LowStockItem[]> {
     .where(
       and(
         eq(products.status, 'active'),
+        // Ver la nota en `lowStockCount`: un producto por encargo no tiene
+        // existencia que se pueda agotar.
+        ne(products.supplyType, 'preorder'),
         sql`(${inventory.onHand} - ${inventory.reserved}) <= ${inventory.lowStockThreshold}`,
       ),
     )

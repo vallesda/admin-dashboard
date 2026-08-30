@@ -10,7 +10,7 @@ import 'server-only';
  * a reservation with no order, or an order with no reservation, would both be
  * corruption nobody could explain afterwards.
  */
-import { eq, inArray, sql as raw } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql as raw } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { products } from '@/db/schema/catalog';
@@ -26,6 +26,8 @@ import {
 } from '@/db/schema/sales';
 import { ConflictError, DomainError, NotFoundError } from '@/lib/errors';
 import { toDeliveryColumns, EMPTY_DELIVERY_COLUMNS } from './address';
+import { nextPreorderWindow } from '@/modules/catalog/preorder';
+import type { SupplyType } from '@/db/schema/catalog';
 import { findZoneForPostalCode } from '@/modules/delivery/queries';
 import { applyWaiver, quoteDelivery } from '@/modules/delivery/quote';
 import {
@@ -82,6 +84,10 @@ export async function createOrder(
         name: products.name,
         priceCents: products.priceCents,
         status: products.status,
+        supplyType: products.supplyType,
+        preorderCutoffWeekday: products.preorderCutoffWeekday,
+        preorderCutoffHour: products.preorderCutoffHour,
+        preorderArrivalWeekday: products.preorderArrivalWeekday,
       })
       .from(products)
       .where(inArray(products.id, productIds));
@@ -95,6 +101,8 @@ export async function createOrder(
       unitPriceCents: number;
       quantity: number;
       lineTotalCents: number;
+      supplyType: SupplyType;
+      promisedFor: Date | null;
     }[] = [];
 
     for (const line of input.lines) {
@@ -111,24 +119,58 @@ export async function createOrder(
         );
       }
 
-      const balance = stockByProduct.get(line.productId);
+      /*
+       * Un producto por encargo no tiene existencia que comprobar.
+       *
+       * Ese es todo el punto: la tienda **no lo tiene** y lo va a comprar
+       * después de que alguien lo pida. Comprobar el stock aquí lo dejaría
+       * agotado para siempre, y reservarlo movería un número que no representa
+       * nada físico.
+       *
+       * Lo que sí hace es adquirir una fecha: cuándo llega si se pide ahora.
+       */
+      let promisedFor: Date | null = null;
 
-      if (!balance) {
-        throw new DomainError(
-          'order.no_inventory',
-          `“${product.name}” no tiene inventario inicializado.`,
-          'lines',
-        );
-      }
+      if (product.supplyType === 'preorder') {
+        if (
+          product.preorderCutoffWeekday === null ||
+          product.preorderCutoffHour === null ||
+          product.preorderArrivalWeekday === null
+        ) {
+          // El CHECK de la base lo impide, pero un pedido que promete una fecha
+          // que nadie puede calcular es peor que uno rechazado.
+          throw new DomainError(
+            'order.preorder_misconfigured',
+            `“${product.name}” es por encargo y le falta su ciclo de pedido.`,
+            'lines',
+          );
+        }
 
-      const available = balance.onHand - balance.reserved;
+        promisedFor = nextPreorderWindow({
+          cutoffWeekday: product.preorderCutoffWeekday,
+          cutoffHour: product.preorderCutoffHour,
+          arrivalWeekday: product.preorderArrivalWeekday,
+        }).arrivesOn;
+      } else {
+        const balance = stockByProduct.get(line.productId);
 
-      if (line.quantity > available) {
-        throw new DomainError(
-          'order.insufficient_stock',
-          `Solo hay ${available} de “${product.name}” disponibles.`,
-          'lines',
-        );
+        if (!balance) {
+          throw new DomainError(
+            'order.no_inventory',
+            `“${product.name}” no tiene inventario inicializado.`,
+            'lines',
+          );
+        }
+
+        const available = balance.onHand - balance.reserved;
+
+        if (line.quantity > available) {
+          throw new DomainError(
+            'order.insufficient_stock',
+            `Solo hay ${available} de “${product.name}” disponibles.`,
+            'lines',
+          );
+        }
       }
 
       items.push({
@@ -138,6 +180,8 @@ export async function createOrder(
         unitPriceCents: product.priceCents,
         quantity: line.quantity,
         lineTotalCents: product.priceCents * line.quantity,
+        supplyType: product.supplyType,
+        promisedFor,
       });
     }
 
@@ -215,6 +259,17 @@ export async function createOrder(
           ? toDeliveryColumns(input.deliveryAddress)
           : EMPTY_DELIVERY_COLUMNS),
         subtotalCents,
+        /*
+         * La fecha del pedido es la más lejana de sus líneas: se entrega junto.
+         * `null` cuando no hay ningún encargo, que sigue siendo el caso normal.
+         */
+        promisedFor: items.reduce<Date | null>(
+          (latest, item) =>
+            item.promisedFor && (!latest || item.promisedFor > latest)
+              ? item.promisedFor
+              : latest,
+          null,
+        ),
         ...delivery,
         totalCents: subtotalCents + delivery.deliveryFeeCents,
         notes: input.notes,
@@ -226,6 +281,12 @@ export async function createOrder(
     );
 
     for (const item of items) {
+      // Las líneas por encargo no tocan el inventario: no hay nada apartado
+      // porque no hay nada que apartar. Cuando la tienda compre el producto
+      // entrará como `receive` si sobra algo, y lo que se entrega nunca pasa
+      // por la cámara.
+      if (item.supplyType === 'preorder') continue;
+
       await tx
         .update(inventory)
         .set({
@@ -350,6 +411,37 @@ export async function changeOrderStatus(
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
+ * Las líneas de un pedido que sí movieron inventario.
+ *
+ * Excluye las de encargo, y esa exclusión no es cosmética: una línea por
+ * encargo nunca escribió un `reserve`, así que descontarle un `sale` empujaría
+ * `reserved` por debajo de cero y el `CHECK` de la base rechazaría la
+ * transacción entera. Un pedido con mejillones encargados no se podría
+ * completar.
+ *
+ * Se lee del **snapshot de la línea**, no del catálogo: si el producto cambió
+ * de abastecimiento desde que se vendió, lo que hay que deshacer es lo que se
+ * hizo entonces.
+ */
+async function stockBearingLines(
+  tx: Tx,
+  orderId: string,
+): Promise<{ productId: string; quantity: number }[]> {
+  return tx
+    .select({
+      productId: orderItems.productId,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(
+      and(
+        eq(orderItems.orderId, orderId),
+        ne(orderItems.supplyType, 'preorder'),
+      ),
+    );
+}
+
+/**
  * `ready → completed`: the goods leave (RF-INV-007).
  *
  * One `sale` movement per line, carrying both deltas: `on_hand` drops because
@@ -361,13 +453,7 @@ async function convertReservationsToSale(
   orderId: string,
   actorId: string | null,
 ): Promise<void> {
-  const lines = await tx
-    .select({
-      productId: orderItems.productId,
-      quantity: orderItems.quantity,
-    })
-    .from(orderItems)
-    .where(eq(orderItems.orderId, orderId));
+  const lines = await stockBearingLines(tx, orderId);
 
   for (const line of lines) {
     await tx
@@ -403,13 +489,7 @@ async function releaseReservations(
   orderId: string,
   actorId: string | null,
 ): Promise<void> {
-  const lines = await tx
-    .select({
-      productId: orderItems.productId,
-      quantity: orderItems.quantity,
-    })
-    .from(orderItems)
-    .where(eq(orderItems.orderId, orderId));
+  const lines = await stockBearingLines(tx, orderId);
 
   for (const line of lines) {
     await tx

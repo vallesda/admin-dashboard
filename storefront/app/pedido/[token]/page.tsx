@@ -154,6 +154,19 @@ export default async function Page({
           items because someone who reopens this link is looking for it, not for
           what they ordered.
         */}
+        {/* La fecha prometida va antes que el pago: para un encargo es el dato
+            que la persona vino a confirmar. */}
+        {order.promisedFor ? (
+          <div className="mb-10 border border-border-strong bg-surface p-5">
+            <Eyebrow as="h2">Cuándo llega</Eyebrow>
+            <p className="mt-1 text-sm">
+              Tu pedido llega el{' '}
+              {dateFormat.format(new Date(order.promisedFor))}. Lleva productos
+              por encargo que conseguimos para ese día.
+            </p>
+          </div>
+        ) : null}
+
         {order.instructions ? (
           <div className="mb-10 border border-border-strong bg-surface p-5">
             <p className="text-sm">{order.instructions}</p>

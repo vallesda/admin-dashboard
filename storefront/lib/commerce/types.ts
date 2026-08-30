@@ -23,6 +23,41 @@ export type ProductVariant = {
   available: number;
 };
 
+export type ProductSupply = {
+  type: 'fresh' | 'stocked' | 'preorder';
+  label: string;
+  notice: string | null;
+  shortNotice: string | null;
+  arrivesOn: string | null;
+  orderBy: string | null;
+};
+
+/**
+ * Lo que se supone cuando la API no manda `supply`.
+ *
+ * **Opcional a propósito.** Esta tienda va a ser un despliegue aparte y va a
+ * consumir versiones de la API distintas de la que se escribió con ella: una
+ * respuesta en caché de ayer, un despliegue del admin que va por delante o por
+ * detrás. La primera vez que ocurrió, la tienda entera devolvió 500 porque una
+ * etiqueta decorativa leía `product.supply.type` sobre `undefined`.
+ *
+ * Un campo de presentación que falta debe degradar, no tumbar el catálogo. El
+ * valor por omisión es `fresh` porque es lo que era todo el catálogo antes de
+ * que este campo existiera.
+ */
+export const DEFAULT_SUPPLY: ProductSupply = {
+  type: 'fresh',
+  label: 'Fresco del día',
+  notice: null,
+  shortNotice: null,
+  arrivesOn: null,
+  orderBy: null,
+};
+
+export function supplyOf(product: { supply?: ProductSupply }): ProductSupply {
+  return product.supply ?? DEFAULT_SUPPLY;
+}
+
 export type Product = {
   id: string;
   handle: string;
@@ -47,6 +82,16 @@ export type Product = {
 
   featured: boolean;
   seasonal: boolean;
+
+  /**
+   * De dónde sale el producto, y qué implica para quien lo compra.
+   *
+   * Todo llega resuelto desde la API: la etiqueta, la frase y la fecha. Esta
+   * tienda **no** calcula el ciclo semanal — es aritmética de husos horarios, y
+   * dos implementaciones acabarían prometiendo fechas distintas a la misma
+   * persona.
+   */
+  supply?: ProductSupply;
 
   preparationSuggestions: string[];
   storageInstructions: string | null;
@@ -109,6 +154,19 @@ export type CartLine = {
   unitPrice: Money;
   quantity: number;
   image: ProductImage | null;
+  /**
+   * Cuándo llega esta línea, si es un encargo. ISO, o `null`.
+   *
+   * Se copia al carrito en lugar de consultarse al pintarlo: el carrito vive en
+   * `localStorage` y sobrevive días, y volver a preguntar por cada línea en
+   * cada render sería una petición por producto para pintar una frase.
+   *
+   * La contrapartida es que puede envejecer —alguien que abandonó el carrito el
+   * lunes vuelve el jueves con una fecha vieja— y por eso **no** decide nada: la
+   * fecha que vale es la que calcula `createOrder` al confirmar. Ésta sólo
+   * avisa.
+   */
+  arrivesOn: string | null;
 };
 
 export type OrderLine = {
@@ -147,6 +205,8 @@ export type Order = {
   payment: OrderPayment;
   /** One sentence about what to do next, already written for a person. */
   instructions: string | null;
+  /** Cuándo llega, si el pedido lleva algo por encargo. ISO, o null. */
+  promisedFor: string | null;
   fulfillmentType: string;
   customerName: string;
   /** The composed one-line snapshot, for printing. */

@@ -14,6 +14,11 @@
  * schema underneath keeps moving.
  */
 import type { ProductRow, CategoryRow } from '@/db/schema/catalog';
+import {
+  describePreorder,
+  nextPreorderWindow,
+  shortPreorderLabel,
+} from '@/modules/catalog/preorder';
 
 export type Money = {
   /** Integer centavos — the storefront formats, never computes. */
@@ -69,6 +74,28 @@ export type PublicProduct = {
   featured: boolean;
   seasonal: boolean;
 
+  /**
+   * De dónde sale el producto, y qué implica para quien lo compra.
+   *
+   * Todo lo que necesita la tienda para explicárselo a una persona va aquí ya
+   * resuelto: el tipo, la etiqueta que se pinta, la frase completa y la fecha
+   * de llegada. La tienda **no** recalcula el ciclo semanal — es aritmética de
+   * husos horarios y tendría dos implementaciones que se desincronizarían.
+   */
+  supply: {
+    type: 'fresh' | 'stocked' | 'preorder';
+    /** «Fresco del día», «Congelado», «Por encargo». */
+    label: string;
+    /** Frase completa, sólo en los de encargo. */
+    notice: string | null;
+    /** «Llega el viernes», para la tarjeta del catálogo. */
+    shortNotice: string | null;
+    /** Cuándo llegaría si se pide ahora. ISO, o null. */
+    arrivesOn: string | null;
+    /** Hasta cuándo alcanza el ciclo vigente. ISO, o null. */
+    orderBy: string | null;
+  };
+
   preparationSuggestions: string[];
   storageInstructions: string | null;
 
@@ -91,7 +118,15 @@ type ProductSource = ProductRow & {
 export function toPublicProduct(row: ProductSource): PublicProduct {
   // Only `active` products are ever queried, but availability is what decides
   // whether the button says "Agregar" or "Agotado".
-  const availableForSale = row.status === 'active' && row.available > 0;
+  /*
+   * Un producto por encargo **siempre se puede pedir**, aunque su existencia sea
+   * cero — precisamente porque no hay existencia: la tienda lo compra después
+   * de que alguien lo pida. Aplicarle la regla del stock lo dejaría agotado para
+   * siempre, que es justo el producto que este cambio existe para poder vender.
+   */
+  const availableForSale =
+    row.status === 'active' &&
+    (row.supplyType === 'preorder' || row.available > 0);
 
   const image: PublicImage | null = row.imageUrl
     ? { url: row.imageUrl, altText: row.name }
@@ -126,6 +161,7 @@ export function toPublicProduct(row: ProductSource): PublicProduct {
 
     featured: row.isFeatured,
     seasonal: row.isSeasonal,
+    supply: describeSupply(row),
 
     preparationSuggestions: row.preparationSuggestions ?? [],
     storageInstructions: row.storageInstructions,
@@ -246,6 +282,13 @@ export type PublicOrder = {
   payment: PublicPayment;
   /** One sentence about what to do next, or null when nothing is owed. */
   instructions: string | null;
+  /**
+   * Cuándo se le prometió al cliente. ISO, o `null` si sale sin espera.
+   *
+   * Con fecha sólo cuando el pedido lleva algo por encargo, y entonces es la
+   * llegada más lejana de sus líneas: se entrega junto.
+   */
+  promisedFor: string | null;
   fulfillmentType: string;
   customerName: string;
   /** The composed one-line snapshot, for printing. */
@@ -271,3 +314,56 @@ export type PublicOrder = {
   total: Money;
   createdAt: string;
 };
+
+const SUPPLY_LABEL: Record<string, string> = {
+  fresh: 'Fresco del día',
+  stocked: 'Siempre disponible',
+  preorder: 'Por encargo',
+};
+
+/**
+ * Traduce el abastecimiento a algo que una persona pueda leer.
+ *
+ * Se resuelve aquí, del lado del dominio, y no en la tienda. La tienda va a ser
+ * un despliegue aparte y no puede llevarse la aritmética de días de la semana y
+ * husos horarios: dos implementaciones de «¿cuándo llega?» acabarían diciendo
+ * cosas distintas, y la que se equivoque le habrá prometido una fecha a alguien.
+ */
+function describeSupply(row: ProductSource): PublicProduct['supply'] {
+  const label = SUPPLY_LABEL[row.supplyType] ?? SUPPLY_LABEL.fresh;
+
+  if (
+    row.supplyType !== 'preorder' ||
+    row.preorderCutoffWeekday === null ||
+    row.preorderCutoffHour === null ||
+    row.preorderArrivalWeekday === null
+  ) {
+    return {
+      type: row.supplyType,
+      label,
+      notice: null,
+      shortNotice: null,
+      arrivesOn: null,
+      orderBy: null,
+    };
+  }
+
+  const window = nextPreorderWindow({
+    cutoffWeekday: row.preorderCutoffWeekday,
+    cutoffHour: row.preorderCutoffHour,
+    arrivalWeekday: row.preorderArrivalWeekday,
+  });
+
+  const notice = describePreorder(window);
+
+  return {
+    type: 'preorder',
+    label,
+    // La nota del propio negocio va detrás de la promesa, no en su lugar:
+    // primero la fecha, que es lo que decide la compra.
+    notice: row.preorderNote ? `${notice} ${row.preorderNote}` : notice,
+    shortNotice: shortPreorderLabel(window),
+    arrivesOn: window.arrivesOn.toISOString(),
+    orderBy: window.orderBy.toISOString(),
+  };
+}

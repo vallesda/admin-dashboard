@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 
 import { centavosToPesosInput } from '@/lib/money';
 import type { ProductRow } from '@/db/schema/catalog';
@@ -16,6 +16,8 @@ import { createProduct, updateProduct } from '../actions';
 import { emptyProductFormState, type ProductFormState } from '../form-state';
 import type { CategoryOption } from '../queries';
 import ImagePicker from './image-picker';
+import { WEEKDAYS } from '../preorder';
+import type { SupplyType } from '@/db/schema/catalog';
 
 type Props = {
   categories: CategoryOption[];
@@ -40,6 +42,12 @@ type Props = {
  */
 export default function ProductForm({ categories, product }: Props) {
   const isEdit = product !== undefined;
+
+  // El ciclo de encargo sólo se pide cuando aplica: pedirlo siempre llenaría el
+  // formulario de campos que nadie va a usar en el 90 % de los productos.
+  const [supply, setSupply] = useState<SupplyType>(
+    product?.supplyType ?? 'fresh',
+  );
 
   // Offer the active categories, plus the product's current one even if it has
   // since been deactivated: without it the select would fall back to "Sin
@@ -259,6 +267,162 @@ export default function ProductForm({ categories, product }: Props) {
               </p>
             ) : null}
           </fieldset>
+
+          {/*
+            De dónde sale el producto.
+            
+            Es la decisión que más cambia lo que pasa después: un fresco y un
+            congelado descuentan existencia, y uno por encargo no tiene ninguna
+            que descontar. Va antes del peso porque condiciona el resto del
+            formulario.
+          */}
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-ink">
+              Abastecimiento
+            </legend>
+            <div className="flex flex-col gap-2">
+              {(
+                [
+                  {
+                    value: 'fresh',
+                    label: 'Fresco del día',
+                    detail:
+                      'La captura. Se agota y sale del catálogo hasta que vuelva a entrar.',
+                  },
+                  {
+                    value: 'stocked',
+                    label: 'Siempre disponible',
+                    detail:
+                      'Congelado o despensa. Descuenta existencia igual, pero no depende de lo que llegue hoy.',
+                  },
+                  {
+                    value: 'preorder',
+                    label: 'Por encargo',
+                    detail:
+                      'No lo tienes. El cliente lo pide, tú lo compras y llega en la fecha del ciclo. No reserva inventario.',
+                  },
+                ] as const
+              ).map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-start gap-2.5 rounded-md border border-line px-3 py-2.5 text-sm text-ink has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50"
+                >
+                  <input
+                    name="supplyType"
+                    type="radio"
+                    value={option.value}
+                    defaultChecked={
+                      (product?.supplyType ?? 'fresh') === option.value
+                    }
+                    onChange={() => setSupply(option.value)}
+                    className="mt-0.5 h-4 w-4 cursor-pointer border-line-strong text-brand-600 focus:ring-brand-600"
+                  />
+                  <span>
+                    <span className="block font-medium">{option.label}</span>
+                    <span className="mt-0.5 block text-xs text-ink-muted">
+                      {option.detail}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            {state.errors?.supplyType ? (
+              <p role="alert" className="mt-1.5 text-xs text-danger">
+                {state.errors.supplyType.join(' ')}
+              </p>
+            ) : null}
+          </fieldset>
+
+          {supply === 'preorder' ? (
+            <div className="flex flex-col gap-4 rounded-md border border-line bg-subtle/50 px-3.5 py-3.5">
+              <p className="text-xs text-ink-muted">
+                El ciclo se repite cada semana. «Pide antes del martes a las 6,
+                llega el viernes»: la tienda calcula las fechas concretas para
+                cada cliente según cuándo mire.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field
+                  name="preorderCutoffWeekday"
+                  label="Corte"
+                  required
+                  error={state.errors?.preorderCutoffWeekday}
+                >
+                  {(props) => (
+                    <select
+                      {...props}
+                      defaultValue={product?.preorderCutoffWeekday ?? 2}
+                      required
+                    >
+                      {WEEKDAYS.map((day, index) => (
+                        <option key={day} value={index}>
+                          {day}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+
+                <Field
+                  name="preorderCutoffHour"
+                  label="Hora"
+                  hint="24 h"
+                  required
+                  error={state.errors?.preorderCutoffHour}
+                >
+                  {(props) => (
+                    <input
+                      {...props}
+                      type="number"
+                      min="0"
+                      max="23"
+                      step="1"
+                      defaultValue={product?.preorderCutoffHour ?? 18}
+                      required
+                    />
+                  )}
+                </Field>
+
+                <Field
+                  name="preorderArrivalWeekday"
+                  label="Llega el"
+                  required
+                  error={state.errors?.preorderArrivalWeekday}
+                >
+                  {(props) => (
+                    <select
+                      {...props}
+                      defaultValue={product?.preorderArrivalWeekday ?? 5}
+                      required
+                    >
+                      {WEEKDAYS.map((day, index) => (
+                        <option key={day} value={index}>
+                          {day}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+              </div>
+
+              <Field
+                name="preorderNote"
+                label="Nota para el cliente (opcional)"
+                hint="Se muestra después de la fecha, no en su lugar."
+                error={state.errors?.preorderNote}
+              >
+                {(props) => (
+                  <input
+                    {...props}
+                    type="text"
+                    maxLength={280}
+                    defaultValue={product?.preorderNote ?? ''}
+                    placeholder="Llega directo del muelle."
+                  />
+                )}
+              </Field>
+            </div>
+          ) : null}
 
           <Field
             name="netWeightGrams"

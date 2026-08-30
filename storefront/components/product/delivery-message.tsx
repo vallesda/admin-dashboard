@@ -1,14 +1,18 @@
-import type { Product } from '@/lib/commerce/types';
+import { supplyOf, type Product } from '@/lib/commerce/types';
 
 /**
  * "When can it arrive?" — the last question the PDP owes a shopper before the
  * Add to Cart button.
  *
- * Deliberately does not promise a date: delivery windows are not modelled in
- * the backend yet, and inventing one would be a promise the shop cannot keep.
- * It states what is actually true — the product is here, and it ships cold.
+ * Ahora hay tres respuestas, no dos, y la tercera es la que motivó todo el
+ * cambio: un producto por encargo **no está aquí**, así que decir «disponible
+ * ahora» sería mentir en la línea que existe justamente para no mentir. La
+ * fecha concreta ya la dio el aviso de encargo, más arriba; esta línea sólo
+ * tiene que dejar de contradecirla.
  */
 export default function DeliveryMessage({ product }: { product: Product }) {
+  const supply = supplyOf(product);
+
   return (
     /* Verde Espuma rather than an outlined cream card: the design system names
        this token as the background for a one-line informational notice on
@@ -16,7 +20,11 @@ export default function DeliveryMessage({ product }: { product: Product }) {
        a form field directly above it — so the one sentence that answers "when
        does it arrive" looked like something to fill in. */
     <div className="rounded-sm bg-brand-soft px-4 py-3 text-sm">
-      {product.availableForSale ? (
+      {supply.type === 'preorder' ? (
+        <p className="text-foreground">
+          Lo conseguimos para ti · Entrega refrigerada
+        </p>
+      ) : product.availableForSale ? (
         <p className="text-foreground">
           Disponible ahora · Entrega refrigerada
         </p>

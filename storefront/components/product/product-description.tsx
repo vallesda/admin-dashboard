@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import type { Product } from '@/lib/commerce/types';
+import { supplyOf, type Product } from '@/lib/commerce/types';
 import Price from '@/components/ui/price';
 import SpecList, { type Spec } from '@/components/ui/spec-list';
 import Stepper from '@/components/ui/stepper';
@@ -35,6 +35,7 @@ import DeliveryMessage from './delivery-message';
  * Newsreader however tempting a serif number is at that size.
  */
 export default function ProductDescription({ product }: { product: Product }) {
+  const supply = supplyOf(product);
   const [variantId, setVariantId] = useState(product.variants[0]?.id ?? product.id);
   const [quantity, setQuantity] = useState(1);
 
@@ -98,6 +99,20 @@ export default function ProductDescription({ product }: { product: Product }) {
         }}
       />
 
+      {/*
+        La promesa de un producto por encargo, encima del selector de cantidad.
+        
+        Va aquí y no en la ficha de abajo porque es lo que decide la compra: sin
+        esto, alguien pide mejillones creyendo que se los llevan hoy. Es
+        exactamente la información que el negocio pidió que el cliente supiera.
+      */}
+      {supply.type === 'preorder' && supply.notice ? (
+        <p className="border border-border-strong bg-surface p-4 text-sm">
+          <span className="mb-1 block font-medium">Por encargo</span>
+          {supply.notice}
+        </p>
+      ) : null}
+
       {product.availableForSale ? (
         <div>
           <label
@@ -110,13 +125,16 @@ export default function ProductDescription({ product }: { product: Product }) {
             <Stepper
               id="quantity"
               value={quantity}
-              max={available}
+              /* Un encargo no tiene existencia que limitar: la tienda compra lo
+                 que se pida. Un tope de cero dejaría el selector muerto en el
+                 único producto que sí se puede pedir siempre. */
+              max={supply.type === 'preorder' ? 99 : available}
               onChange={setQuantity}
             />
             {/* Only said when it is nearly true. A running stock number on every
                 product would be scarcity theatre; five or fewer is a fact the
                 shopper needs before choosing a quantity. */}
-            {available > 0 && available <= 5 ? (
+            {supply.type !== 'preorder' && available > 0 && available <= 5 ? (
               <span className="text-sm tabular-nums text-muted">
                 Quedan {available}
               </span>

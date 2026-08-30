@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
 import { getProducts } from '@/lib/commerce';
@@ -11,6 +12,21 @@ import BestSellers from '@/components/merchandising/best-sellers';
 import ShelfGrid from '@/components/merchandising/shelf-grid';
 import CatchOfTheWeek from '@/components/merchandising/catch-of-the-week';
 import LearnMore from '@/components/merchandising/learn-more';
+import { LOCALITY, REGION, SHOP_NAME } from '@/lib/shop';
+
+/**
+ * La portada es la página que compite por la búsqueda local, así que declara su
+ * propio título en vez de heredar el del layout.
+ *
+ * El patrón: qué eres · dónde estás · marca. Sin amontonar palabras clave — la
+ * repetición mecánica lleva una década penalizada, y a un cliente le lee a
+ * desesperado.
+ */
+export const metadata: Metadata = {
+  title: `Pescadería en ${LOCALITY} — mariscos y pescado fresco`,
+  description: `${SHOP_NAME}: pescadería y marisquería en ${LOCALITY}, ${REGION}. Pescado y mariscos frescos seleccionados pieza por pieza, con cadena de frío y entrega a domicilio en Monterrey.`,
+  alternates: { canonical: '/' },
+};
 
 /**
  * Home — commerce first, and now it actually is.

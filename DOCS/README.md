@@ -32,6 +32,8 @@ La arquitectura sigue un enfoque **Domain-Driven Design pragmático** sobre un *
 | [FLUJOS.md](FLUJOS.md) | Casos de uso end-to-end y fronteras transaccionales | cambia una operación |
 | [FLUJO-INVENTARIO-PEDIDO.md](FLUJO-INVENTARIO-PEDIDO.md) | Explicación a fondo de cómo se mueve el stock y cómo nace un pedido | cambia el modelo de inventario o `createOrder` |
 | [SEO.md](SEO.md) | Auditoría de SEO del storefront y plan local para San Pedro Garza García | cambia la estrategia de búsqueda o el NAP del negocio |
+| [SEO-REGLAS.md](SEO-REGLAS.md) | Las 15 reglas de SEO a seguir al escribir páginas, con su checklist | se añade una regla o cambia una convención |
+| [FLUJO-ABASTECIMIENTO.md](FLUJO-ABASTECIMIENTO.md) | Fresco, congelado y por encargo: qué reserva inventario y qué no | cambia el modelo de abastecimiento o el ciclo de encargo |
 | [HISTORIAS.md](HISTORIAS.md) | Backlog priorizado con criterios de aceptación | se planifica implementación |
 | [PLAN.md](PLAN.md) | Roadmap de fases/PRs, Definition of Done, deuda y trazabilidad | cambia el orden de construcción |
 | [PAGOS.md](PAGOS.md) | Plan de integración de pagos y devoluciones con Stripe (`PAG`) | cambia el proveedor, un método de pago o la política de reembolso |

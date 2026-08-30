@@ -9,7 +9,7 @@ import { formatMoney } from '@/lib/format';
 import { CURRENCY } from '@/lib/commerce/constants';
 import Button, { ButtonLink } from '@/components/ui/button';
 import { placeOrder, quoteDeliveryAction } from './actions';
-import type { DeliveryQuote } from '@/lib/commerce/types';
+import type { CartLine, DeliveryQuote } from '@/lib/commerce/types';
 import { EMPTY_STATE } from './form-state';
 
 /**
@@ -422,6 +422,17 @@ export default function CheckoutForm() {
           <DeliverySummary quote={quote} loading={quoteLoading} />
         ) : null}
 
+        {/*
+          Cuándo llega el pedido completo.
+          
+          Un pedido se entrega junto, así que si lleva un encargo **todo espera
+          a la fecha más lejana** — el pescado fresco incluido. Es una
+          consecuencia incómoda y por eso se dice antes de confirmar, no
+          después: alguien que agregó mejillones sin darse cuenta de que llegan
+          el viernes tiene derecho a sacarlos del carrito.
+        */}
+        <PreorderNotice cart={cart} />
+
         <div className="flex items-baseline justify-between border-t border-border pt-4">
           <span className="text-sm text-muted">Total</span>
           <span className="font-sans text-xl font-medium tabular-nums">
@@ -674,6 +685,45 @@ function DeliverySummary({
           para que el envío salga gratis.
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * El aviso de encargo, cuando el carrito lleva alguno.
+ *
+ * Distingue dos casos porque no son el mismo problema:
+ *
+ * - **todo el carrito es de encargo** — una fecha, sin sorpresa;
+ * - **mezcla de encargo y disponible** — lo disponible espera, y eso hay que
+ *   decirlo con todas sus letras.
+ */
+function PreorderNotice({ cart }: { cart: { lines: CartLine[] } }) {
+  const preordered = cart.lines.filter((line) => line.arrivesOn);
+
+  if (preordered.length === 0) return null;
+
+  const latest = preordered
+    .map((line) => new Date(line.arrivesOn as string))
+    .reduce((a, b) => (a > b ? a : b));
+
+  const fecha = new Intl.DateTimeFormat('es-MX', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'America/Monterrey',
+  }).format(latest);
+
+  const mixed = preordered.length < cart.lines.length;
+
+  return (
+    <div className="border border-border-strong bg-surface p-4 text-sm">
+      <p className="font-medium">Tu pedido llega el {fecha}</p>
+      <p className="mt-1 text-muted">
+        {mixed
+          ? 'Lleva productos por encargo que traemos ese día. El resto de tu pedido se entrega junto con ellos.'
+          : 'Son productos por encargo: los conseguimos y te llegan ese día.'}
+      </p>
     </div>
   );
 }

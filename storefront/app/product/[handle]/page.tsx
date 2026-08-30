@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
 import { getProduct, type Product } from '@/lib/commerce';
+import { SHOP_NAME, SITE_URL, breadcrumbJsonLd } from '@/lib/shop';
 import Gallery from '@/components/product/gallery';
 import ProductDescription from '@/components/product/product-description';
 import ProductDetails from '@/components/product/product-details';
@@ -40,19 +41,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!product) return { title: 'Producto no encontrado' };
 
+  /*
+   * La descripción se enriquece con lo que el catálogo ya sabe y no se estaba
+   * usando: origen y presentación. Son exactamente los términos por los que
+   * alguien busca —«atún aleta amarilla de Ensenada», «lomo limpio»— y estaban
+   * guardados en la ficha sin llegar nunca al resultado de búsqueda.
+   */
+  const details = [product.presentation, product.origin]
+    .filter(Boolean)
+    .join(' · ');
+
+  const description = [product.seo.description, details]
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, 300);
+
   return {
     title: product.seo.title,
-    description: product.seo.description ?? undefined,
-    openGraph: product.featuredImage
-      ? {
-          images: [
-            {
-              url: product.featuredImage.url,
-              alt: product.featuredImage.altText,
-            },
-          ],
-        }
-      : undefined,
+    description: description || undefined,
+    // Una URL por contenido. Sin canónica, el mismo producto alcanzable desde
+    // dos rutas compite consigo mismo.
+    alternates: { canonical: `/product/${handle}` },
+    openGraph: {
+      type: 'website',
+      title: product.seo.title,
+      description: description || undefined,
+      url: `/product/${handle}`,
+      images: product.featuredImage
+        ? [{ url: product.featuredImage.url, alt: product.featuredImage.altText }]
+        : undefined,
+    },
   };
 }
 
@@ -145,27 +163,70 @@ function categoryHandle(category: string): string {
  * something the shop cannot sell.
  */
 function ProductJsonLd({ product }: { product: Product }) {
+  const url = `${SITE_URL}/product/${product.handle}`;
+
+  /*
+   * La ficha estaba a medias: sin `sku`, sin `brand`, sin `offers.url` y sin
+   * `itemCondition`, Google no la considera elegible para resultado
+   * enriquecido — que es todo el motivo de escribirla.
+   */
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
+    '@id': `${url}#producto`,
     name: product.name,
     description: product.seo.description ?? undefined,
     image: product.images.map((i) => i.url),
+    /*
+     * El `handle` como identificador, no el SKU interno.
+     *
+     * `sku` en schema.org sólo pide un identificador estable del comerciante, y
+     * el handle ya lo es y ya es público. Exponer el SKU del almacén sería
+     * filtrar vocabulario interno a cambio de nada — si algún día hace falta
+     * para Merchant Center, se agrega al DTO a conciencia.
+     */
+    sku: product.handle,
+    brand: { '@type': 'Brand', name: SHOP_NAME },
     ...(product.origin ? { countryOfOrigin: product.origin } : {}),
     offers: {
       '@type': 'Offer',
+      url,
       priceCurrency: product.price.currency,
       price: (product.price.amountCents / 100).toFixed(2),
+      itemCondition: 'https://schema.org/NewCondition',
       availability: product.availableForSale
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
+      seller: { '@type': 'Organization', name: SHOP_NAME },
+      /*
+       * Falta `priceValidUntil`, y es deliberado.
+       *
+       * Google lo recomienda, pero calcularlo aquí significa leer la hora
+       * durante el render, que es impuro y que el linter caza con razón: React
+       * puede volver a renderizar y obtener otra respuesta. Su sitio correcto es
+       * el bloque `seo` que ya arma el admin, fuera de React por completo.
+       * Queda anotado en DOCS/SEO.md en vez de resuelto con una supresión.
+       */
     },
   };
 
+  const trail = breadcrumbJsonLd([
+    { name: 'Catálogo', path: '/search' },
+    { name: product.name, path: `/product/${product.handle}` },
+  ]);
+
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {/* La ruta que sale bajo el resultado de búsqueda, en lugar de la URL
+          cruda. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(trail) }}
+      />
+    </>
   );
 }

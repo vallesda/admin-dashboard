@@ -83,6 +83,32 @@ export const productStatusEnum = pgEnum('product_status', [
 ]);
 
 /**
+ * De dónde sale el producto cuando alguien lo pide.
+ *
+ * Hasta ahora el catálogo suponía una sola respuesta —«está en la cámara»— y la
+ * pescadería tiene tres, con reglas de inventario distintas:
+ *
+ * - `fresh`   — la captura del día. Existencia real y limitada; sale del
+ *               catálogo cuando se agota, porque hoy ya no hubo.
+ * - `stocked` — congelado y despensa. También es existencia real, pero no
+ *               desaparece a diario: agotarse significa «se acabó, pedimos
+ *               más», no «hoy no llegó». La diferencia es de mensaje, no de
+ *               inventario.
+ * - `preorder`— por encargo. **No hay existencia y no la va a haber hasta que
+ *               alguien lo pida.** El cliente pide el martes, la tienda lo
+ *               compra, y llega el viernes. Estas líneas no reservan nada
+ *               porque no hay nada que reservar (ver `modules/sales/service.ts`).
+ *
+ * `stocked` no relaja `RN-003`: vender 50 kg de camarón congelado que no se
+ * tienen es el mismo problema que venderlos frescos.
+ */
+export const supplyTypeEnum = pgEnum('supply_type', [
+  'fresh',
+  'stocked',
+  'preorder',
+]);
+
+/**
  * E-Product — the sellable SKU itself.
  *
  * RN-001: a Product *is* a SKU. There is no ProductVariant in the MVP;
@@ -126,6 +152,31 @@ export const products = pgTable(
     unitType: unitTypeEnum('unit_type').notNull(),
     netWeightGrams: integer('net_weight_grams'),
 
+    /*
+     * Cómo se abastece este producto.
+     *
+     * `fresh` por defecto porque es lo que era todo el catálogo hasta ahora: el
+     * default no debe reinterpretar la historia.
+     */
+    supplyType: supplyTypeEnum('supply_type').notNull().default('fresh'),
+
+    /*
+     * El ciclo de encargo, sólo para `preorder`.
+     *
+     * Semanal y recurrente, que es como funciona de verdad: «pide antes del
+     * martes a las 6, llega el viernes». Se guarda como día de la semana
+     * (0 = domingo) y hora local del mostrador, no como fechas: una fecha
+     * concreta habría que reescribirla cada semana y nadie lo haría.
+     *
+     * La fecha real que ve el cliente la calcula `modules/catalog/preorder.ts`
+     * a partir de esto y del momento en que mira la página.
+     */
+    preorderCutoffWeekday: integer('preorder_cutoff_weekday'),
+    preorderCutoffHour: integer('preorder_cutoff_hour'),
+    preorderArrivalWeekday: integer('preorder_arrival_weekday'),
+    /** Una línea del propio negocio: «llega directo del muelle de Alvarado». */
+    preorderNote: text('preorder_note'),
+
     status: productStatusEnum('status').notNull().default('draft'),
 
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -137,6 +188,30 @@ export const products = pgTable(
   },
   (table) => [
     index('products_status_idx').on(table.status),
+    index('products_supply_status_idx').on(table.supplyType, table.status),
+
+    /**
+     * Un producto por encargo necesita su ciclo completo, y uno que no lo es no
+     * debe llevarlo a medias.
+     *
+     * Sin esto, un `preorder` sin día de corte sería un producto que promete
+     * una fecha de llegada que nadie puede calcular — y el cliente vería
+     * «llega el …» con un hueco.
+     */
+    check(
+      'products_preorder_needs_cycle',
+      sql`(${table.supplyType} = 'preorder') = (
+        ${table.preorderCutoffWeekday} IS NOT NULL
+        AND ${table.preorderCutoffHour} IS NOT NULL
+        AND ${table.preorderArrivalWeekday} IS NOT NULL
+      )`,
+    ),
+    check(
+      'products_preorder_weekday_range',
+      sql`(${table.preorderCutoffWeekday} IS NULL OR ${table.preorderCutoffWeekday} BETWEEN 0 AND 6)
+        AND (${table.preorderArrivalWeekday} IS NULL OR ${table.preorderArrivalWeekday} BETWEEN 0 AND 6)
+        AND (${table.preorderCutoffHour} IS NULL OR ${table.preorderCutoffHour} BETWEEN 0 AND 23)`,
+    ),
     index('products_category_status_idx').on(table.categoryId, table.status),
     // Plain btree for now. DOCS §12 is explicit: no pg_trgm until volume
     // justifies it.
@@ -160,6 +235,7 @@ export type ProductRow = typeof products.$inferSelect;
 export type NewProductRow = typeof products.$inferInsert;
 export type ProductStatus = (typeof productStatusEnum.enumValues)[number];
 export type UnitType = (typeof unitTypeEnum.enumValues)[number];
+export type SupplyType = (typeof supplyTypeEnum.enumValues)[number];
 
 // ---------------------------------------------------------------------------
 // Packages

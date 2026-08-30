@@ -224,7 +224,28 @@ const unitType = z.enum(['piece', 'pack'], {
   required_error: 'Selecciona cómo se vende el producto.',
 });
 
+const weekday = z.coerce
+  .number({ invalid_type_error: 'Elige un día.' })
+  .int()
+  .min(0, { message: 'Elige un día.' })
+  .max(6, { message: 'Elige un día.' });
+
 const baseProduct = z.object({
+  /**
+   * De dónde sale el producto. `fresh` por defecto: es lo que era todo el
+   * catálogo, y un default no debe reinterpretar la historia.
+   */
+  supplyType: z.enum(['fresh', 'stocked', 'preorder']).default('fresh'),
+  preorderCutoffWeekday: weekday.optional().nullable(),
+  preorderCutoffHour: z.coerce
+    .number({ invalid_type_error: 'Elige una hora.' })
+    .int()
+    .min(0)
+    .max(23)
+    .optional()
+    .nullable(),
+  preorderArrivalWeekday: weekday.optional().nullable(),
+  preorderNote: optionalText(280, 'La nota de encargo'),
   sku,
   name: productName,
   slug: productSlug.optional(),
@@ -236,6 +257,35 @@ const baseProduct = z.object({
   unitType,
   netWeightGrams,
 });
+
+/**
+ * Un producto por encargo necesita su ciclo completo; uno que no lo es no debe
+ * llevarlo a medias.
+ *
+ * Sin corte y sin día de llegada, la tienda enseñaría «llega el …» con un
+ * hueco. Y guardar un ciclo en un producto fresco es basura que alguien va a
+ * leer algún día creyendo que significa algo.
+ */
+const requirePreorderCycle = <T extends z.ZodTypeAny>(schema: T) =>
+  schema.superRefine((data: z.infer<T>, ctx: z.RefinementCtx) => {
+    if (data.supplyType !== 'preorder') return;
+
+    const missing = [
+      ['preorderCutoffWeekday', 'el día de corte'],
+      ['preorderCutoffHour', 'la hora de corte'],
+      ['preorderArrivalWeekday', 'el día de llegada'],
+    ] as const;
+
+    for (const [field, label] of missing) {
+      if (data[field] === null || data[field] === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `Un producto por encargo necesita ${label}.`,
+        });
+      }
+    }
+  });
 
 /**
  * A `pack` is a closed package, so its net weight is what the customer is
@@ -253,10 +303,12 @@ const requirePackWeight = <T extends z.ZodTypeAny>(schema: T) =>
     }
   });
 
-export const createProductSchema = requirePackWeight(baseProduct);
+export const createProductSchema = requirePreorderCycle(
+  requirePackWeight(baseProduct),
+);
 
-export const updateProductSchema = requirePackWeight(
-  baseProduct.extend({ slug: productSlug }),
+export const updateProductSchema = requirePreorderCycle(
+  requirePackWeight(baseProduct.extend({ slug: productSlug })),
 );
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

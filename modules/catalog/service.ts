@@ -12,6 +12,7 @@ import 'server-only';
 import { eq, and, ne, asc } from 'drizzle-orm';
 
 import { db } from '@/db';
+import type { SupplyType } from '@/db/schema/catalog';
 import {
   categories,
   products,
@@ -264,6 +265,7 @@ export async function createProduct(
           imageUrl: input.imageUrl,
           unitType: input.unitType,
           netWeightGrams: input.netWeightGrams,
+          ...supplyColumns(input),
           status: 'draft',
         })
         .returning();
@@ -308,6 +310,7 @@ export async function updateProduct(
         imageUrl: input.imageUrl,
         unitType: input.unitType,
         netWeightGrams: input.netWeightGrams,
+        ...supplyColumns(input),
         updatedAt: new Date(),
       })
       .where(eq(products.id, id))
@@ -571,4 +574,39 @@ export async function removePackageItem(
         eq(packageItems.productId, productId),
       ),
     );
+}
+
+/**
+ * Las columnas de abastecimiento, limpias.
+ *
+ * Cuando el producto no es por encargo, el ciclo se borra explícitamente en vez
+ * de dejarse como estaba. Un producto que pasa de encargo a congelado y
+ * conserva su «llega el viernes» es basura que alguien va a leer dentro de seis
+ * meses creyendo que significa algo — y el `CHECK` de la base lo rechazaría de
+ * todos modos.
+ */
+function supplyColumns(input: {
+  supplyType: SupplyType;
+  preorderCutoffWeekday?: number | null;
+  preorderCutoffHour?: number | null;
+  preorderArrivalWeekday?: number | null;
+  preorderNote?: string | null;
+}) {
+  if (input.supplyType !== 'preorder') {
+    return {
+      supplyType: input.supplyType,
+      preorderCutoffWeekday: null,
+      preorderCutoffHour: null,
+      preorderArrivalWeekday: null,
+      preorderNote: null,
+    };
+  }
+
+  return {
+    supplyType: input.supplyType,
+    preorderCutoffWeekday: input.preorderCutoffWeekday ?? null,
+    preorderCutoffHour: input.preorderCutoffHour ?? null,
+    preorderArrivalWeekday: input.preorderArrivalWeekday ?? null,
+    preorderNote: input.preorderNote ?? null,
+  };
 }

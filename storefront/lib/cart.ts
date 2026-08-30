@@ -12,7 +12,7 @@
  * This module is the storage layer. The provider and drawer are built on top of
  * it and share this same key, so nothing here is throwaway.
  */
-import type { CartLine, Product } from './commerce/types';
+import { supplyOf, type CartLine, type Product } from './commerce/types';
 
 const STORAGE_KEY = 'amoramar.cart.v1';
 
@@ -128,6 +128,7 @@ export function addLine(
     unitPrice: product.price,
     quantity,
     image: product.featuredImage,
+    arrivesOn: supplyOf(product).arrivesOn,
   };
 
   return { lines: [...cart.lines, line] };

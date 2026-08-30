@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import type { Product } from '@/lib/commerce/types';
+import { supplyOf, type Product } from '@/lib/commerce/types';
 import { formatMoney, formatUnit } from '@/lib/format';
 import ProductCartControl from '@/components/cart/product-cart-control';
 
@@ -57,6 +57,7 @@ export default function ProductCard({ product }: { product: Product }) {
     .join(' · ');
 
   const soldOut = !product.availableForSale;
+  const supply = supplyOf(product);
 
   /*
    * A product with real presentations cannot be added from a grid: the shopper
@@ -105,9 +106,23 @@ export default function ProductCard({ product }: { product: Product }) {
           <span className="absolute left-3 top-3 rounded-sm bg-foreground/85 px-2 py-1 text-xs text-background backdrop-blur-[2px]">
             Agotado
           </span>
+        ) : supply.type === 'preorder' ? (
+          /*
+            Por encargo gana a «de temporada» cuando coinciden, y es lo correcto:
+            de temporada describe el producto, por encargo cambia lo que le pasa
+            a quien lo compra. Una sola etiqueta por tarjeta, y que sea la que
+            altera la decisión.
+          */
+          <span className="absolute left-3 top-3 rounded-sm bg-foreground px-2 py-1 text-xs font-medium text-background">
+            {supply.shortNotice ?? 'Por encargo'}
+          </span>
         ) : product.seasonal ? (
           <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-medium text-foreground">
             De temporada
+          </span>
+        ) : supply.type === 'stocked' ? (
+          <span className="absolute left-3 top-3 rounded-sm border border-border-strong bg-surface px-2 py-1 text-xs text-muted">
+            Siempre disponible
           </span>
         ) : null}
       </div>

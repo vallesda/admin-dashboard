@@ -107,6 +107,16 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               ? 'Entrega a domicilio'
               : 'Recoge en tienda'}
           </p>
+          {/* Un encargo cambia lo que el mostrador tiene que hacer: no preparar
+              hoy, sino comprar para esa fecha. Va junto a la entrega porque es
+              donde se lee «qué hay que hacer con este pedido». */}
+          {order.promisedFor ? (
+            <p className="mt-2 rounded-md border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-ink">
+              <span className="font-medium">Por encargo:</span> llega el{' '}
+              {dateFormat.format(order.promisedFor)}
+            </p>
+          ) : null}
+
           {/*
             The parts when they exist, the old one-line snapshot when they do
             not. Orders placed before addresses were structured keep the

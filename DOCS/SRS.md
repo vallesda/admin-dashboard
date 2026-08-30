@@ -65,6 +65,9 @@ El MVP debe permitir vender productos estandarizados de peso/precio fijo sin con
 | `RN-009` | **Toda modificación de inventario deja un InventoryMovement.** |
 | `RN-010` | **El storefront reutiliza el mismo dominio del admin.** No se crea una segunda fuente de verdad. |
 | `RN-011` | **El efectivo sólo se cobra en el mostrador.** Un pedido a domicilio se paga en línea; no hay pago contra entrega. |
+| `RN-016` | **Un producto por encargo no reserva inventario.** No hay existencia que apartar: la tienda lo compra después de que alguien lo pida. Sus líneas no escriben movimientos de stock ni al vender ni al cancelar. |
+| `RN-017` | **El abastecimiento de una línea se congela al vender.** Como el nombre y el precio (`RN-005`): decide si esa línea mueve inventario, y cambiar el producto después no debe reescribir lo que hay que deshacer. |
+| `RN-018` | **Un pedido se entrega junto.** Su fecha prometida es la llegada más lejana de sus líneas, y el checkout lo avisa antes de confirmar. |
 | `RN-013` | **El costo del envío lo decide el código postal.** Lo cotiza el servidor desde las zonas configuradas; el cliente nunca lo envía. Es `RN-008` aplicado al envío. |
 | `RN-014` | **Un código postal pertenece a una sola zona.** Sin zona activa que lo cubra, no hay entrega — que no es lo mismo que envío gratis. |
 | `RN-015` | **Perdonar el envío exige motivo escrito y rol `admin`.** El pedido guarda de qué zona era, qué se habría cobrado y quién decidió no cobrarlo. |

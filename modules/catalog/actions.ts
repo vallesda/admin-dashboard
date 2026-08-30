@@ -191,6 +191,11 @@ function readProductForm(formData: FormData) {
     imageUrl: text('imageUrl'),
     unitType: formData.get('unitType'),
     netWeightGrams: text('netWeightGrams'),
+    supplyType: formData.get('supplyType') ?? 'fresh',
+    preorderCutoffWeekday: text('preorderCutoffWeekday') ?? null,
+    preorderCutoffHour: text('preorderCutoffHour') ?? null,
+    preorderArrivalWeekday: text('preorderArrivalWeekday') ?? null,
+    preorderNote: text('preorderNote') ?? null,
   };
 }
 

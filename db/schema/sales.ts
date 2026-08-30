@@ -19,7 +19,7 @@ import {
 import { sql } from 'drizzle-orm';
 
 import { customers } from './customers';
-import { products } from './catalog';
+import { products, supplyTypeEnum } from './catalog';
 import { deliveryZones } from './delivery';
 import { adminUsers } from './identity';
 
@@ -204,6 +204,17 @@ export const orders = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
+    /**
+     * Cuándo se le prometió al cliente.
+     *
+     * `NULL` en un pedido normal: sale hoy o cuando el mostrador lo tenga listo.
+     * Con fecha cuando el pedido lleva algo por encargo, y entonces es la
+     * llegada **más lejana** de sus líneas — un pedido se entrega junto, así que
+     * el pescado fresco que lo acompaña espera al encargo. Es una consecuencia
+     * incómoda y por eso el checkout la dice en voz alta antes de confirmar.
+     */
+    promisedFor: timestamp('promised_for', { withTimezone: true }),
+
     completedAt: timestamp('completed_at', { withTimezone: true }),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
   },
@@ -324,6 +335,20 @@ export const orderItems = pgTable(
     sku: varchar('sku', { length: 64 }).notNull(),
     unitPriceCents: integer('unit_price_cents').notNull(),
     quantity: integer('quantity').notNull(),
+
+    /*
+     * Cómo se abastecía este producto **cuando se vendió**.
+     *
+     * Copia, igual que el nombre y el precio (RN-005), y por una razón que va
+     * más allá de la fidelidad histórica: es lo que decide si esta línea mueve
+     * inventario. Un congelado que mañana pase a ser de encargo no debe cambiar
+     * lo que hay que hacer con un pedido de la semana pasada — y si se leyera
+     * del catálogo actual, completar ese pedido intentaría descontar existencia
+     * que nunca se reservó.
+     */
+    supplyType: supplyTypeEnum('supply_type').notNull().default('fresh'),
+    /** Cuándo llega esta línea, para las de encargo. */
+    promisedFor: timestamp('promised_for', { withTimezone: true }),
     lineTotalCents: integer('line_total_cents').notNull(),
   },
   (table) => [

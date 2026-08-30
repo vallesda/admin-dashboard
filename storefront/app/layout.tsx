@@ -3,6 +3,14 @@ import { Newsreader, Instrument_Sans } from 'next/font/google';
 
 import './globals.css';
 import { getProducts } from '@/lib/commerce';
+import {
+  LOCALITY,
+  REGION,
+  SHOP_NAME,
+  SITE_URL,
+  localBusinessJsonLd,
+  websiteJsonLd,
+} from '@/lib/shop';
 import { CartProvider } from '@/components/cart/cart-context';
 import CartDrawer from '@/components/cart/cart-drawer';
 import AnnouncementBar from '@/components/layout/announcement-bar';
@@ -41,12 +49,33 @@ const sans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
+  /*
+   * `metadataBase` faltaba, y su ausencia rompía algo que no se ve desde el
+   * navegador: sin una base, Next resuelve las URLs de Open Graph como
+   * relativas, y ni WhatsApp ni Facebook ni Google saben qué hacer con
+   * `/imagenes/salmon.jpg`. En la práctica, un enlace de la tienda pegado en
+   * WhatsApp salía sin imagen — que para una pescadería de Monterrey es el
+   * canal principal.
+   */
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Amor a Mar — Pescados y mariscos frescos',
-    template: '%s · Amor a Mar',
+    // El patrón que funciona en búsqueda local: qué eres · dónde estás · marca.
+    default: `Pescadería en ${LOCALITY} — ${SHOP_NAME}`,
+    template: `%s · ${SHOP_NAME}`,
   },
-  description:
-    'Selección fresca de pescados y mariscos, preparada para ti y entregada con cadena de frío.',
+  description: `Pescados y mariscos frescos en ${LOCALITY}, ${REGION}. Seleccionados pieza por pieza, con cadena de frío y entrega a domicilio en la zona metropolitana de Monterrey.`,
+  applicationName: SHOP_NAME,
+  // Google no las usa para posicionar desde 2009. Se omiten a propósito: repetir
+  // «pescadería mariscos seafood» en una etiqueta que nadie lee es la clase de
+  // señal que sí se penaliza cuando aparece en el resto de la página.
+  openGraph: {
+    type: 'website',
+    locale: 'es_MX',
+    siteName: SHOP_NAME,
+    url: SITE_URL,
+  },
+  alternates: { canonical: '/' },
+  robots: { index: true, follow: true },
 };
 
 /**
@@ -71,6 +100,18 @@ export default async function RootLayout({
   return (
     <html lang="es-MX" className={`${display.variable} ${sans.variable}`}>
       <body className="font-sans antialiased">
+        {/*
+          Datos estructurados de todo el sitio.
+          
+          `WebSite` habilita la caja de búsqueda en el resultado de Google.
+          `Store` es la señal local: sólo se emite cuando hay domicilio
+          verificable, porque una dirección inventada le dice a Google que este
+          sitio y la ficha del negocio son entidades distintas — daña en lugar
+          de ayudar. Ver `lib/shop.ts`.
+        */}
+        <JsonLd data={websiteJsonLd()} />
+        <JsonLd data={localBusinessJsonLd()} />
+
         <CartProvider>
           <AnnouncementBar />
           <Navbar />
@@ -80,5 +121,23 @@ export default async function RootLayout({
         </CartProvider>
       </body>
     </html>
+  );
+}
+
+/**
+ * Un bloque de JSON-LD, o nada.
+ *
+ * Acepta `null` para que quien lo llama no tenga que envolver cada uso en un
+ * condicional — y para que «no hay dato que publicar» sea un caso normal en vez
+ * de una excepción que alguien acabe rellenando con datos falsos.
+ */
+function JsonLd({ data }: { data: Record<string, unknown> | null }) {
+  if (!data) return null;
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
   );
 }

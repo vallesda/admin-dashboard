@@ -23,19 +23,16 @@ export const emptyCategoryFormState: CategoryFormState = {
   message: null,
 };
 
+/**
+ * Abierto en vez de una unión cerrada de claves.
+ *
+ * El formulario de producto ya tiene quince campos y el abastecimiento le suma
+ * cinco más; mantener a mano la lista garantiza que se desincronice la primera
+ * vez que alguien añada uno. Las claves son los `name` de los inputs, que es lo
+ * que el componente busca de todos modos.
+ */
 export type ProductFormState = {
-  errors?: {
-    sku?: string[];
-    name?: string[];
-    slug?: string[];
-    description?: string[];
-    categoryId?: string[];
-    priceCents?: string[];
-    costCents?: string[];
-    imageUrl?: string[];
-    unitType?: string[];
-    netWeightGrams?: string[];
-  };
+  errors?: Record<string, string[] | undefined>;
   message?: string | null;
 };
 
