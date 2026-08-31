@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { getCollections, getShelf } from '@/lib/commerce';
+import { getNavCollections, getShelf } from '@/lib/commerce';
 import Eyebrow from '@/components/ui/eyebrow';
 import {
   GridIcon,
@@ -36,7 +36,7 @@ export default async function CollectionNav({
   active?: string;
 }) {
   const [collections, shelf] = await Promise.all([
-    getCollections(),
+    getNavCollections(),
     getShelf().catch(() => []),
   ]);
 

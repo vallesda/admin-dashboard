@@ -72,7 +72,7 @@ export type Product = {
   images: ProductImage[];
 
   price: Money;
-  unit: 'piece' | 'pack' | 'kg';
+  unit: 'piece' | 'pack' | 'kg' | 'dozen';
   netWeightGrams: number | null;
 
   origin: string | null;
@@ -104,6 +104,14 @@ export type Product = {
 export type Collection = {
   handle: string;
   title: string;
+  /**
+   * Si va en la barra, en las pastillas y en el pie.
+   *
+   * La lista llega entera y cada consumidor decide: los menús filtran por esto,
+   * pero `/search/[collection]` la usa para validar el handle y el sitemap para
+   * publicar la URL, y ésos tienen que seguir viendo las ocultas.
+   */
+  showInNav: boolean;
 };
 
 /**

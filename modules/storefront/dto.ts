@@ -63,7 +63,7 @@ export type PublicProduct = {
   images: PublicImage[];
 
   price: Money;
-  unit: 'piece' | 'pack' | 'kg';
+  unit: 'piece' | 'pack' | 'kg' | 'dozen';
   netWeightGrams: number | null;
 
   origin: string | null;
@@ -107,11 +107,23 @@ export type PublicProduct = {
 export type PublicCollection = {
   handle: string;
   title: string;
+  /**
+   * Si va en la barra y en las pastillas de navegación.
+   *
+   * Se expone en vez de filtrarse en la consulta porque los consumidores no
+   * quieren lo mismo: el menú quiere el subconjunto, pero la página
+   * `/search/[collection]` usa esta lista para decidir si un handle existe, y
+   * el sitemap para saber qué URLs publicar. Filtrar en origen habría
+   * convertido «no sale en el menú» en un 404 y en una página fuera del mapa.
+   */
+  showInNav: boolean;
 };
 
 type ProductSource = ProductRow & {
+  /** La primera de sus categorías por orden de estantería, para mostrar. */
   categoryName: string | null;
-  categorySlug: string | null;
+  /** Todas a las que pertenece. Vacío si no está en ninguna. */
+  categorySlugs: string[];
   available: number;
 };
 
@@ -142,10 +154,15 @@ export function toPublicProduct(row: ProductSource): PublicProduct {
     description: row.description,
 
     category: row.categoryName,
-    // One category today. The storefront wants taxonomy *and* intent
-    // ("Sashimi", "Parrilla"), which needs a many-to-many — see the gap note in
-    // DOCS. Returning an array now keeps that change invisible to the client.
-    collections: row.categorySlug ? [row.categorySlug] : [],
+    /*
+     * Todas sus categorías, no una.
+     *
+     * Este campo ya era un array cuando detrás sólo había una columna,
+     * apostando a que la relación acabaría siendo de muchas a muchas. Lo es
+     * desde `product_categories`, y el cambio no tocó a ningún cliente: el
+     * contrato público no se enteró.
+     */
+    collections: row.categorySlugs,
 
     featuredImage: image,
     images: image ? [image] : [],
@@ -184,7 +201,7 @@ export function toPublicProduct(row: ProductSource): PublicProduct {
 }
 
 export function toPublicCollection(row: CategoryRow): PublicCollection {
-  return { handle: row.slug, title: row.name };
+  return { handle: row.slug, title: row.name, showInNav: row.showInNav };
 }
 
 // ---------------------------------------------------------------------------

@@ -14,7 +14,10 @@
     "blob:check": "node --env-file=.env --experimental-strip-types scripts/blob-check.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "catalogo:2026": "node --env-file=.env --experimental-strip-types scripts/catalogo-2026.ts",
+    "catalogo:xlsx": "node --experimental-strip-types scripts/catalogo-xlsx.ts",
+    "catalogo:fotos": "node --env-file=.env --experimental-strip-types scripts/fotos-blob.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

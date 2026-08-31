@@ -19,10 +19,30 @@ import ImagePicker from './image-picker';
 import { WEEKDAYS } from '../preorder';
 import type { SupplyType } from '@/db/schema/catalog';
 
+/**
+ * Las unidades de venta, con una línea que dice cuándo se usa cada una.
+ *
+ * El orden no es el del enum sino el de frecuencia en el mostrador: casi todo
+ * se vende por kilo, y la opción más usada debe ser la primera que se lee.
+ * `kg` es también el valor por defecto al crear, por el mismo motivo.
+ */
+const UNIT_CHOICES = [
+  { value: 'kg', label: 'Por kilo', hint: 'El precio es por kilogramo.' },
+  {
+    value: 'pack',
+    label: 'Paquete de peso cerrado',
+    hint: 'Pide peso neto: es lo que distingue uno de 500 g de uno de 2 kg.',
+  },
+  { value: 'dozen', label: 'Por docena', hint: 'Ostión, almeja chocolata.' },
+  { value: 'piece', label: 'Por pieza', hint: 'Se cobra la pieza, pese lo que pese.' },
+] as const;
+
 type Props = {
   categories: CategoryOption[];
   /** Present when editing; absent when creating. */
   product?: ProductRow;
+  /** Las categorías que el producto ya tiene marcadas. Vacío al crear. */
+  selectedCategoryIds?: string[];
 };
 
 /**
@@ -40,8 +60,13 @@ type Props = {
  * what it costs, how it is sold — which is also the order the operator learns the
  * product in when it arrives at the counter.
  */
-export default function ProductForm({ categories, product }: Props) {
+export default function ProductForm({
+  categories,
+  product,
+  selectedCategoryIds = [],
+}: Props) {
   const isEdit = product !== undefined;
+  const selected = new Set(selectedCategoryIds);
 
   // El ciclo de encargo sólo se pide cuando aplica: pedirlo siempre llenaría el
   // formulario de campos que nadie va a usar en el 90 % de los productos.
@@ -49,12 +74,10 @@ export default function ProductForm({ categories, product }: Props) {
     product?.supplyType ?? 'fresh',
   );
 
-  // Offer the active categories, plus the product's current one even if it has
-  // since been deactivated: without it the select would fall back to "Sin
-  // categoría" and saving would silently unassign the product.
-  const selectable = categories.filter(
-    (c) => c.active || c.id === product?.categoryId,
-  );
+  // Offer the active categories, plus any the product already has even if they
+  // have since been deactivated: without them the group would render unchecked
+  // and saving would silently unfile the product.
+  const selectable = categories.filter((c) => c.active || selected.has(c.id));
   const inactiveCount =
     categories.length - categories.filter((c) => c.active).length;
 
@@ -128,58 +151,79 @@ export default function ProductForm({ categories, product }: Props) {
             )}
           </Field>
 
-          <Field
-            name="categoryId"
-            label="Categoría (opcional)"
-            error={state.errors?.categoryId}
-            hint={
-              categories.length === 0 ? (
-                <>
-                  Todavía no hay categorías.{' '}
-                  <Link
-                    href="/dashboard/categories/create"
-                    className="text-brand-600 underline"
-                  >
-                    Crea una
-                  </Link>{' '}
-                  si quieres clasificar este producto.
-                </>
-              ) : selectable.length === 0 ? (
-                /* Categories exist but none can be offered — say so instead of
-                   implying there are none, which invites creating a duplicate. */
-                <span className="text-warn">
-                  Tienes {inactiveCount}{' '}
-                  {inactiveCount === 1
-                    ? 'categoría inactiva'
-                    : 'categorías inactivas'}{' '}
-                  y ninguna activa.{' '}
-                  <Link
-                    href="/dashboard/categories"
-                    className="underline"
-                  >
-                    Actívala
-                  </Link>{' '}
-                  para poder asignarla.
-                </span>
-              ) : undefined
-            }
-          >
-            {(props) => (
-              <select
-                {...props}
-                defaultValue={product?.categoryId ?? ''}
-                className={`${props.className} cursor-pointer`}
-              >
-                <option value="">Sin categoría</option>
+          {/*
+            Casillas y no un `select`: un producto pertenece a varias
+            categorías —«Filete de Salmón» es Filetes y es Fresco— y un
+            desplegable múltiple esconde lo que hay marcado detrás de un
+            scroll de tres líneas. Aquí el estado del producto se lee entero
+            sin abrir nada.
+
+            `fieldset`/`legend` en vez del componente `Field`: éste monta un
+            `<label for>`, que apunta a un control concreto. Un grupo de
+            casillas no es un control, y etiquetarlo así hace que el lector de
+            pantalla anuncie el grupo como si fuera la primera casilla.
+          */}
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="text-sm font-medium text-ink">
+              Categorías (opcional)
+            </legend>
+
+            {categories.length === 0 ? (
+              <p className="text-xs text-ink-muted">
+                Todavía no hay categorías.{' '}
+                <Link
+                  href="/dashboard/categories/create"
+                  className="text-brand-600 underline"
+                >
+                  Crea una
+                </Link>{' '}
+                si quieres clasificar este producto.
+              </p>
+            ) : selectable.length === 0 ? (
+              /* Categories exist but none can be offered — say so instead of
+                 implying there are none, which invites creating a duplicate. */
+              <p className="text-xs text-warn">
+                Tienes {inactiveCount}{' '}
+                {inactiveCount === 1
+                  ? 'categoría inactiva'
+                  : 'categorías inactivas'}{' '}
+                y ninguna activa.{' '}
+                <Link href="/dashboard/categories" className="underline">
+                  Actívala
+                </Link>{' '}
+                para poder asignarla.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
                 {selectable.map((category) => (
-                  <option key={category.id} value={category.id}>
+                  <label
+                    key={category.id}
+                    className="flex cursor-pointer items-center gap-2 text-sm text-ink"
+                  >
+                    <input
+                      type="checkbox"
+                      name="categoryIds"
+                      value={category.id}
+                      defaultChecked={selected.has(category.id)}
+                      className="size-4 cursor-pointer accent-brand-600"
+                    />
                     {category.name}
                     {category.active ? '' : ' (inactiva)'}
-                  </option>
+                  </label>
                 ))}
-              </select>
+              </div>
             )}
-          </Field>
+
+            {state.errors?.categoryIds ? (
+              <div role="alert" className="flex flex-col gap-0.5">
+                {state.errors.categoryIds.map((m) => (
+                  <p key={m} className="text-xs text-danger">
+                    {m}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </fieldset>
         </FormSection>
 
         <FormSection title="Precio" columns={2}>
@@ -238,28 +282,35 @@ export default function ProductForm({ categories, product }: Props) {
             <legend className="mb-2 text-sm font-medium text-ink">
               Unidad de venta
             </legend>
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-ink">
-                <input
-                  name="unitType"
-                  type="radio"
-                  value="pack"
-                  defaultChecked={(product?.unitType ?? 'pack') === 'pack'}
-                  required
-                  className="h-4 w-4 cursor-pointer border-line-strong text-brand-600 focus:ring-brand-600"
-                />
-                Paquete de peso cerrado
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-ink">
-                <input
-                  name="unitType"
-                  type="radio"
-                  value="piece"
-                  defaultChecked={product?.unitType === 'piece'}
-                  className="h-4 w-4 cursor-pointer border-line-strong text-brand-600 focus:ring-brand-600"
-                />
-                Por pieza
-              </label>
+            {/*
+              Las cuatro del enum, no dos.
+
+              Sólo había «paquete» y «pieza». Con `kg` y `docena` en la base
+              —el catálogo real se cotiza así— un producto por kilo abría el
+              formulario sin ninguna opción marcada y no se podía guardar: el
+              validador pedía una unidad que la interfaz no ofrecía. Era un
+              producto que la tienda vendía y el admin no podía editar.
+            */}
+            <div className="grid gap-2 sm:grid-cols-2">
+              {UNIT_CHOICES.map(({ value, label, hint }) => (
+                <label
+                  key={value}
+                  className="flex cursor-pointer items-start gap-2 text-sm text-ink"
+                >
+                  <input
+                    name="unitType"
+                    type="radio"
+                    value={value}
+                    defaultChecked={(product?.unitType ?? 'kg') === value}
+                    required
+                    className="mt-0.5 h-4 w-4 cursor-pointer border-line-strong text-brand-600 focus:ring-brand-600"
+                  />
+                  <span>
+                    {label}
+                    <span className="block text-xs text-ink-muted">{hint}</span>
+                  </span>
+                </label>
+              ))}
             </div>
             {state.errors?.unitType ? (
               <p role="alert" className="mt-1.5 text-xs text-danger">

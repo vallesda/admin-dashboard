@@ -86,6 +86,7 @@ export const createCategorySchema = z.object({
   tagline: optionalText(160, 'La frase'),
   imageUrl: optionalText(2048, 'La URL de la imagen'),
   isFeatured: z.coerce.boolean().default(false),
+  showInNav: z.coerce.boolean().default(false),
 });
 
 export const updateCategorySchema = z.object({
@@ -96,6 +97,7 @@ export const updateCategorySchema = z.object({
   tagline: optionalText(160, 'La frase'),
   imageUrl: optionalText(2048, 'La URL de la imagen'),
   isFeatured: z.coerce.boolean().default(false),
+  showInNav: z.coerce.boolean().default(false),
 });
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
@@ -212,14 +214,27 @@ const netWeightGrams = z
     return grams;
   });
 
-const categoryId = z
-  .union([z.string(), z.null(), z.undefined()])
-  .transform((v) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null))
-  .refine((v) => v === null || z.string().uuid().safeParse(v).success, {
-    message: 'Selecciona una categoría válida.',
+/**
+ * Las categorías marcadas en el formulario.
+ *
+ * Llegan de `formData.getAll`, que devuelve un array vacío cuando no hay
+ * ninguna marcada y un array de uno cuando hay una — nunca un valor suelto.
+ * Sin categorías es válido: un producto puede existir sin clasificar mientras
+ * el mostrador decide dónde va.
+ *
+ * Se deduplica aquí y no en la base: un envío con la misma casilla repetida es
+ * un formulario mal montado, no un error del usuario, y la clave primaria
+ * compuesta lo rechazaría con un mensaje que no dice nada.
+ */
+const categoryIds = z
+  .array(z.string())
+  .default([])
+  .transform((values) => [...new Set(values.map((v) => v.trim()))].filter(Boolean))
+  .refine((values) => values.every((v) => z.string().uuid().safeParse(v).success), {
+    message: 'Selecciona categorías válidas.',
   });
 
-const unitType = z.enum(['piece', 'pack'], {
+const unitType = z.enum(['piece', 'pack', 'kg', 'dozen'], {
   invalid_type_error: 'Selecciona cómo se vende el producto.',
   required_error: 'Selecciona cómo se vende el producto.',
 });
@@ -250,7 +265,7 @@ const baseProduct = z.object({
   name: productName,
   slug: productSlug.optional(),
   description: optionalText(2000, 'La descripción'),
-  categoryId,
+  categoryIds,
   priceCents,
   costCents,
   imageUrl: optionalText(2000, 'La URL de la imagen'),

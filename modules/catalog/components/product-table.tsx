@@ -9,6 +9,7 @@ import { TableShell, Table, THead, TH, TBody, TR, TD } from '@/app/ui/kit/table'
 import RecordCard from '@/app/ui/kit/record-card';
 import EmptyState from '@/app/ui/kit/empty-state';
 import { ButtonLink } from '@/app/ui/button';
+import { describeUnit } from '../units';
 
 /**
  * Admin product list.
@@ -81,10 +82,7 @@ export default async function ProductTable({
               { label: 'Categoría', value: product.categoryName ?? '—' },
               {
                 label: 'Unidad',
-                value:
-                  product.unitType === 'pack' && product.netWeightGrams
-                    ? `Paquete · ${product.netWeightGrams} g`
-                    : 'Por pieza',
+                value: describeUnit(product),
               },
             ]}
             actions={
@@ -134,9 +132,7 @@ export default async function ProductTable({
                         {product.name}
                       </p>
                       <p className="text-xs text-ink-muted">
-                        {product.unitType === 'pack' && product.netWeightGrams
-                          ? `Paquete · ${product.netWeightGrams} g`
-                          : 'Por pieza'}
+                        {describeUnit(product)}
                       </p>
                     </div>
                   </div>

@@ -16,6 +16,7 @@ import {
   index,
   check,
   unique,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -42,6 +43,25 @@ export const categories = pgTable(
     tagline: varchar('tagline', { length: 160 }),
     isFeatured: boolean('is_featured').notNull().default(false),
 
+    /*
+     * Si aparece en la navegación de la tienda.
+     *
+     * Una categoría puede ser útil para clasificar y a la vez sobrar en la
+     * barra. «Filetes» es el caso: agrupa ocho productos y su página tiene
+     * sentido, pero en el menú competiría con Fresco y Congelado —que es como
+     * el cliente decide de verdad— y además casi todo filete es una de las
+     * dos, así que el menú diría tres veces lo mismo.
+     *
+     * Esto **no** desactiva la categoría: `/search/filetes` sigue existiendo,
+     * sigue etiquetando productos y sigue en el sitemap. Desactivarla habría
+     * sido la otra forma de sacarla del menú, y se habría llevado por delante
+     * la página y la clasificación.
+     *
+     * Por defecto `true`: una categoría nueva aparece, que es lo que hacían
+     * todas hasta ahora. Un default no debe reinterpretar la historia.
+     */
+    showInNav: boolean('show_in_nav').notNull().default(true),
+
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -66,8 +86,18 @@ export type NewCategoryRow = typeof categories.$inferInsert;
  * `pack` carries a net weight; `piece` need not. `kg` was added for the
  * storefront: seafood is routinely priced per kilo, and forcing it into `pack`
  * would mean inventing a package that does not exist.
+ *
+ * `dozen` llegó con el catálogo real: la almeja chocolata y el ostión se
+ * venden y se cotizan por docena, y el sistema de inventario los lista así.
+ * Meterlos en `pack` habría obligado a inventar un envase inexistente y a
+ * perder que doce es la unidad de venta, no un empaque.
  */
-export const unitTypeEnum = pgEnum('unit_type', ['piece', 'pack', 'kg']);
+export const unitTypeEnum = pgEnum('unit_type', [
+  'piece',
+  'pack',
+  'kg',
+  'dozen',
+]);
 
 /**
  * Lifecycle of a sellable product.
@@ -118,11 +148,6 @@ export const products = pgTable(
   'products',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    // RESTRICT, not CASCADE: deleting a category must never silently delete the
-    // products filed under it. Nullable so a product can exist uncategorised.
-    categoryId: uuid('category_id').references(() => categories.id, {
-      onDelete: 'restrict',
-    }),
     sku: varchar('sku', { length: 64 }).notNull().unique(),
     name: varchar('name', { length: 255 }).notNull(),
     slug: varchar('slug', { length: 255 }).notNull().unique(),
@@ -132,6 +157,27 @@ export const products = pgTable(
     costCents: integer('cost_cents'),
 
     imageUrl: text('image_url'),
+
+    /*
+     * ---- El vínculo con el sistema de inventario de la pescadería ----
+     *
+     * La tienda no es el sistema de registro del producto: el mostrador ya
+     * cataloga todo en su propio programa, con su clave y su nombre. Este
+     * admin tiene su `id`, su `sku` y su `name` —que son nuestros y podemos
+     * cambiar sin pedir permiso a nadie— y estas dos columnas son el puente.
+     *
+     * `externalKey` es la clave de aquel sistema (`AMC008`, `01111`). Única,
+     * porque es la que permite decir «este producto y aquel son el mismo» al
+     * cruzar existencias o precios. Nullable porque un producto puede nacer
+     * aquí antes de existir allí.
+     *
+     * `externalName` es el nombre tal cual aparece allí («Fresh Filete Salmon
+     * Kg»). Se conserva literal, con sus abreviaturas y su ortografía, aunque
+     * en la tienda el producto se llame «Filete de Salmón»: es lo que hace
+     * reconocible la fila cuando alguien compara las dos listas a ojo.
+     */
+    externalKey: varchar('external_key', { length: 64 }).unique(),
+    externalName: varchar('external_name', { length: 255 }),
 
     // ---- Storefront presentation ----
     //
@@ -212,7 +258,6 @@ export const products = pgTable(
         AND (${table.preorderArrivalWeekday} IS NULL OR ${table.preorderArrivalWeekday} BETWEEN 0 AND 6)
         AND (${table.preorderCutoffHour} IS NULL OR ${table.preorderCutoffHour} BETWEEN 0 AND 23)`,
     ),
-    index('products_category_status_idx').on(table.categoryId, table.status),
     // Plain btree for now. DOCS §12 is explicit: no pg_trgm until volume
     // justifies it.
     index('products_name_idx').on(table.name),
@@ -230,6 +275,54 @@ export const products = pgTable(
     ),
   ],
 );
+
+/**
+ * A qué categorías pertenece un producto.
+ *
+ * ## Por qué una tabla puente y no una columna
+ *
+ * Hasta ahora `products.category_id` daba una sola respuesta, y el catálogo
+ * real no cabe en una: «Filete de Salmón» es a la vez **Filetes** —lo que es—
+ * y **Fresco** —cómo llega—, y el mostrador lo lista bajo las dos. Con una
+ * columna había que elegir, y elegir significaba que el producto desaparecía
+ * de una de las dos estanterías donde el cliente lo busca.
+ *
+ * La columna se retiró en lugar de dejarla al lado como «categoría principal».
+ * Dos sitios donde consta la pertenencia son dos sitios que pueden
+ * contradecirse, y el primero que lo hiciera dejaría un producto listado en la
+ * navegación pero ausente de su propio filtro.
+ *
+ * ## Las claves
+ *
+ * `cascade` desde el producto: sus pertenencias no significan nada sin él.
+ * `restrict` desde la categoría, que es la misma protección que había antes —
+ * borrar «Filetes» no puede vaciar en silencio la ficha de doce productos;
+ * primero hay que sacarlos.
+ */
+export const productCategories = pgTable(
+  'product_categories',
+  {
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // La pertenencia es un hecho, no una lista: un producto está en una
+    // categoría o no está. La clave compuesta lo hace imposible de duplicar.
+    primaryKey({ columns: [table.productId, table.categoryId] }),
+    // El sentido contrario —«qué hay en esta categoría»— es como lee la
+    // tienda, y la clave primaria no lo cubre.
+    index('product_categories_category_idx').on(table.categoryId),
+  ],
+);
+
+export type ProductCategoryRow = typeof productCategories.$inferSelect;
 
 export type ProductRow = typeof products.$inferSelect;
 export type NewProductRow = typeof products.$inferInsert;

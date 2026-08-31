@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
-import { getProduct, type Product } from '@/lib/commerce';
+import { getProduct, supplyOf, type Product } from '@/lib/commerce';
 import { SHOP_NAME, SITE_URL, breadcrumbJsonLd } from '@/lib/shop';
 import Gallery from '@/components/product/gallery';
 import ProductDescription from '@/components/product/product-description';
@@ -118,7 +118,11 @@ export default async function Page({ params }: Props) {
           plus a little air, so the price and the Add to Cart button stay
           reachable while the shopper reads down a tall photograph. */}
       <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[3fr_2fr] lg:gap-14">
-        <Gallery images={product.images} name={product.name} />
+        <Gallery
+          images={product.images}
+          name={product.name}
+          supply={supplyOf(product)}
+        />
         <div className="lg:sticky lg:top-28">
           <ProductDescription product={product} />
         </div>

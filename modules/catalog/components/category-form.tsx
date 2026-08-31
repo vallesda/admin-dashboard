@@ -102,6 +102,27 @@ export default function CategoryForm({ category }: Props) {
         </FormSection>
 
         <FormSection
+          title="En el menú de la tienda"
+          description="Una categoría fuera del menú sigue existiendo: su página abre, clasifica productos y sale en el sitemap. Sólo deja de ocupar sitio en la barra."
+        >
+          <div className="flex items-start gap-2.5">
+            <input
+              id="showInNav"
+              name="showInNav"
+              type="checkbox"
+              defaultChecked={category?.showInNav ?? true}
+              className="mt-0.5 h-4 w-4 cursor-pointer rounded border-line-strong text-brand-600 focus:ring-brand-600"
+            />
+            <label
+              htmlFor="showInNav"
+              className="cursor-pointer text-sm text-ink"
+            >
+              Mostrar en la navegación
+            </label>
+          </div>
+        </FormSection>
+
+        <FormSection
           title="En la portada"
           description="Una categoría destacada aparece en el estante «Para qué lo quieres» de la tienda, junto a los paquetes."
         >

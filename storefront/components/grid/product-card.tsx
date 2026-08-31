@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { supplyOf, type Product } from '@/lib/commerce/types';
 import { formatMoney, formatUnit } from '@/lib/format';
 import ProductCartControl from '@/components/cart/product-cart-control';
+import SupplyTag from '@/components/ui/supply-tag';
 
 /**
  * ProductCard — the component the storefront lives or dies by.
@@ -120,11 +121,22 @@ export default function ProductCard({ product }: { product: Product }) {
           <span className="absolute left-3 top-3 rounded-sm bg-sun px-2 py-1 text-xs font-medium text-brand">
             De temporada
           </span>
-        ) : supply.type === 'stocked' ? (
-          <span className="absolute left-3 top-3 rounded-sm border border-border-strong bg-surface px-2 py-1 text-xs text-muted">
-            Siempre disponible
-          </span>
         ) : null}
+
+        {/*
+          La otra esquina, la otra pregunta.
+
+          A la izquierda va lo que le pasa a esta compra —agotado, por encargo,
+          de temporada—; aquí, lo que es la pieza. Que no cambia con el stock
+          del día, así que se muestra también cuando está agotada: seguirá
+          siendo congelado mañana.
+
+          Aquí vivía «Siempre disponible», que hablaba de existencias cuando lo
+          que el cliente pregunta es si el pescado es fresco. `SupplyTag` lo
+          contesta, y mantener las dos habría puesto dos etiquetas a decir
+          media cosa cada una.
+        */}
+        <SupplyTag supply={supply} className="absolute right-3 top-3" />
       </div>
 
       {/* The rule is the card's affordance. It runs the full width in the

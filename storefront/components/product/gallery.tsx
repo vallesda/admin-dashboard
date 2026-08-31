@@ -1,6 +1,7 @@
 import Image from 'next/image';
 
-import type { ProductImage } from '@/lib/commerce/types';
+import SupplyTag from '@/components/ui/supply-tag';
+import type { ProductImage, ProductSupply } from '@/lib/commerce/types';
 
 /**
  * Product gallery.
@@ -17,9 +18,12 @@ import type { ProductImage } from '@/lib/commerce/types';
 export default function Gallery({
   images,
   name,
+  supply,
 }: {
   images: ProductImage[];
   name: string;
+  /** Fresco o congelado, en la misma esquina que en la tarjeta de la rejilla. */
+  supply: ProductSupply;
 }) {
   const primary = images[0];
 
@@ -51,6 +55,13 @@ export default function Gallery({
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 rounded-sm plate"
         />
+
+        {/*
+          Misma esquina y mismo color que en la rejilla, a propósito: quien
+          llegó aquí desde el catálogo tiene que reconocer la etiqueta que ya
+          había visto, no encontrarse otra distinta diciendo lo mismo.
+        */}
+        <SupplyTag supply={supply} className="absolute right-3 top-3" />
       </div>
 
       {images.length > 1 ? (

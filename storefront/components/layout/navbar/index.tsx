@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { getCollections } from '@/lib/commerce';
+import { getNavCollections } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Logo from '@/components/layout/logo';
 import OpenCart from '@/components/cart/open-cart';
@@ -37,7 +37,7 @@ import MobileMenu from './mobile-menu';
  * One breakpoint for both halves makes that gap impossible to reopen.
  */
 export default async function Navbar() {
-  const collections = await getCollections();
+  const collections = await getNavCollections();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">

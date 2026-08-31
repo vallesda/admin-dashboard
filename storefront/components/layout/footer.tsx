@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { getCollections } from '@/lib/commerce';
+import { getNavCollections } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Logo from '@/components/layout/logo';
 import Scales from '@/components/brand/scales';
@@ -22,7 +22,7 @@ import {
  * links is the fastest way to make a storefront feel unfinished.
  */
 export default async function Footer() {
-  const collections = await getCollections();
+  const collections = await getNavCollections();
   const year = new Date().getFullYear();
 
   return (

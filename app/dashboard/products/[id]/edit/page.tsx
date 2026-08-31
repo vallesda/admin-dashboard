@@ -3,16 +3,21 @@ import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/shared/breadcrumbs';
 import PageHeader from '@/app/ui/kit/page-header';
 import ProductForm from '@/modules/catalog/components/product-form';
-import { getProductById, listCategoryOptions } from '@/modules/catalog/queries';
+import {
+  getProductById,
+  getProductCategoryIds,
+  listCategoryOptions,
+} from '@/modules/catalog/queries';
 
 export const metadata = { title: 'Editar producto' };
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
 
-  const [product, categories] = await Promise.all([
+  const [product, categories, selectedCategoryIds] = await Promise.all([
     getProductById(id),
     listCategoryOptions(),
+    getProductCategoryIds(id),
   ]);
 
   if (!product) notFound();
@@ -34,7 +39,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         title="Editar producto"
         description="El estado no se cambia aquí — usa los botones de la lista para activar o archivar."
       />
-      <ProductForm categories={categories} product={product} />
+      <ProductForm
+        categories={categories}
+        product={product}
+        selectedCategoryIds={selectedCategoryIds}
+      />
     </div>
   );
 }

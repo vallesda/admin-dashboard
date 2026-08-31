@@ -15,6 +15,7 @@ import { db } from '@/db';
 import type { SupplyType } from '@/db/schema/catalog';
 import {
   categories,
+  productCategories,
   products,
   packages,
   packageItems,
@@ -85,6 +86,7 @@ export async function createCategory(
         tagline: input.tagline,
         imageUrl: input.imageUrl,
         isFeatured: input.isFeatured,
+        showInNav: input.showInNav,
       })
       .returning();
 
@@ -118,6 +120,7 @@ export async function updateCategory(
         tagline: input.tagline,
         imageUrl: input.imageUrl,
         isFeatured: input.isFeatured,
+        showInNav: input.showInNav,
         updatedAt: new Date(),
       })
       .where(eq(categories.id, id))
@@ -259,7 +262,6 @@ export async function createProduct(
           name: input.name,
           slug,
           description: input.description,
-          categoryId: input.categoryId,
           priceCents: input.priceCents,
           costCents: input.costCents,
           imageUrl: input.imageUrl,
@@ -270,6 +272,8 @@ export async function createProduct(
         })
         .returning();
 
+      await setProductCategories(tx, row.id, input.categoryIds);
+
       // Owned by the Inventory context; called, not inlined.
       await initializeInventory(tx, row.id);
 
@@ -278,6 +282,33 @@ export async function createProduct(
   } catch (error) {
     rethrowProductConflict(error);
   }
+}
+
+/**
+ * Deja la pertenencia del producto exactamente igual a `categoryIds`.
+ *
+ * Borrar y volver a insertar, no calcular el diferencial: la tabla no guarda
+ * nada más que el hecho de pertenecer —ni orden, ni fecha que a alguien le
+ * importe— así que reescribirla entera cuesta lo mismo y no deja espacio a un
+ * error de conjuntos. Va siempre dentro de la transacción del producto: un
+ * producto guardado con las categorías viejas es peor que un guardado fallido.
+ */
+async function setProductCategories(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  productId: string,
+  categoryIds: string[],
+): Promise<void> {
+  await tx
+    .delete(productCategories)
+    .where(eq(productCategories.productId, productId));
+
+  if (categoryIds.length === 0) return;
+
+  await tx
+    .insert(productCategories)
+    // El formulario puede repetir una casilla; la clave primaria compuesta lo
+    // rechazaría con un error que no dice nada útil al usuario.
+    .values([...new Set(categoryIds)].map((categoryId) => ({ productId, categoryId })));
 }
 
 export async function updateProduct(
@@ -297,26 +328,31 @@ export async function updateProduct(
     .limit(1);
 
   try {
-    const [row] = await db
-      .update(products)
-      .set({
-        sku: input.sku,
-        name: input.name,
-        slug: input.slug,
-        description: input.description,
-        categoryId: input.categoryId,
-        priceCents: input.priceCents,
-        costCents: input.costCents,
-        imageUrl: input.imageUrl,
-        unitType: input.unitType,
-        netWeightGrams: input.netWeightGrams,
-        ...supplyColumns(input),
-        updatedAt: new Date(),
-      })
-      .where(eq(products.id, id))
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(products)
+        .set({
+          sku: input.sku,
+          name: input.name,
+          slug: input.slug,
+          description: input.description,
+          priceCents: input.priceCents,
+          costCents: input.costCents,
+          imageUrl: input.imageUrl,
+          unitType: input.unitType,
+          netWeightGrams: input.netWeightGrams,
+          ...supplyColumns(input),
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, id))
+        .returning();
 
-    if (!row) throw new NotFoundError('el producto', id);
+      if (!updated) throw new NotFoundError('el producto', id);
+
+      await setProductCategories(tx, id, input.categoryIds);
+
+      return updated;
+    });
 
     // After the row is safely written, not before: losing the old file while
     // the update fails would leave a product pointing at nothing.

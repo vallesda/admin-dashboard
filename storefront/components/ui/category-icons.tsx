@@ -12,11 +12,19 @@
  * Green Block rule, which forbids an isolated brand-green icon — nothing here
  * ever picks green on its own, it only inherits what the chip already is.
  */
-const base = {
-  // 18, not 16. These sit beside 14px labels and had to earn their place
-  // in the chip; at 16 the fish read as a lens and the shell as a diamond.
-  width: 18,
-  height: 18,
+/**
+ * El tamaño es un parámetro porque el mismo dibujo sirve en dos sitios.
+ *
+ * 18 en las pastillas del rail, 14 en la etiqueta de abasto de la tarjeta,
+ * que es más pequeña y con 18 el icono le ganaba a su propia palabra. El
+ * grosor de trazo **no** escala: 1.25 en los dos tamaños. Escalarlo con la
+ * caja es exactamente lo que hace que una familia de iconos se lea como dos.
+ */
+export type IconProps = { size?: number };
+
+const base = (size = 18) => ({
+  width: size,
+  height: size,
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
@@ -26,12 +34,12 @@ const base = {
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
   'aria-hidden': true,
-};
+});
 
 /** Todo el catálogo: everything, as a full tray. */
-export function GridIcon() {
+export function GridIcon({ size }: IconProps = {}) {
   return (
-    <svg {...base}>
+    <svg {...base(size)}>
       <rect x="3.5" y="3.5" width="7" height="7" rx="1" />
       <rect x="13.5" y="3.5" width="7" height="7" rx="1" />
       <rect x="3.5" y="13.5" width="7" height="7" rx="1" />
@@ -48,9 +56,9 @@ export function GridIcon() {
  * symmetric lens — at this size that reads as an eye, not an animal. A detached
  * tail is what makes the shape unmistakably a fish before the label is read.
  */
-export function FishIcon() {
+export function FishIcon({ size }: IconProps = {}) {
   return (
-    <svg {...base}>
+    <svg {...base(size)}>
       <path d="M7 12c2.4-3.4 5.8-5.3 9.2-5.3S21 9 21 12s-1.4 5.3-4.8 5.3S9.4 15.4 7 12Z" />
       <path d="M7 12 2.8 8.2v7.6Z" />
       <path d="M12.4 7.7c-.9 2.4-.9 6.2 0 8.6" />
@@ -70,9 +78,9 @@ export function FishIcon() {
  * a sharp V at the bottom and read as a cut gem. The ribs radiate from the
  * hinge, which is what says "shell" rather than "half circle".
  */
-export function ShellIcon() {
+export function ShellIcon({ size }: IconProps = {}) {
   return (
-    <svg {...base}>
+    <svg {...base(size)}>
       <path d="M3.6 16.4a8.4 8.4 0 0 1 16.8 0Z" />
       <path d="M12 16.4V8" />
       <path d="M12 16.4 6.2 12.4" />
@@ -83,9 +91,9 @@ export function ShellIcon() {
 }
 
 /** Congelados: a snowflake. */
-export function FrozenIcon() {
+export function FrozenIcon({ size }: IconProps = {}) {
   return (
-    <svg {...base}>
+    <svg {...base(size)}>
       <path d="M12 3.5v17" />
       <path d="m4.6 7.75 14.8 8.5" />
       <path d="m4.6 16.25 14.8-8.5" />
@@ -96,9 +104,9 @@ export function FrozenIcon() {
 }
 
 /** Fresco: water, because in this shop "fresh" means it came out of it today. */
-export function WaveIcon() {
+export function WaveIcon({ size }: IconProps = {}) {
   return (
-    <svg {...base}>
+    <svg {...base(size)}>
       <path d="M3 9.5q3-3 6 0t6 0 6 0" />
       <path d="M3 14.5q3-3 6 0t6 0 6 0" />
       <path d="M3 19.5q3-3 6 0t6 0 6 0" />
@@ -107,9 +115,9 @@ export function WaveIcon() {
 }
 
 /** A package: a tied parcel. */
-export function PackageIcon() {
+export function PackageIcon({ size }: IconProps = {}) {
   return (
-    <svg {...base}>
+    <svg {...base(size)}>
       <path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5Z" />
       <path d="m3.5 7.5 8.5 4.5 8.5-4.5" />
       <path d="M12 12v9" />
@@ -117,7 +125,7 @@ export function PackageIcon() {
   );
 }
 
-type IconComponent = () => React.ReactElement;
+type IconComponent = (props?: IconProps) => React.ReactElement;
 
 /**
  * Picks an icon for a category the admin created.

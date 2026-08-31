@@ -16,6 +16,7 @@ import 'server-only';
  * plain modules with no server dependency — and receive their data as props
  * from a Server Component.
  */
+import { hasAsset } from '@/lib/assets';
 import { api, CommerceError } from './api-client';
 import type {
   Bundle,
@@ -33,6 +34,32 @@ export * from './types';
 export * from './constants';
 export { CommerceError } from './api-client';
 
+/**
+ * Quita las fotos que apuntan a un archivo que no está.
+ *
+ * El catálogo del mostrador nombra la foto de cada producto (`/images/products/
+ * filete-salmon.png`) desde el día que se da de alta, mucho antes de que
+ * alguien la tome. Servida tal cual, esa ruta devuelve 404 y deja el hueco de
+ * una imagen rota en la rejilla — y una rejilla de doce huecos parece un sitio
+ * averiado, no un catálogo al que le faltan fotos.
+ *
+ * Todos los componentes que pintan producto ya contemplan `featuredImage`
+ * nulo, así que basta con no dárselo: el producto sale con el mismo trato que
+ * los que nunca tuvieron foto. El día que el archivo aparece en `public/`, la
+ * foto aparece con él sin tocar código.
+ *
+ * Sólo se comprueban las rutas locales. Una URL absoluta —las fotos viven hoy
+ * en Vercel Blob— no se puede verificar sin una petición de red, y hacerla en
+ * cada render sería pagar un viaje por producto para prevenir un caso que la
+ * subida al blob ya descarta.
+ */
+function withExistingImages<T extends Product>(product: T): T {
+  const url = product.featuredImage?.url;
+  if (!url || !url.startsWith('/') || hasAsset(url)) return product;
+
+  return { ...product, featuredImage: null, images: [] };
+}
+
 export async function getProducts(options?: {
   collection?: string;
   query?: string;
@@ -44,14 +71,18 @@ export async function getProducts(options?: {
   if (options?.page && options.page > 1) params.set('page', String(options.page));
 
   const qs = params.toString();
-  return api.get<Paginated<Product>>(
+  const page = await api.get<Paginated<Product>>(
     `/api/v1/catalog/products${qs ? `?${qs}` : ''}`,
   );
+
+  return { ...page, items: page.items.map(withExistingImages) };
 }
 
 export async function getProduct(handle: string): Promise<Product | null> {
   try {
-    return await api.get<Product>(`/api/v1/catalog/products/${handle}`);
+    return withExistingImages(
+      await api.get<Product>(`/api/v1/catalog/products/${handle}`),
+    );
   } catch (error) {
     // A missing product is a 404 page, not an error page.
     if (error instanceof Error && 'status' in error && error.status === 404) {
@@ -85,6 +116,23 @@ export async function getCollections(): Promise<Collection[]> {
 }
 
 /**
+ * Las categorías que van en los menús.
+ *
+ * Existe como función propia para que el filtro no se escriba tres veces —en
+ * la barra, en las pastillas y en el pie— porque el día que se escriba una
+ * cuarta, o que alguien corrija una de las tres, los menús empiezan a
+ * discrepar entre sí y nadie lo nota hasta que lo ve un cliente.
+ *
+ * `getCollections` sigue devolviendo la lista entera: la usan la validación de
+ * `/search/[collection]` y el sitemap, que tienen que seguir viendo las que no
+ * salen en el menú.
+ */
+export async function getNavCollections(): Promise<Collection[]> {
+  const collections = await getCollections();
+  return collections.filter((c) => c.showInNav);
+}
+
+/**
  * The home shelf: featured categories and curated packages, already merged and
  * ordered by the admin.
  *
@@ -99,7 +147,19 @@ export async function getShelf(): Promise<ShelfItem[]> {
 /** One package and every line in it. Null when the slug is unknown. */
 export async function getPackage(handle: string): Promise<Bundle | null> {
   try {
-    return await api.get<Bundle>(`/api/v1/catalog/packages/${handle}`);
+    const bundle = await api.get<Bundle>(
+      `/api/v1/catalog/packages/${handle}`,
+    );
+    // Las líneas del paquete son productos, y la página del paquete pinta sus
+    // fotos igual que la rejilla. Sin esto, un paquete sería el único sitio
+    // del sitio donde una foto ausente sigue rompiéndose.
+    return {
+      ...bundle,
+      lines: bundle.lines.map((line) => ({
+        ...line,
+        product: withExistingImages(line.product),
+      })),
+    };
   } catch (error) {
     if (error instanceof CommerceError && error.status === 404) return null;
     throw error;
@@ -109,7 +169,10 @@ export async function getPackage(handle: string): Promise<Bundle | null> {
 export async function getProductRecommendations(
   handle: string,
 ): Promise<Product[]> {
-  return api.get<Product[]>(`/api/v1/catalog/products/${handle}/related`);
+  const items = await api.get<Product[]>(
+    `/api/v1/catalog/products/${handle}/related`,
+  );
+  return items.map(withExistingImages);
 }
 
 /**

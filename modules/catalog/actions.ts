@@ -51,6 +51,7 @@ function readForm(formData: FormData) {
     tagline: formData.get('tagline'),
     imageUrl: formData.get('imageUrl'),
     isFeatured: formData.get('isFeatured') === 'on',
+    showInNav: formData.get('showInNav') === 'on',
   };
 }
 
@@ -185,7 +186,10 @@ function readProductForm(formData: FormData) {
     name: formData.get('name'),
     slug: text('slug'),
     description: text('description'),
-    categoryId: text('categoryId'),
+    // `getAll`, no `get`: las categorías son casillas y llegan varias con el
+    // mismo nombre. Con `get` sólo entraría la primera, y el producto se
+    // guardaría en una sola de las estanterías que el operador marcó.
+    categoryIds: formData.getAll('categoryIds'),
     priceCents: formData.get('priceCents'),
     costCents: text('costCents'),
     imageUrl: text('imageUrl'),

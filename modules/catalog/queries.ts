@@ -12,6 +12,7 @@ import {
   packages,
   packageItems,
   categories,
+  productCategories,
   products,
   type CategoryRow,
   type ProductRow,
@@ -32,6 +33,7 @@ export type CategoryListItem = Pick<
   | 'tagline'
   | 'imageUrl'
   | 'isFeatured'
+  | 'showInNav'
 >;
 
 /** Option shape for the Product form's category selector (HU-CAT-001). */
@@ -51,6 +53,7 @@ export async function listCategories(): Promise<CategoryListItem[]> {
       tagline: categories.tagline,
       imageUrl: categories.imageUrl,
       isFeatured: categories.isFeatured,
+      showInNav: categories.showInNav,
       name: categories.name,
       slug: categories.slug,
       sortOrder: categories.sortOrder,
@@ -162,15 +165,28 @@ export async function listProducts(
       unitType: products.unitType,
       netWeightGrams: products.netWeightGrams,
       imageUrl: products.imageUrl,
-      categoryName: categories.name,
+      /*
+       * Las categorías del producto en una sola celda.
+       *
+       * Un `join` con la tabla puente repetiría el producto una vez por
+       * categoría, y con `count(*) over ()` en la misma consulta eso también
+       * inflaría el total de la paginación. La subconsulta deja una fila por
+       * producto y la columna dice «Filetes · Fresco» en lugar de sólo la
+       * primera.
+       */
+      categoryName: sql<string | null>`(
+        SELECT string_agg(c.name, ' · ' ORDER BY c.sort_order, c.name)
+          FROM product_categories pc
+          JOIN categories c ON c.id = pc.category_id
+         WHERE pc.product_id = ${products.id}
+      )`,
       onHand: inventory.onHand,
       reserved: inventory.reserved,
       total: sql<number>`count(*) over ()`.mapWith(Number),
     })
     .from(products)
-    // LEFT: a product may be uncategorised, and its inventory row is created
-    // with it but a LEFT join keeps the list readable if one is ever missing.
-    .leftJoin(categories, eq(products.categoryId, categories.id))
+    // LEFT: its inventory row is created with the product, but a LEFT join
+    // keeps the list readable if one is ever missing.
     .leftJoin(inventory, eq(inventory.productId, products.id))
     .where(where)
     .orderBy(desc(products.createdAt), desc(products.id))
@@ -189,6 +205,25 @@ export async function listProducts(
     total,
     totalPages: Math.ceil(total / PRODUCTS_PER_PAGE),
   };
+}
+
+/**
+ * A qué categorías pertenece un producto, para rellenar el formulario.
+ *
+ * Devuelve ids y no nombres porque es lo que el formulario vuelve a enviar; el
+ * nombre se resuelve en la vista contra la lista de categorías que ya carga.
+ */
+export async function getProductCategoryIds(
+  productId: string,
+): Promise<string[]> {
+  const rows = await db
+    .select({ categoryId: productCategories.categoryId })
+    .from(productCategories)
+    .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+    .where(eq(productCategories.productId, productId))
+    .orderBy(asc(categories.sortOrder), asc(categories.name));
+
+  return rows.map((r) => r.categoryId);
 }
 
 export async function getProductById(

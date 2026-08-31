@@ -18,6 +18,7 @@ import { moneySummary, findOpenAttempt } from '@/modules/payments/queries';
 import { methodLabel } from '@/modules/payments/stripe';
 import {
   categories,
+  productCategories,
   products,
   packages,
   packageItems,
@@ -42,13 +43,23 @@ const UUID_PATTERN =
 /** Columns the public catalogue needs. Note what is absent: `costCents`. */
 const productColumns = {
   id: products.id,
-  categoryId: products.categoryId,
   sku: products.sku,
   name: products.name,
   slug: products.slug,
   description: products.description,
   priceCents: products.priceCents,
   costCents: sql<number | null>`NULL`.mapWith((v) => v as null),
+  /*
+   * La clave del sistema de inventario no sale a la calle.
+   *
+   * Se anulan igual que el coste: la forma de la fila tiene que encajar con
+   * `ProductRow`, pero lo que el mostrador usa para cuadrar sus existencias no
+   * es asunto del catálogo público. Nulificarlas aquí —en vez de omitirlas—
+   * hace que añadir una columna interna al producto siga siendo un error de
+   * compilación en este punto, que es donde hay que decidir si es pública.
+   */
+  externalKey: sql<string | null>`NULL`.mapWith((v) => v as null),
+  externalName: sql<string | null>`NULL`.mapWith((v) => v as null),
   imageUrl: products.imageUrl,
   unitType: products.unitType,
   netWeightGrams: products.netWeightGrams,
@@ -69,8 +80,30 @@ const productColumns = {
   preorderNote: products.preorderNote,
   createdAt: products.createdAt,
   updatedAt: products.updatedAt,
-  categoryName: categories.name,
-  categorySlug: categories.slug,
+  /*
+   * Las categorías del producto, resueltas por subconsulta y no por `join`.
+   *
+   * Con la tabla puente, unir a `categories` multiplicaría la fila del producto
+   * por cada categoría a la que pertenece: un filete fresco aparecería dos
+   * veces en el catálogo y el `count(*)` de la paginación mentiría. La
+   * subconsulta correlacionada mantiene una fila por producto y trae la
+   * pertenencia agregada.
+   *
+   * `active` en el filtro: una categoría retirada deja de listar sus productos
+   * sin que haya que desetiquetarlos uno a uno.
+   */
+  categoryName: sql<string | null>`(
+    SELECT c.name FROM product_categories pc
+      JOIN categories c ON c.id = pc.category_id
+     WHERE pc.product_id = ${products.id} AND c.active
+     ORDER BY c.sort_order, c.name
+     LIMIT 1
+  )`,
+  categorySlugs: sql<string[]>`coalesce((
+    SELECT array_agg(c.slug ORDER BY c.sort_order, c.name) FROM product_categories pc
+      JOIN categories c ON c.id = pc.category_id
+     WHERE pc.product_id = ${products.id} AND c.active
+  ), ARRAY[]::varchar[])`,
   available: sql<number>`coalesce(${inventory.onHand}, 0) - coalesce(${inventory.reserved}, 0)`.mapWith(
     Number,
   ),
@@ -87,9 +120,26 @@ function publicProducts() {
   return db
     .select(productColumns)
     .from(products)
-    .leftJoin(categories, eq(products.categoryId, categories.id))
     .leftJoin(inventory, eq(inventory.productId, products.id))
     .$dynamic();
+}
+
+/**
+ * «Este producto está en esta estantería.»
+ *
+ * `EXISTS` y no un `join`: preguntar si pertenece no debe cambiar cuántas filas
+ * devuelve la consulta. Un `join` con la tabla puente duplicaría el producto
+ * cuando cumple por más de un camino, y aquí sólo se quiere un sí o un no.
+ */
+function inCollection(slug: string | undefined): SQL | undefined {
+  if (!slug) return undefined;
+  return sql`EXISTS (
+    SELECT 1 FROM product_categories pc
+      JOIN categories c ON c.id = pc.category_id
+     WHERE pc.product_id = ${products.id}
+       AND c.active
+       AND c.slug = ${slug}
+  )`;
 }
 
 function search(query: string): SQL | undefined {
@@ -115,7 +165,7 @@ export async function listProducts(options: {
     .where(
       and(
         eq(products.status, 'active'),
-        options.collection ? eq(categories.slug, options.collection) : undefined,
+        inCollection(options.collection),
         search(options.query ?? ''),
       ),
     )
@@ -126,11 +176,10 @@ export async function listProducts(options: {
   const [count] = await db
     .select({ n: sql<number>`count(*)`.mapWith(Number) })
     .from(products)
-    .leftJoin(categories, eq(products.categoryId, categories.id))
     .where(
       and(
         eq(products.status, 'active'),
-        options.collection ? eq(categories.slug, options.collection) : undefined,
+        inCollection(options.collection),
         search(options.query ?? ''),
       ),
     );
@@ -175,19 +224,19 @@ export async function getRelatedProducts(
   productId: string,
   limit = 4,
 ): Promise<PublicProduct[]> {
-  const [current] = await db
-    .select({ categoryId: products.categoryId })
-    .from(products)
-    .where(eq(products.id, productId))
-    .limit(1);
-
-  if (!current?.categoryId) return [];
-
   const rows = await publicProducts()
     .where(
       and(
         eq(products.status, 'active'),
-        eq(products.categoryId, current.categoryId),
+        // Comparte al menos una categoría con el que se está viendo. Antes
+        // bastaba comparar dos columnas; con la pertenencia múltiple la
+        // pregunta es de intersección, y sigue siendo un sí o un no.
+        sql`EXISTS (
+          SELECT 1 FROM product_categories mine
+            JOIN product_categories theirs ON theirs.category_id = mine.category_id
+           WHERE mine.product_id = ${productId}
+             AND theirs.product_id = ${products.id}
+        )`,
         sql`${products.id} <> ${productId}`,
       ),
     )
@@ -212,11 +261,16 @@ export async function listCollections(): Promise<PublicCollection[]> {
       imageUrl: categories.imageUrl,
       tagline: categories.tagline,
       isFeatured: categories.isFeatured,
+      showInNav: categories.showInNav,
       createdAt: categories.createdAt,
       updatedAt: categories.updatedAt,
     })
     .from(categories)
-    .innerJoin(products, eq(products.categoryId, categories.id))
+    .innerJoin(
+      productCategories,
+      eq(productCategories.categoryId, categories.id),
+    )
+    .innerJoin(products, eq(products.id, productCategories.productId))
     .where(and(eq(categories.active, true), eq(products.status, 'active')))
     .orderBy(asc(categories.sortOrder), asc(categories.name));
 

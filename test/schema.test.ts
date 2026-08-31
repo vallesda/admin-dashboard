@@ -71,6 +71,7 @@ describe('las migraciones se aplican', () => {
       'order_items',
       'orders',
       'payments',
+      'product_categories',
       'products',
       'refunds',
     ]) {
@@ -213,6 +214,93 @@ describe('CAT — el ciclo de encargo está completo o no está', () => {
 
   it('acepta un encargo con su ciclo completo', async () => {
     await expect(seedProduct({ supplyType: 'preorder' })).resolves.toBeTruthy();
+  });
+});
+
+describe('CAT — un producto vive en varias estanterías', () => {
+  /** Crea una categoría y devuelve su id. */
+  async function seedCategory(name: string, slug: string) {
+    const db = await testDb();
+    const [row] = (
+      await db.execute<{ id: string }>(sql`
+        INSERT INTO categories (name, slug) VALUES (${name}, ${slug}) RETURNING id
+      `)
+    ).rows;
+    return row.id;
+  }
+
+  it('acepta que un filete sea Filetes y Fresco a la vez', async () => {
+    const db = await testDb();
+    const productId = await seedProduct();
+    const filetes = await seedCategory('Filetes', 'filetes');
+    const fresco = await seedCategory('Fresco', 'fresco');
+
+    await db.execute(sql`
+      INSERT INTO product_categories (product_id, category_id)
+      VALUES (${productId}, ${filetes}), (${productId}, ${fresco})
+    `);
+
+    const rows = await db.execute<{ n: number }>(sql`
+      SELECT count(*)::int AS n FROM product_categories WHERE product_id = ${productId}
+    `);
+    expect(rows.rows[0].n).toBe(2);
+  });
+
+  it('rechaza la misma categoría dos veces', async () => {
+    const db = await testDb();
+    const productId = await seedProduct();
+    const filetes = await seedCategory('Filetes', 'filetes');
+
+    await db.execute(sql`
+      INSERT INTO product_categories (product_id, category_id)
+      VALUES (${productId}, ${filetes})
+    `);
+
+    // Pertenecer es un hecho, no una cantidad: dos filas iguales no
+    // significan nada que una no diga ya.
+    await expect(
+      db.execute(sql`
+        INSERT INTO product_categories (product_id, category_id)
+        VALUES (${productId}, ${filetes})
+      `),
+    ).rejects.toThrow();
+  });
+
+  it('no deja borrar una categoría que todavía clasifica algo', async () => {
+    const db = await testDb();
+    const productId = await seedProduct();
+    const filetes = await seedCategory('Filetes', 'filetes');
+
+    await db.execute(sql`
+      INSERT INTO product_categories (product_id, category_id)
+      VALUES (${productId}, ${filetes})
+    `);
+
+    // La misma protección que tenía la columna: borrar «Filetes» no puede
+    // desclasificar doce productos en silencio.
+    await expect(
+      db.execute(sql`DELETE FROM categories WHERE id = ${filetes}`),
+    ).rejects.toThrow();
+  });
+
+  it('al borrar el producto se lleva su pertenencia', async () => {
+    const db = await testDb();
+    const productId = await seedProduct();
+    const filetes = await seedCategory('Filetes', 'filetes');
+
+    await db.execute(sql`
+      INSERT INTO product_categories (product_id, category_id)
+      VALUES (${productId}, ${filetes})
+    `);
+    // El inventario referencia el producto y bloquearía el borrado; se quita
+    // primero porque lo que se prueba aquí es la cascada de la tabla puente.
+    await db.execute(sql`DELETE FROM inventory WHERE product_id = ${productId}`);
+    await db.execute(sql`DELETE FROM products WHERE id = ${productId}`);
+
+    const rows = await db.execute<{ n: number }>(sql`
+      SELECT count(*)::int AS n FROM product_categories
+    `);
+    expect(rows.rows[0].n).toBe(0);
   });
 });
 
