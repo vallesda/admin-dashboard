@@ -1,5 +1,7 @@
 import Image from 'next/image';
 
+import { firstAsset } from '@/lib/assets';
+
 import { getProducts } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import { ButtonLink } from '@/components/ui/button';
@@ -49,12 +51,22 @@ import SpecList, { type Spec } from '@/components/ui/spec-list';
  * entero es una pieza que no
  * siempre va a estar, que es precisamente lo que dice el amarillo.
  */
+/*
+ * Sin el archivo no se dibuja nada, y esa es la degradación correcta aquí: es
+ * un sello de marca detrás del texto, no información. La banda funciona igual
+ * sin él; con un hueco de imagen rota, no.
+ */
 export default async function CatchOfTheWeek() {
   const { items } = await getProducts();
   const product =
     items.find((p) => p.seasonal) ?? items.find((p) => p.featured) ?? null;
 
   if (!product) return null;
+
+  // Dentro de la función, no en una constante de módulo: ver la nota en
+  // `lib/assets.ts` sobre por qué un archivo que aparece después tiene que
+  // poder verse.
+  const semanal = firstAsset('/illustrations/semanal-fishes.svg');
 
   // The literal is annotated, not the filtered result: inferred, each entry
   // keeps its own narrow object shape and the type guard has nothing
@@ -118,33 +130,77 @@ export default async function CatchOfTheWeek() {
               ) : null}
             </div>
 
-            <div>
-              {/* `h3`, not `h2`: the section already owns the h2 above, and the
-                  product is a level inside it. Sized as a headline anyway —
-                  outline depth and type scale are separate decisions. */}
-              <h3 className="max-w-[14ch] font-display text-3xl font-light leading-[1.05] md:text-[2.75rem]">
-                {product.name}
-              </h3>
+            <div className="relative">
+              {/*
+                La ilustración de los dos pescados colgados, con el círculo
+                amarillo detrás. Va aquí y no junto a la fotografía porque las
+                dos compiten: una es el producto real de esta semana y la otra
+                es la marca hablando. Detrás del texto, a escala grande y
+                anclada arriba a la derecha, hace de sello sin disputarle la
+                atención a la pieza.
 
-              {product.shortDescription ? (
-                <p className="mt-5 max-w-[44ch] text-lg text-background/85">
-                  {product.shortDescription}
-                </p>
+                `hidden lg:block`: en móvil la columna se apila bajo la foto y
+                una ilustración a sangre detrás del texto lo volvería ilegible.
+
+                SVG, no PNG: el dibujo es línea plana de cuatro tintas, que es
+                justamente lo que un vector describe mejor que un mapa de bits.
+                Escala sin pixelarse a cualquier densidad de pantalla, pesa
+                menos comprimido que el WebP que sustituye y el fondo es
+                transparente de nacimiento en vez de recortado a mano.
+
+                `unoptimized` porque el optimizador de Next rechaza SVG salvo
+                que se active `dangerouslyAllowSVG`, y activarlo para todo el
+                sitio por un adorno sería abrir la puerta a servir SVG de
+                terceros —que pueden traer scripts— desde nuestro dominio. Un
+                archivo propio y estático no gana nada pasando por ahí.
+
+                El sello va en su propia capa y el texto en otra por encima. Sin
+                eso el orden de pintado juega en contra: un elemento posicionado
+                se dibuja sobre los hermanos que no lo están, así que la
+                ilustración tapaba las filas de la ficha —presentación, origen,
+                peso— aunque en el código vaya antes que ellas.
+              */}
+              {semanal ? (
+                <Image
+                  src={semanal}
+                  alt=""
+                  aria-hidden="true"
+                  width={551}
+                  height={847}
+                  unoptimized
+                  className="pointer-events-none absolute -top-16 -right-1 z-0 hidden h-auto w-36 lg:block xl:-top-24 xl:w-44"
+                />
               ) : null}
 
-              <SpecList specs={specs} tone="on-brand" className="mt-8" />
+              <div className="relative z-10">
 
-              <p className="mt-8 font-sans text-2xl tabular-nums">
-                <Price value={product.price} unit={product.unit} tone="on-brand" />
-              </p>
+                {/* `h3`, not `h2`: the section already owns the h2 above, and the
+                    product is a level inside it. Sized as a headline anyway —
+                    outline depth and type scale are separate decisions. */}
+                <h3 className="max-w-[14ch] font-display text-3xl font-light leading-[1.05] md:text-[2.75rem]">
+                  {product.name}
+                </h3>
 
-              <ButtonLink
-                href={`/product/${product.handle}`}
-                variant="onBrand"
-                className="mt-8"
-              >
-                Ver producto
-              </ButtonLink>
+                {product.shortDescription ? (
+                  <p className="mt-5 max-w-[44ch] text-lg text-background/85">
+                    {product.shortDescription}
+                  </p>
+                ) : null}
+
+                <SpecList specs={specs} tone="on-brand" className="mt-8" />
+
+                <p className="mt-8 font-sans text-2xl tabular-nums">
+                  <Price value={product.price} unit={product.unit} tone="on-brand" />
+                </p>
+
+                <ButtonLink
+                  href={`/product/${product.handle}`}
+                  variant="onBrand"
+                  className="mt-8"
+                >
+                  Ver producto
+                </ButtonLink>
+              </div>
             </div>
           </div>
         </div>

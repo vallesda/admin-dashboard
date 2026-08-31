@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
 import { confirmOrder, getOrder } from '@/lib/commerce';
+import { firstAsset } from '@/lib/assets';
 import { formatMoney } from '@/lib/format';
 import Container from '@/components/ui/container';
 import Heading from '@/components/ui/heading';
@@ -305,20 +306,33 @@ export default async function Page({
  * would push the order lines — the thing the customer opened the link to read —
  * below the fold.
  */
+/*
+ * El archivo del brandbook si está; si no, la ilustración que ya había. Los dos
+ * son el mismo motivo y sirven igual, así que no hay razón para dejar el hueco
+ * mientras el nuevo llega.
+ */
 function OrderIllustration({ cancelled }: { cancelled: boolean }) {
   // A cancelled order is not a moment to decorate.
   if (cancelled) return null;
 
+  const fishes = firstAsset('/illustrations/checkout-fishes.svg');
+
+  if (!fishes) return null;
+
   return (
     <div className="hidden lg:block">
       <Image
-        src="/illustrations/confirmation-fish.png"
+        src={fishes}
         alt=""
         aria-hidden="true"
-        width={800}
-        height={1200}
-        sizes="(min-width: 1024px) 30vw, 0px"
-        className="mx-auto h-auto w-full max-w-[22rem]"
+        width={418}
+        height={847}
+        unoptimized
+        // Es la única imagen de la página, así que en escritorio resulta ser
+        // el LCP. Cargarla con antelación mide lo que ya iba a pasar en vez de
+        // aplazarlo; no compite con nada porque no hay nada más que cargar.
+        loading="eager"
+        className="mx-auto h-auto w-full max-w-[13rem]"
       />
     </div>
   );

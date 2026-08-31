@@ -86,7 +86,11 @@ export default defineConfig({
      * Cada archivo levantaría su propia instancia de PGlite, lo cual funciona
      * pero multiplica el coste de aplicar 14 migraciones. En serie, la base se
      * crea una vez y `resetDatabase()` la vacía entre pruebas.
+     *
+     * `fileParallelism: false`, no el `poolOptions.threads.singleThread` de
+     * antes: Vitest 4 retiró `poolOptions` y esta es su sustituta directa —
+     * los archivos corren uno detrás de otro en lugar de repartirse.
      */
-    poolOptions: { threads: { singleThread: true } },
+    fileParallelism: false,
   },
 });

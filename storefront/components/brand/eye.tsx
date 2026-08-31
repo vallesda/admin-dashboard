@@ -31,8 +31,15 @@ type Palette = 'green' | 'coral' | 'sun' | 'turquoise';
  * aplicación.
  */
 const RINGS: Record<Palette, { outer: string; iris: string }> = {
-  green: { outer: 'rgb(var(--brand))', iris: 'rgb(var(--brand-soft))' },
-  coral: { outer: 'rgb(var(--coral))', iris: 'rgb(var(--brand-soft))' },
+  /*
+   * El iris del ojo de marca es **amarillo**, no menta.
+   *
+   * Esta reconstrucción lo tenía en menta hasta que llegó el archivo real y
+   * quedó claro el error. Es la combinación con más tensión de la paleta —el
+   * amarillo dentro del verde— y era justo lo que la volvía reconocible.
+   */
+  green: { outer: 'rgb(var(--brand))', iris: 'rgb(var(--sun))' },
+  coral: { outer: 'rgb(var(--coral))', iris: 'rgb(var(--sun))' },
   sun: { outer: 'rgb(var(--sun))', iris: 'rgb(var(--surface))' },
   turquoise: { outer: 'rgb(var(--turquoise))', iris: 'rgb(var(--brand-soft))' },
 };
