@@ -36,6 +36,8 @@ La arquitectura sigue un enfoque **Domain-Driven Design pragmático** sobre un *
 | [FLUJO-ABASTECIMIENTO.md](FLUJO-ABASTECIMIENTO.md) | Fresco, congelado y por encargo: qué reserva inventario y qué no | cambia el modelo de abastecimiento o el ciclo de encargo |
 | [HISTORIAS.md](HISTORIAS.md) | Backlog priorizado con criterios de aceptación | se planifica implementación |
 | [PLAN.md](PLAN.md) | Roadmap de fases/PRs, Definition of Done, deuda y trazabilidad | cambia el orden de construcción |
+| [features/](features/README.md) | **Un documento por funcionalidad**: caso de uso, reglas, decisiones y pruebas | se toca un módulo |
+| [PLAN-PRUEBAS.md](PLAN-PRUEBAS.md) | Las tres capas de prueba, qué cubre cada una y qué falta | se añade una capa o cambia la estrategia |
 | [PAGOS.md](PAGOS.md) | Plan de integración de pagos y devoluciones con Stripe (`PAG`) | cambia el proveedor, un método de pago o la política de reembolso |
 | [PAGOS-VERIFICACION.md](PAGOS-VERIFICACION.md) | Qué de los pagos está probado, qué nunca se ha ejecutado y el plan de verificación en modo de prueba | se verifica un escenario o se encuentra un hueco |
 

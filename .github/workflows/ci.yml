@@ -59,7 +59,10 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Tests de dominio
+      # Las tres capas en un solo comando. Las de base de datos levantan
+      # PostgreSQL dentro del proceso (PGlite), así que no hace falta ningún
+      # servicio ni contenedor en el runner.
+      - name: Tests
         run: pnpm test
 
       - name: Build del panel

@@ -308,7 +308,8 @@ Aplica a cada feature:
 - [ ] loading/error state cuando aplica;
 - [ ] dinero en centavos;
 - [ ] queries paginadas cuando listan colecciones;
-- [ ] tests para regla/transacción crítica;
+- [ ] tests para regla/transacción crítica, en la capa que corresponda (ver [PLAN-PRUEBAS.md](PLAN-PRUEBAS.md));
+- [ ] **actualizado el documento de la funcionalidad** en [features/](features/README.md);
 - [ ] `pnpm typecheck`;
 - [ ] `pnpm lint`;
 - [ ] `pnpm build`;
