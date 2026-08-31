@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCollections } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Logo from '@/components/layout/logo';
+import Scales from '@/components/brand/scales';
 import Eyebrow from '@/components/ui/eyebrow';
 import {
   INFO_LINKS,
@@ -25,13 +26,29 @@ export default async function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-24 bg-brand-dark text-background">
-      <Container>
+    <footer className="relative mt-24 overflow-hidden bg-brand-dark text-background">
+      {/*
+        El banco de escamas cruza el pie, que es donde el manual lo pone en sus
+        aplicaciones grandes: la camiseta, el póster, la portada. Aquí cierra la
+        página con el único gesto de color pleno del sitio.
+
+        Sobre el verde oscuro y a baja opacidad: el elemento es una textura, no
+        una ilustración, y compitiendo con el texto dejaría de ser ninguna de
+        las dos cosas.
+      */}
+      <Scales
+        count={72}
+        amplitude={30}
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 w-full opacity-35"
+      />
+
+      <Container className="relative">
         <div className="grid grid-cols-2 gap-10 py-14 md:grid-cols-4 md:py-20">
           <div className="col-span-2 md:col-span-1">
             <Logo size={44} variant="light" />
-            <p className="mt-4 max-w-[28ch] text-sm text-background/70">
-              Pescados y mariscos seleccionados, preparados para ti.
+            <p className="mt-4 max-w-[30ch] text-sm text-background/70">
+              Amamos el mar y todo lo que viene de él. Producto de Baja
+              California en San Pedro Garza García.
             </p>
           </div>
 

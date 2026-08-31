@@ -33,7 +33,7 @@ import { useCart } from './cart-context';
  * everything the check said, permanently, and without a timer that fires after
  * the card has already been re-rendered by a search.
  *
- * The button turns gold under the cursor. Gold is this system's mark for
+ * El botón se llena de amarillo bajo el cursor. El amarillo es la mark for
  * "exceptional or fleeting", and reaching for a piece of the day's catch is
  * exactly that — see the `addOutline` variant.
  *

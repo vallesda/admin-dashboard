@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Newsreader, Instrument_Sans } from 'next/font/google';
+import { Spectral, Figtree } from 'next/font/google';
 
 import './globals.css';
 import { getProducts } from '@/lib/commerce';
@@ -18,31 +18,41 @@ import Navbar from '@/components/layout/navbar';
 import Footer from '@/components/layout/footer';
 
 /**
- * Newsreader carries the editorial voice; Instrument Sans carries everything
- * functional. Keeping them apart is most of what stops the storefront reading
- * like a generic Tailwind site.
- */
-/**
- * Newsreader is loaded with its italic as well as its roman.
+ * Las tipografías, y la sustitución que hay detrás.
  *
- * Not decoration: the section headings set one word of each title in italic —
- * the noun the band is actually about — which is how an editorial page marks
- * emphasis without reaching for a second weight, a colour, or a rule. Without
- * the real italic the browser would synthesise one by slanting the roman, and a
- * skewed serif at 48px is visibly wrong.
+ * El manual de identidad especifica **Arrus** (Richard Lipton, Bitstream, 1991)
+ * como principal y **Vito** (Thomas Gabriel, Dots&Stripes, 2015) como
+ * secundaria. Ninguna de las dos está en Google Fonts ni tiene licencia web en
+ * este proyecto, así que aquí van sus parientes más cercanos disponibles:
  *
- * No `weight` is passed, so both axes load as variable fonts and the display
- * scale is free to sit at 300 where 400 would look heavy — a 5.5rem headline at
- * regular weight reads as a poster, at light it reads as a masthead.
+ * - **Spectral** por Arrus. El manual describe Arrus como caligráfica con
+ *   influencia de las formas inscripciones clásicas; Spectral comparte ese
+ *   remate afilado y la misma tensión entre trazo grueso y fino. Es la
+ *   sustitución más justa de las dos.
+ * - **Figtree** por Vito. Vito es una grotesca cálida «con estilo de los 60»;
+ *   Figtree tiene la misma temperatura y la misma altura de x, y cubre los
+ *   pesos que el manual usa para títulos, subtítulos y texto.
+ *
+ * **Esto es una aproximación declarada, no la marca.** El día que se licencien
+ * Arrus y Vito, el cambio es este archivo y nada más: el resto del sitio habla
+ * con `--font-display` y `--font-sans`.
+ *
+ * Lo que **no** se sustituye es el logotipo. El manual lo define como Arrus con
+ * un tratamiento hecho a mano, «para dar un aspecto de sello, como las monedas
+ * del mar» — eso es un dibujo, no una fuente, y se usa como imagen.
  */
-const display = Newsreader({
+const display = Spectral({
   subsets: ['latin'],
+  // La cursiva es funcional, no decorativa: los títulos de sección ponen en
+  // cursiva el sustantivo del que trata la banda. Sin la cursiva real el
+  // navegador inclinaría la redonda, y una serif sesgada a 48px se ve mal.
   style: ['normal', 'italic'],
+  weight: ['300', '400', '500'],
   variable: '--font-display',
   display: 'swap',
 });
 
-const sans = Instrument_Sans({
+const sans = Figtree({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',

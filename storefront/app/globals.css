@@ -3,43 +3,85 @@
 @tailwind utilities;
 
 /**
- * Amor a Mar design tokens.
+ * Tokens de Amor a Mar.
  *
- * Declared as RGB triplets so Tailwind can apply opacity (`bg-brand/10`).
- * Every colour in the storefront resolves from here; no component holds a hex.
+ * Declarados como tripletes RGB para que Tailwind pueda aplicar opacidad
+ * (`bg-brand/10`). Todo color del storefront sale de aquí; ningún componente
+ * lleva un hex.
  *
- * --brand is the logo's dark green. Sampling the logo returns #084858 as its
- * most frequent opaque colour, which confirms the brand value #024F55.
+ * ── De dónde salen ──
  *
- * --gold came out of that same sampling: #F8C808 covers almost as much of the
- * logo as the green does. It is part of the identity, not an invention, and it
- * gives the palette a warm accent that belongs with cream — so featured and
- * seasonal markers use it instead of importing a foreign colour.
+ * Del **manual de identidad** (Common Matter, San Pedro Garza García, 2017),
+ * no de muestrear el logotipo. La versión anterior de este archivo deducía el
+ * verde y un dorado a partir de los píxeles de un PNG, y las dos deducciones
+ * eran incorrectas: el verde real es más profundo y **el dorado no existe en
+ * la marca**. Lo que hay en su lugar es un amarillo mucho más brillante, y
+ * otros tres colores que el sitio no estaba usando.
  *
- * Intended balance: ~65–70% warm cream, ~20–25% green, the rest neutrals,
- * gold and the photography's own coral/shell tones.
+ * Muestrear un logotipo da los colores que un compresor dejó en un archivo.
+ * El manual da los que alguien eligió.
+ *
+ * ── El reparto ──
+ *
+ * Sigue mandando el crema: es el papel del manual y el fondo de casi todas sus
+ * aplicaciones. El verde es la tinta. Turquesa, coral, rojo y amarillo entran
+ * como suelos plenos —una banda, una tarjeta, un patrón— nunca como texto, y
+ * nunca los cuatro a la vez en la misma pantalla.
  */
 :root {
-  --brand: 2 79 85;
-  --brand-dark: 1 42 46;
-  --brand-soft: 218 239 241;
-
-  --gold: 214 168 8;
-  --gold-soft: 250 240 209;
-
-  /* Warm off-white, never pure white: the photography sits on it. */
-  --background: 250 246 239;
-  --surface: 255 253 249;
-  --foreground: 12 28 29;
   /*
-   * Was 104 118 116, which measured 4.40:1 on cream and 3.65:1 on sand — both
-   * under AA, and this colour carries origin, presentation and price unit
-   * across 40+ sites. This is the lightest value that clears 4.5:1 on the
-   * darkest surface it lands on (sand), so it is safe everywhere:
-   * cream 5.49 · sand 4.56 · surface 5.82.
+   * La paleta del manual de identidad (Common Matter, 2017), en sus valores
+   * Pantone originales. No es una interpretación: son los siete colores tal
+   * como están especificados.
+   *
+   * ── La regla que sale de medir el contraste ──
+   *
+   * **El verde es la tinta. Los otros cinco son suelo.**
+   *
+   * `#0C473F` es el único color de la paleta que sirve como texto: 9.48:1 sobre
+   * crema, 9.23 sobre menta, 7.94 sobre amarillo. Turquesa, coral, rojo y
+   * amarillo miden entre 1.19 y 3.53 sobre crema — ninguno llega a texto, y el
+   * amarillo no llega ni a elemento no textual.
+   *
+   * No es una limitación que haya que sortear: es exactamente lo que enseña la
+   * retícula de logotipos del manual (p. 9), donde el logotipo va **siempre**
+   * en verde sobre cada uno de los colores, o en menta sobre verde. La paleta
+   * está construida así.
    */
-  --muted: 89 103 101;
-  --sand: 234 225 210;
+  --brand: 12 71 63;            /* Pantone 323 U · #0C473F */
+  --brand-dark: 6 40 35;        /* mismo verde, para bordes sobre verde */
+  --brand-soft: 209 249 226;    /* Pantone 317 U · #D1F9E2 — menta */
+
+  /*
+   * Los cuatro colores de suelo.
+   *
+   * Se nombran por lo que son y no por su función, porque el manual los usa de
+   * forma intercambiable: la misma marca va sobre los cuatro. Darles nombres
+   * semánticos («acento», «destacado») habría fijado una jerarquía que la
+   * identidad no tiene.
+   */
+  --turquoise: 33 163 158;      /* Pantone 320 U · #21A39E */
+  --coral: 237 130 105;         /* Pantone 701 U · #ED8268 */
+  --scarlet: 240 59 59;         /* Pantone 192 U · #EF3A3A */
+  --sun: 244 226 63;            /* Pantone 106 U · #F4E23F */
+
+  /*
+   * Crema del manual (Cool Gray 1 U), no el crema que había.
+   * Un punto más cálido y más claro: #F7F3E1 contra el #FAF6EF anterior.
+   */
+  --background: 247 243 225;
+  --surface: 252 250 240;
+
+  /*
+   * La tinta es el propio verde de marca oscurecido, no un gris neutro.
+   *
+   * Un negro puro sobre crema es la señal más rápida de que una paleta se
+   * escogió por partes. Este tiene el mismo matiz que el verde, así que el
+   * texto y la marca pertenecen al mismo mundo.
+   */
+  --foreground: 10 38 34;
+  --muted: 78 105 99;
+  --sand: 233 226 203;
 
   /*
    * Two border tokens, because they answer to different rules.

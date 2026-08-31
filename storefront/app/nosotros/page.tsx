@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import Container from '@/components/ui/container';
+import { EyeCluster } from '@/components/brand/eye';
 import Section from '@/components/ui/section';
 import SectionHeader from '@/components/ui/section-header';
 import Eyebrow from '@/components/ui/eyebrow';
@@ -15,7 +16,7 @@ import {
 export const metadata: Metadata = {
   title: 'Nosotros',
   description:
-    'Amor a Mar es una pescadería y restaurante en Monterrey. Elegimos pieza por pieza, decimos de dónde viene cada producto y no rompemos el frío.',
+    'Amor a Mar es una pescadería y marisquería en San Pedro Garza García, Nuevo León. Producto de Baja California, elegido pieza por pieza, con cadena de frío y entrega a domicilio en la zona metropolitana de Monterrey.',
 };
 
 /**
@@ -81,7 +82,7 @@ export default function Page() {
                 El mar no se <em>apura</em>
               </>
             }
-            lede="Amor a Mar es una pescadería y restaurante en Monterrey. Trabajamos con lo que el mar da ese día, no con lo que un catálogo dice que debería haber."
+            lede="Amamos el mar y todo lo que viene de él. Somos una pescadería y marisquería en San Pedro Garza García, y trabajamos con lo que el mar da ese día, no con lo que un catálogo dice que debería haber."
           />
 
           <div className="mt-10 grid gap-10 md:grid-cols-[1.15fr_1fr] md:gap-16">
@@ -109,6 +110,46 @@ export default function Page() {
                 Que el pescado que llega a tu mesa sea tan bueno como el que
                 elegiríamos para la nuestra, y que sepas exactamente qué estás
                 comprando.
+              </p>
+            </div>
+          </div>
+        </Container>
+      </Section>
+
+      {/* --- Tesoro --------------------------------------------------------- */}
+      {/*
+        El concepto de la marca, que nunca había estado en el sitio.
+
+        El manual (§2) lo llama «Tesoro»: siglos de gente saliendo a explorar el
+        mar, y lo que se trae de vuelta. El ojo —el elemento gráfico de la
+        identidad— es a la vez la moneda y lo primero que se mira en una pieza
+        para saber si está fresca.
+
+        Va sobre amarillo pleno, como aparece impreso en el manual, y es el
+        único uso de amarillo a página completa del sitio: encima de él, el
+        verde mide 7.94:1.
+      */}
+      <Section rhythm="sm" labelledBy="tesoro-heading">
+        <Container>
+          <div className="grid items-center gap-8 bg-sun px-6 py-10 text-brand sm:grid-cols-[auto_1fr] sm:gap-12 sm:px-12 sm:py-14">
+            <EyeCluster size={128} />
+
+            <div>
+              <h2
+                id="tesoro-heading"
+                className="font-display text-4xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl"
+              >
+                Tesoro
+              </h2>
+              <p className="mt-4 max-w-[46ch] text-base leading-relaxed">
+                Desde hace siglos hemos trabajado por navegar y explorar
+                nuestros mares. Nos hemos embarcado hacia lo desconocido, tal
+                vez buscando nuevas tierras, pero siempre descubriendo más
+                sobre él y sobre nuestra relación con él.
+              </p>
+              <p className="mt-3 max-w-[46ch] text-base leading-relaxed">
+                Peces, crustáceos y moluscos, sacados del mar especialmente
+                para quien los ha pedido.
               </p>
             </div>
           </div>

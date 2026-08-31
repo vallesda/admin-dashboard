@@ -176,7 +176,7 @@ export default async function Page({
                 href={order.payment.actionUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-flex items-center border border-border-strong bg-surface px-4 py-2.5 text-sm font-medium transition-colors hover:border-gold hover:bg-gold hover:text-foreground"
+                className="mt-3 inline-flex items-center border border-border-strong bg-surface px-4 py-2.5 text-sm font-medium transition-colors hover:border-sun hover:bg-sun hover:text-brand"
               >
                 Ver mi referencia de pago
               </a>

@@ -2,45 +2,47 @@
 name: Amor a Mar
 description: Pescadería en línea donde el catálogo cambia con lo que el mar dio ese día.
 colors:
-  brand: "#024F55"
-  brand-dark: "#012A2E"
-  brand-soft: "#DAEFF1"
-  gold: "#D6A808"
-  gold-soft: "#FAF0D1"
-  background: "#FAF6EF"
-  surface: "#FFFDF9"
-  foreground: "#0C1C1D"
-  muted: "#596765"
-  sand: "#EAE1D2"
+  brand: "#0C473F"
+  brand-dark: "#062823"
+  brand-soft: "#D1F9E2"
+  turquoise: "#21A39E"
+  coral: "#ED8268"
+  scarlet: "#EF3A3A"
+  sun: "#F4E23F"
+  background: "#F7F3E1"
+  surface: "#FCFAF0"
+  foreground: "#0A2622"
+  muted: "#4E6963"
+  sand: "#E9E2CB"
   border: "#D2C8B7"
   border-strong: "#958E84"
 typography:
   display:
-    fontFamily: "Newsreader, Georgia, serif"
+    fontFamily: "Spectral, Georgia, serif"
     fontSize: "clamp(3.25rem, 8vw, 5.25rem)"
     fontWeight: 300
     lineHeight: 0.95
     letterSpacing: "-0.03em"
   headline:
-    fontFamily: "Newsreader, Georgia, serif"
+    fontFamily: "Spectral, Georgia, serif"
     fontSize: "clamp(1.875rem, 4vw, 2.75rem)"
     fontWeight: 400
     lineHeight: 1.05
     letterSpacing: "-0.015em"
   title:
-    fontFamily: "Newsreader, Georgia, serif"
+    fontFamily: "Spectral, Georgia, serif"
     fontSize: "clamp(1.25rem, 2vw, 1.5rem)"
     fontWeight: 400
     lineHeight: 1.2
     letterSpacing: "-0.015em"
   body:
-    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontFamily: "Figtree, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "normal"
   label:
-    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontFamily: "Figtree, system-ui, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 400
     lineHeight: 1.3
@@ -82,7 +84,7 @@ components:
     rounded: "{rounded.DEFAULT}"
     padding: "12px 24px"
   button-on-brand-hover:
-    backgroundColor: "{colors.gold}"
+    backgroundColor: "{colors.sun}"
     textColor: "{colors.foreground}"
   input-field:
     backgroundColor: "{colors.background}"
@@ -102,7 +104,7 @@ components:
     textColor: "{colors.foreground}"
     rounded: "{rounded.sm}"
   chip-seasonal:
-    backgroundColor: "{colors.gold}"
+    backgroundColor: "{colors.sun}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.sm}"
     padding: "4px 8px"
@@ -114,12 +116,20 @@ components:
   eyebrow:
     textColor: "{colors.muted}"
     typography: "{typography.label}"
-  eyebrow-gold:
-    textColor: "{colors.gold}"
+  eyebrow-sun:
+    textColor: "{colors.sun}"
     typography: "{typography.label}"
 ---
 
 # Design System: Amor a Mar
+
+> **Fuente de verdad: el manual de identidad** (Common Matter, San Pedro Garza
+> García, 2017). Colores, tipografías y elementos gráficos salen de ahí, no de
+> muestrear el logotipo — que es como se había construido la primera versión de
+> este sistema, y daba un verde equivocado y un «oro» que la marca no tiene.
+>
+> Lo que este documento añade sobre el manual es lo que un manual impreso no
+> puede decir: qué combinaciones pasan los contrastes de la web, y cuáles no.
 
 ## Overview
 
@@ -161,45 +171,90 @@ sitio genérico de Tailwind.
 
 ## Colors
 
-Una paleta de dos temperaturas: el verde frío y profundo de la marca contra una
-crema cálida de papel, con el oro del logo como única chispa. Todos los colores
-se declaran una sola vez en `app/globals.css` como tripletas RGB — para que
-Tailwind pueda aplicar opacidad (`bg-brand/10`) — y ningún componente sostiene
-un hex propio.
+**La paleta es la del manual de identidad** (Common Matter, San Pedro Garza
+García, 2017), en sus valores Pantone originales. Siete colores, no dos.
+
+> **Nota sobre lo que había antes.** Este sistema derivaba el verde y un
+> «oro» muestreando los píxeles del logotipo en PNG. Las dos deducciones eran
+> incorrectas: el verde real es más profundo, y **el oro no existe en la marca**
+> — lo que hay en su lugar es un amarillo mucho más brillante, más otros tres
+> colores que el sitio no estaba usando. Muestrear un logotipo da los colores
+> que un compresor dejó en un archivo; el manual da los que alguien eligió.
+
+Todos se declaran una sola vez en `app/globals.css` como tripletas RGB —para que
+Tailwind pueda aplicar opacidad (`bg-brand/10`)— y ningún componente sostiene un
+hex propio.
+
+### La regla que gobierna la paleta
+
+**El verde es la tinta. Los otros cinco son suelo.**
+
+No es una preferencia: sale de medir. El verde es el único color de la paleta
+que sirve como texto sobre el crema de la página.
+
+| sobre → | crema | menta | amarillo | verde |
+|---|---|---|---|---|
+| **verde** `#0C473F` | **9.48** ✓ | **9.23** ✓ | **7.94** ✓ | — |
+| crema `#F7F3E1` | — | 1.03 ✗ | 1.19 ✗ | **9.48** ✓ |
+| turquesa `#21A39E` | 2.77 ✗ | 2.70 ✗ | 2.32 ✗ | 3.42 ~ |
+| coral `#ED8268` | 2.36 ✗ | 2.30 ✗ | 1.98 ✗ | 4.02 ~ |
+| rojo `#EF3A3A` | 3.53 ~ | 3.44 ~ | 2.96 ✗ | 2.68 ✗ |
+| amarillo `#F4E23F` | 1.19 ✗ | 1.16 ✗ | — | **7.94** ✓ |
+
+*(✓ ≥4.5 texto normal · ~ ≥3 texto grande o elemento no textual · ✗ no usar)*
+
+Esto **no** es una limitación que haya que sortear: es exactamente lo que enseña
+la retícula de logotipos del manual (p. 9), donde la marca va siempre en verde
+sobre cada uno de los colores, o en menta sobre verde. La paleta está construida
+así.
 
 ### Primary
 
-- **Verde Marino Profundo** (`#024F55`): el color de la marca, tomado del logo.
-  Se usa en **bloques completos**, no en acentos: la barra de anuncios, el panel
-  del hero, superficies de sección enteras. También es el color del texto de
-  error y del anillo de foco. Su trabajo es declarar territorio.
-- **Verde Casco** (`#012A2E`): exclusivamente el estado hover del verde de
-  marca. No es una superficie por derecho propio.
-- **Verde Espuma** (`#DAEFF1`): fondo de avisos informativos sobre crema, donde
-  un bloque de verde sólido sería demasiado peso para un mensaje de una línea.
+- **Verde Marino** (`#0C473F`, Pantone 323 U): el color de la marca y la tinta
+  del sistema. Se usa en **bloques completos** —la barra de anuncios, el panel
+  del hero, secciones enteras— y también como color de texto. Su trabajo es
+  declarar territorio y, sobre cualquier suelo de la paleta, ser lo legible.
+- **Verde Casco** (`#062823`): sólo el hover del verde de marca y el fondo del
+  pie. No es una superficie por derecho propio.
+- **Verde Menta** (`#D1F9E2`, Pantone 317 U): fondo de avisos informativos sobre
+  crema, y tinta sobre verde cuando el amarillo sería demasiado.
 
-### Secondary
+### Los cuatro suelos
 
-- **Oro de Logo** (`#D6A808`): la segunda mitad de la identidad, muestreada del
-  mismo logo. Marca lo excepcional y lo efímero — el chip «De temporada», el
-  hover de un botón claro sobre verde. Nunca es una superficie de sección.
-- **Oro Pálido** (`#FAF0D1`): la versión de fondo del oro, para cuando algo debe
-  destacarse sin gritar. Usarlo es raro y debe justificarse.
+Se nombran por lo que son y no por su función, porque el manual los usa de forma
+intercambiable: la misma marca va sobre los cuatro. Darles nombres semánticos
+(«acento», «destacado») habría fijado una jerarquía que la identidad no tiene.
+
+- **Amarillo** (`#F4E23F`, Pantone 106 U): el suelo más brillante. Es el único
+  que además funciona como **tinta sobre verde** (7.94:1), y ahí es donde marca
+  lo excepcional y lo efímero: «La pesca de la *semana*», el chip «De
+  temporada», el hover de los botones. Sobre crema es ilegible (1.19:1) y no se
+  usa nunca como texto.
+- **Turquesa** (`#21A39E`, Pantone 320 U): suelo secundario, el más cercano al
+  verde. Bandas y superficies grandes.
+- **Coral** (`#ED8268`, Pantone 701 U): el cálido de la paleta. En el manual
+  aparece en el patrón de escamas y en el ojo pequeño.
+- **Rojo** (`#EF3A3A`, Pantone 192 U): el más enérgico y el que menos aparece.
+  Un acento dentro del patrón, nunca una superficie de sección.
+
+**Regla de escasez.** No más de **dos** colores de suelo por pantalla, y nunca
+los cuatro. El manual los reparte entre aplicaciones distintas —una camiseta,
+una bolsa, un póster— no dentro de la misma.
 
 ### Neutral
 
-- **Crema de Papel** (`#FAF6EF`): el fondo de todo el sitio. Cálido a propósito:
-  la fotografía de producto se apoya en él y el blanco puro la enfría.
-- **Crema Elevada** (`#FFFDF9`): superficies que se separan del fondo — tarjetas
-  de resumen, campos, controles. Apenas más clara; la diferencia se siente antes
-  de verse.
-- **Tinta de Mar** (`#0C1C1D`): el color del texto. Un casi-negro con verde
-  dentro, nunca `#000`.
-- **Gris Marea** (`#596765`): texto secundario — origen, presentación, unidad de
-  precio, ayudas de formulario. Es el valor más claro que despeja 4.5:1 sobre la
-  superficie más oscura en la que aterriza (Arena), así que es seguro en las
-  tres: crema 5.49 · arena 4.56 · superficie 5.82.
-- **Arena** (`#EAE1D2`): el marcador de posición de toda imagen y el hover de
+- **Crema de Papel** (`#F7F3E1`, Cool Gray 1 U): el fondo de todo el sitio.
+  Cálido a propósito: la fotografía de producto se apoya en él y el blanco puro
+  la enfría.
+- **Crema Elevada** (`#FCFAF0`): superficies que se separan del fondo —tarjetas
+  de resumen, campos, controles—. Apenas más clara; la diferencia se siente
+  antes de verse.
+- **Tinta de Mar** (`#0A2622`): el color del texto. Es el propio verde de marca
+  oscurecido, no un gris neutro: un negro puro sobre crema es la señal más
+  rápida de que una paleta se escogió por partes.
+- **Gris Marea** (`#4E6963`): texto secundario — origen, presentación, unidad de
+  precio, ayudas de formulario.
+- **Arena** (`#E9E2CB`): el marcador de posición de toda imagen y el hover de
   todo control fantasma. Es el color que el comprador ve mientras la foto carga.
 - **Borde de Concha** (`#D2C8B7`): la línea de 1px divisoria — reglas entre
   filas, cantos de tarjeta. Hace el trabajo que en otro sistema harían las
@@ -207,13 +262,25 @@ un hex propio.
 - **Borde de Control** (`#958E84`): el contorno de todo elemento interactivo.
   Existe aparte porque en un sistema sin sombras, con un fondo de campo apenas
   distinto del de la página, esa línea es lo **único** que identifica un input
-  como input — lo que la mete bajo WCAG 1.4.11 y su piso de 3:1. Mide 3.01:1
-  sobre crema. Separar los dos tokens es lo que permite que los campos se lean
-  sin convertir cada divisor del sitio en una regla dura.
+  como input — lo que la mete bajo WCAG 1.4.11 y su piso de 3:1.
+
+### Elementos gráficos
+
+El manual define dos, y los dos existen ahora como componentes en
+`components/brand/`:
+
+- **El ojo** (`eye.tsx`): tres anillos concéntricos, pupila negra y un punto de
+  luz descentrado. Es a la vez la moneda del concepto «Tesoro» y lo primero que
+  un pescadero mira para saber si una pieza está fresca. Dibujado en SVG, no
+  importado como imagen: son cuatro círculos, escala sin peso y cambia de color
+  con la paleta.
+- **El banco de escamas** (`scales.tsx`): gotas dispersas en los cinco colores
+  describiendo una curva que cruza el lienzo. Generado y determinista —semilla
+  fija— para que sea el mismo dibujo en el servidor, en el cliente y mañana.
 
 ### Named Rules
 
-**La Regla del Oro Escaso.** El oro señala una sola cosa: que algo es
+**La Regla del Amarillo Escaso.** El amarillo señala una sola cosa: que algo es
 excepcional o no va a durar. Prohibido como fondo de sección, como color de
 texto de cuerpo, y como borde decorativo. Su rareza *es* su función — un oro que
 aparece en todas partes deja de significar «de temporada» y pasa a significar
@@ -541,7 +608,7 @@ paleta o no se han terminado.
   (`border-border bg-surface text-foreground`), hover a Arena.
 - **Sobre verde (`variant="onBrand"`):** cuando un botón vive dentro de un
   bloque de marca, invierte — fondo crema, texto verde — y su hover es el
-  **único** lugar donde el oro toca un control (`hover:bg-gold
+  **único** lugar donde el amarillo toca un control (`hover:bg-sun
   hover:text-foreground`).
 
   Es una **variante**, no un `className` que sobrescribe a `primary`. Los dos
@@ -571,7 +638,7 @@ paleta o no se han terminado.
 
 ### Chips
 
-- **De temporada:** fondo Oro de Logo, texto Tinta de Mar, `4px 8px`, radio 2px,
+- **De temporada:** fondo Amarillo, texto Verde Marino, `4px 8px`, radio 2px,
   `text-xs font-medium`. Posicionado arriba-izquierda sobre la fotografía.
 - **Agotado:** fondo Tinta de Mar al 85% de opacidad, texto crema. Misma posición
   y misma talla — los dos estados nunca coexisten.
@@ -688,7 +755,7 @@ encabezado de grupo de la navegación de colecciones.
 
 - **Estilo:** sans en mayúsculas, `0.75rem`, `letter-spacing: 0.1em`, en Gris
   Marea.
-- **Tonos:** `muted` (por defecto), `gold` (solo la etiqueta «Pesca de la
+- **Tonos:** `muted` (por defecto), `sun` (solo la etiqueta «Pesca de la
   semana»), `on-brand` (`text-background/60`, para superficies verdes),
   `inherit`.
 - **Variante `sm`:** `0.875rem` con peso 500 — el título de una tarjeta de valor,

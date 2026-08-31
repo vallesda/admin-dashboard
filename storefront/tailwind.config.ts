@@ -10,8 +10,14 @@ const config: Config = {
         brand: 'rgb(var(--brand) / <alpha-value>)',
         'brand-dark': 'rgb(var(--brand-dark) / <alpha-value>)',
         'brand-soft': 'rgb(var(--brand-soft) / <alpha-value>)',
-        gold: 'rgb(var(--gold) / <alpha-value>)',
-        'gold-soft': 'rgb(var(--gold-soft) / <alpha-value>)',
+        /*
+         * Los cuatro suelos del manual. No hay `gold`: ese color no existe en
+         * la identidad — se había deducido muestreando un PNG.
+         */
+        turquoise: 'rgb(var(--turquoise) / <alpha-value>)',
+        coral: 'rgb(var(--coral) / <alpha-value>)',
+        scarlet: 'rgb(var(--scarlet) / <alpha-value>)',
+        sun: 'rgb(var(--sun) / <alpha-value>)',
         background: 'rgb(var(--background) / <alpha-value>)',
         surface: 'rgb(var(--surface) / <alpha-value>)',
         foreground: 'rgb(var(--foreground) / <alpha-value>)',

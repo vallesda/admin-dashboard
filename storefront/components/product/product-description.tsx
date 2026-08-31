@@ -107,10 +107,24 @@ export default function ProductDescription({ product }: { product: Product }) {
         exactamente la información que el negocio pidió que el cliente supiera.
       */}
       {supply.type === 'preorder' && supply.notice ? (
-        <p className="border border-border-strong bg-surface p-4 text-sm">
-          <span className="mb-1 block font-medium">Por encargo</span>
-          {supply.notice}
-        </p>
+        /*
+          El manual describe el negocio con esta frase, en su primera página:
+          «Peces, crustáceos, moluscos, que son sacados del mar especialmente
+          para quien los ha pedido.»
+
+          Es literalmente lo que hace esta función. La marca ya tenía las
+          palabras nueve años antes de que existiera el código, y usarlas aquí
+          es más barato y más cierto que inventar una explicación nueva.
+
+          Verde pleno y no una caja de aviso: esto no es una advertencia, es la
+          proposición de la casa.
+        */
+        <div className="bg-brand p-5 text-background">
+          <p className="font-display text-xl italic leading-snug">
+            Sacado del mar especialmente para quien lo ha pedido.
+          </p>
+          <p className="mt-2 text-sm text-background/85">{supply.notice}</p>
+        </div>
       ) : null}
 
       {product.availableForSale ? (

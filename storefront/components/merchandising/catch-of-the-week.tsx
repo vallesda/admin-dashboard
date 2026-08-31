@@ -29,21 +29,25 @@ import SpecList, { type Spec } from '@/components/ui/spec-list';
  * No countdown, no "últimas piezas": the data does not support urgency, so the
  * copy does not claim it.
  *
- * ## The gold headings
+ * ## Los títulos en amarillo
  *
- * The emphasised noun of the section title and the product's own name are set in
- * Logo Gold. This is the one band where that works: gold on the brand green
- * measures 4.20:1, which clears AA for large text, while the same gold on the
- * page's cream measures 2.06:1 and would fail anywhere else on the site. Both
- * headings are display sizes, so the 3:1 threshold is the one that applies.
+ * El sustantivo destacado del título y el nombre del producto van en el
+ * amarillo del manual (Pantone 106 U). Ésta es la única banda del sitio donde
+ * eso es posible, y la razón es aritmética: sobre el verde de marca el amarillo
+ * mide **7.94:1** —texto normal, no sólo grande— mientras que sobre el crema de
+ * la página mide **1.19:1** y sería ilegible en cualquier otro sitio.
  *
- * It also spends the gold budget deliberately. The system's scarcity rule caps
- * gold at two appearances per viewport, and this band now carries three at rest
- * — the two headings plus the "De temporada" chip — with the button's hover as a
- * fourth. That is a widening of the rule, recorded in DESIGN.md rather than left
- * for someone to discover as a contradiction and "fix". The band earns it: it is
- * the one section on the site whose whole subject is a piece that will not
- * always be there, which is precisely what the gold means.
+ * Es exactamente el par que enseña la retícula de logotipos del manual (p. 9):
+ * el amarillo no es una tinta que se pueda usar donde sea, es una tinta que
+ * sólo existe sobre verde.
+ *
+ * La regla de escasez limita el amarillo a dos apariciones por pantalla y esta
+ * banda lleva tres en reposo —los dos títulos y la etiqueta «De temporada»—
+ * más el hover del botón como cuarta. Es una ampliación de la regla, anotada en
+ * DESIGN.md en vez de dejada para que alguien la descubra como contradicción y
+ * la «arregle». La banda se lo gana: es la única sección del sitio cuyo tema
+ * entero es una pieza que no
+ * siempre va a estar, que es precisamente lo que dice el amarillo.
  */
 export default async function CatchOfTheWeek() {
   const { items } = await getProducts();
@@ -80,7 +84,7 @@ export default async function CatchOfTheWeek() {
             tone="on-brand"
             title={
               <>
-                La pesca de la <em className="text-gold">semana</em>
+                La pesca de la <em className="text-sun">semana</em>
               </>
             }
             lede="Una pieza que elegimos esta semana y que no siempre vamos a tener."
@@ -104,11 +108,11 @@ export default async function CatchOfTheWeek() {
                 className="pointer-events-none absolute inset-0 rounded-sm plate-on-brand"
               />
 
-              {/* One of the two gold appearances the viewport allows; the
+              {/* Una de las dos apariciones de amarillo que permite la pantalla; le
                   other is this section's own button on hover. The chip is the
                   system's designated home for "will not always be here". */}
               {product.seasonal ? (
-                <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-medium text-foreground">
+                <span className="absolute left-3 top-3 rounded-sm bg-sun px-2 py-1 text-xs font-medium text-brand">
                   De temporada
                 </span>
               ) : null}

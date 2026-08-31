@@ -117,7 +117,7 @@ export default function ProductCard({ product }: { product: Product }) {
             {supply.shortNotice ?? 'Por encargo'}
           </span>
         ) : product.seasonal ? (
-          <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-medium text-foreground">
+          <span className="absolute left-3 top-3 rounded-sm bg-sun px-2 py-1 text-xs font-medium text-brand">
             De temporada
           </span>
         ) : supply.type === 'stocked' ? (

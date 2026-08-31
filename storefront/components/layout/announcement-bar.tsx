@@ -16,7 +16,17 @@ import Container from '@/components/ui/container';
  * certifications, "you pay when you have it" is the strongest reassurance
  * available — and it is simply true, so it claims nothing unestablished.
  */
-const ANNOUNCEMENT = 'Pagas al recibir · Te llamamos para confirmar horario';
+/*
+ * Decía «Pagas al recibir», y dejó de ser cierto cuando el pago cambió: el
+ * efectivo es sólo al recoger en la tienda, y un pedido a domicilio se paga en
+ * línea (`RN-011`). La barra estaba prometiendo la combinación que el checkout
+ * rechaza.
+ *
+ * Lo que dice ahora es lo que el manual pone en su primera página y lo que el
+ * sitio nunca había dicho: de dónde viene el producto.
+ */
+const ANNOUNCEMENT =
+  'Producto de Baja California · Entrega refrigerada en San Pedro y Monterrey';
 
 export default function AnnouncementBar() {
   return (

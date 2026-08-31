@@ -15,7 +15,7 @@ type Props = {
   as?: 'p' | 'h2' | 'h3' | 'dt' | 'span';
   /** `sm` is the card-title variant; `xs` is the default label. */
   size?: 'xs' | 'sm';
-  tone?: 'muted' | 'gold' | 'on-brand' | 'inherit';
+  tone?: 'muted' | 'sun' | 'on-brand' | 'inherit';
   /** For sections labelled with `aria-labelledby`. */
   id?: string;
   children: React.ReactNode;
@@ -34,7 +34,11 @@ export default function Eyebrow({
 
   const colour = {
     muted: 'text-muted',
-    gold: 'text-gold',
+    /*
+   * Amarillo como tinta sólo existe sobre verde, donde mide 7.94:1. Sobre
+   * crema no llega ni a 1.2:1 — de ahí que este tono no sea de uso general.
+   */
+  sun: 'text-sun',
     'on-brand': 'text-background/60',
     inherit: '',
   }[tone];

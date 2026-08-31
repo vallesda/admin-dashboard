@@ -39,7 +39,7 @@ import { ButtonLink } from '@/components/ui/button';
  * for the one who needs to know how a shop whose catalogue changes daily even
  * works. A single button forced that second person to leave through the header.
  *
- * "Cocina" carries the gold: the promise is not the boat and not the trip, it is
+ * «Cocina» va en amarillo de marca: la promesa no es el barco ni el viaje, es
  * that the fish arrives in the shopper's own kitchen.
  */
 export default function Hero() {
@@ -90,7 +90,7 @@ export default function Hero() {
               // alone is the one that carries the promise.
               className="max-w-[13ch]"
             >
-              Del barco a tu <em className="text-gold">cocina</em>, sin escala.
+              Del mar a tu <em className="text-sun">cocina</em>, sin escala.
             </Heading>
           </div>
 
@@ -98,7 +98,14 @@ export default function Hero() {
             className="mt-6 max-w-[38ch] text-lg text-background/85 set-down"
             style={{ animationDelay: '180ms' }}
           >
-            Selección fresca, preparada para ti y entregada con cadena de frío.
+            {/*
+              El origen, que el sitio nunca decía y el manual pone en su
+              primera página: «producto fresco de la mejor calidad de Baja
+              California». Es la diferencia real contra un supermercado, y es
+              la palabra por la que alguien busca.
+            */}
+            Pescados y mariscos de Baja California, seleccionados pieza por
+            pieza y entregados con cadena de frío.
           </p>
 
           <div

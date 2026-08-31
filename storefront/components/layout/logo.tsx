@@ -2,13 +2,20 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 /**
- * The brand mark.
+ * El lockup de la marca.
  *
- * The source asset is a 1254px PNG; it is resized on the way into
- * `public/brand` rather than shipped at full weight for a 40px render.
+ * El manual (§5) define la marca como wordmark **más descriptor**:
+ * «AMOR A MAR» sobre «SEAFOOD MARKET», centrado y con tracking abierto. Así va
+ * en el toldo de la tienda, en el delantal y en la bolsa. El sitio llevaba sólo
+ * el wordmark, que es la marca a medias — y el descriptor no es decoración:
+ * es lo que dice a qué se dedica el negocio a alguien que llega sin saberlo.
  *
- * `variant="light"` is for dark surfaces — the footer — where the mark needs no
- * change but its wordmark does.
+ * El signo gráfico es la imagen: el manual define el logotipo como Arrus con un
+ * tratamiento hecho a mano «para dar un aspecto de sello, como las monedas del
+ * mar». Eso es un dibujo y se usa como dibujo; sólo el descriptor es tipografía.
+ *
+ * `variant="light"` es para superficies verdes —el pie— donde el crema del
+ * manual es la tinta correcta.
  */
 export default function Logo({
   size = 40,
@@ -19,11 +26,13 @@ export default function Logo({
   withName?: boolean;
   variant?: 'dark' | 'light';
 }) {
+  const ink = variant === 'light' ? 'text-background' : 'text-brand';
+
   return (
     <Link
       href="/"
       className="flex items-center gap-3"
-      aria-label="Amor a Mar — inicio"
+      aria-label="Amor a Mar, seafood market — inicio"
     >
       <Image
         src="/brand/amoramar-logo.png"
@@ -34,12 +43,18 @@ export default function Logo({
         className="object-contain"
       />
       {withName ? (
-        <span
-          className={`font-display text-lg tracking-[0.02em] ${
-            variant === 'light' ? 'text-background' : 'text-brand'
-          }`}
-        >
-          Amor a Mar
+        <span className={`flex flex-col leading-none ${ink}`}>
+          <span className="font-display text-lg tracking-[0.02em]">
+            Amor a Mar
+          </span>
+          {/*
+            El descriptor a un cuarto del tamaño y con el tracking del manual.
+            Va en versales porque en el toldo va en versales, y el interletraje
+            abierto es lo que impide que a 9px se convierta en una mancha.
+          */}
+          <span className="mt-[3px] font-sans text-[9px] font-medium uppercase tracking-[0.22em] opacity-80">
+            Seafood Market
+          </span>
         </span>
       ) : null}
     </Link>
