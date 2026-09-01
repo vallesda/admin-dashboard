@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { unstable_rethrow } from 'next/navigation';
+
 /**
  * Commerce facade — the seam.
  *
@@ -128,8 +130,26 @@ export async function getCollections(): Promise<Collection[]> {
  * salen en el menú.
  */
 export async function getNavCollections(): Promise<Collection[]> {
-  const collections = await getCollections();
-  return collections.filter((c) => c.showInNav);
+  /*
+   * El menú degrada a vacío si el catálogo no responde.
+   *
+   * El navbar vive en el layout raíz, así que lo renderiza **toda** página. Sin
+   * esto, un admin caído no dejaba la tienda sin productos: la dejaba sin
+   * tienda —500 en `/nosotros`, en `/preguntas-frecuentes`, en todo—, porque el
+   * error nace en el layout y ningún `error.tsx` de página puede atraparlo.
+   *
+   * `unstable_rethrow` es imprescindible aquí y no un adorno: `connection()`
+   * aborta el prerender lanzando un error interno de Next, y un `catch` normal
+   * se lo tragaría y rompería el build. Sólo se absorben los errores de verdad.
+   */
+  try {
+    const collections = await getCollections();
+    return collections.filter((c) => c.showInNav);
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error('[commerce] catálogo no disponible para el menú:', error);
+    return [];
+  }
 }
 
 /**
