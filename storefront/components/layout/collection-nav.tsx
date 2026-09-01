@@ -112,7 +112,7 @@ function Item({
       <Link
         href={href}
         aria-current={active ? 'page' : undefined}
-        className={`inline-flex items-center gap-2 rounded-sm border px-3 py-2 text-sm transition-colors duration-150 ${
+        className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors duration-150 ${
           active
             ? 'border-brand bg-brand font-medium text-background'
             : 'border-border bg-surface text-foreground hover:border-brand hover:text-brand'

@@ -45,7 +45,7 @@ export default async function Navbar() {
         <div className="flex h-16 items-center justify-between gap-4 md:h-20">
           {/* Mobile: menu · logo · cart */}
           <div className="flex items-center gap-1 lg:hidden">
-            <MobileMenu collections={collections} />
+            <MobileMenu collections={collections} brand={<Logo size={36} />} />
           </div>
 
           <div className="flex min-w-0 items-center gap-6">

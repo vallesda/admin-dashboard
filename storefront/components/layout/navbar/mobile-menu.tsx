@@ -6,7 +6,6 @@ import { useState } from 'react';
 
 import IconButton from '@/components/ui/icon-button';
 import type { Collection } from '@/lib/commerce/types';
-import SearchField from '@/components/ui/search-field';
 import { INFO_LINKS } from '@/components/layout/nav-links';
 
 /**
@@ -18,8 +17,23 @@ import { INFO_LINKS } from '@/components/layout/nav-links';
  */
 export default function MobileMenu({
   collections,
+  brand,
 }: {
   collections: Collection[];
+  /**
+   * El logotipo, ya renderizado por el navbar.
+   *
+   * Llega como prop y no se importa aquí porque `Logo` lee el sistema de
+   * archivos para decidir si usa la imagen del manual o su alternativa
+   * tipográfica —`lib/assets` es `server-only`— y este cajón es un componente
+   * de cliente: tiene estado. Importarlo rompía el build entero con «'server-only'
+   * cannot be imported from a Client Component module».
+   *
+   * Pasarlo ya construido desde el navbar, que sí es de servidor, mantiene la
+   * lectura de disco donde corresponde y deja este componente sin saber nada
+   * de archivos.
+   */
+  brand: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDialogElement>(null);
@@ -48,16 +62,32 @@ export default function MobileMenu({
         className="drawer-left mr-auto ml-0 h-full max-h-full w-full max-w-xs bg-background p-0 text-foreground shadow-overlay backdrop:bg-foreground/50"
       >
         <div className="flex h-full flex-col">
+          {/*
+            La marca, no su nombre escrito a mano.
+
+            Aquí vivía un `<span>` con «Amor a Mar» en la tipografía de
+            titulares. Funcionaba, pero era la única cabecera del sitio donde la
+            marca se dibujaba con texto en lugar de con el logotipo, así que al
+            abrir el cajón la identidad cambiaba justo respecto a la barra que
+            lo acaba de invocar. `Logo` en su variante por defecto ya es el
+            verde de marca.
+          */}
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <span className="font-display text-xl font-light text-brand">Amor a Mar</span>
+            {brand}
             <IconButton label="Cerrar menú" onClick={() => setOpen(false)}>
               <CloseIcon />
             </IconButton>
           </div>
 
-          <div className="border-b border-border px-5 py-4">
-            <SearchField />
-          </div>
+          {/*
+            Sin buscador.
+
+            Estaba duplicado: la barra superior ya lleva el suyo y sigue visible
+            con el cajón abierto. Dos campos que buscan lo mismo en la misma
+            pantalla no dan dos caminos, dan una duda — y aquí además empujaba
+            las categorías hacia abajo, que es lo que el cajón existe para
+            enseñar.
+          */}
 
           {/* Ruled rows rather than a gapped list: at 18px with no separator
               the entries read as a paragraph of links, and the row a thumb is
