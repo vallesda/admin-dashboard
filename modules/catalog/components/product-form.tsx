@@ -581,6 +581,29 @@ export default function ProductForm({
             ) : null}
           </div>
 
+          {/*
+            Los cuatro campos que la ficha de la tienda ya sabía mostrar y
+            nadie podía escribir. El orden sigue al de la página de producto,
+            de arriba abajo: la frase bajo el nombre, el texto largo, y después
+            los dos datos duros que van en la tabla junto al peso.
+          */}
+          <Field
+            name="shortDescription"
+            label="Descripción corta (opcional)"
+            hint="La frase que va bajo el nombre, y también en las tarjetas del catálogo."
+            error={state.errors?.shortDescription}
+          >
+            {(props) => (
+              <textarea
+                {...props}
+                rows={2}
+                maxLength={280}
+                defaultValue={product?.shortDescription ?? ''}
+                placeholder="Seleccionado pieza por pieza, con cadena de frío desde la lonja."
+              />
+            )}
+          </Field>
+
           <Field
             name="description"
             label="Descripción (opcional)"
@@ -593,6 +616,62 @@ export default function ProductForm({
                 maxLength={2000}
                 defaultValue={product?.description ?? ''}
                 placeholder="Corte del lomo, sin espinas, empacado al vacío."
+              />
+            )}
+          </Field>
+
+          {/*
+            «Presentación», no «Corte»: es lo que dice la ficha de la tienda, y
+            cubre tanto el corte como el empaque. El nombre de la sección de
+            arriba es el mismo por casualidad, así que la pista lo desambigua.
+          */}
+          <Field
+            name="presentation"
+            label="Presentación (opcional)"
+            hint="Cómo llega la pieza: corte y empaque."
+            error={state.errors?.presentation}
+          >
+            {(props) => (
+              <input
+                {...props}
+                type="text"
+                maxLength={160}
+                defaultValue={product?.presentation ?? ''}
+                placeholder="Lomo en bloque, corte sashimi"
+              />
+            )}
+          </Field>
+
+          <Field
+            name="origin"
+            label="Origen (opcional)"
+            hint="De dónde viene la pieza. Sale en la ficha y en los datos estructurados que lee Google."
+            error={state.errors?.origin}
+          >
+            {(props) => (
+              <input
+                {...props}
+                type="text"
+                maxLength={120}
+                defaultValue={product?.origin ?? ''}
+                placeholder="Ensenada, Baja California"
+              />
+            )}
+          </Field>
+
+          <Field
+            name="storageInstructions"
+            label="Conservación (opcional)"
+            hint="Aparece como desplegable en la ficha, no en la tabla."
+            error={state.errors?.storageInstructions}
+          >
+            {(props) => (
+              <textarea
+                {...props}
+                rows={2}
+                maxLength={500}
+                defaultValue={product?.storageInstructions ?? ''}
+                placeholder="Refrigerado de 0 a 4 °C. Consumir dentro de 48 horas."
               />
             )}
           </Field>

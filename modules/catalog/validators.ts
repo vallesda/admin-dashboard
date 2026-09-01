@@ -264,6 +264,26 @@ const baseProduct = z.object({
   sku,
   name: productName,
   slug: productSlug.optional(),
+
+  /*
+   * Lo que el cliente lee en la ficha.
+   *
+   * Las cuatro columnas existían en la base y la tienda ya sabía pintarlas
+   * —`SpecList` para origen y presentación, un desplegable para conservación,
+   * la línea bajo el nombre para la descripción corta—, pero el formulario no
+   * las capturaba. El resultado era una ficha muda: de los trece productos
+   * activos, cero tenían origen y cero presentación, y no porque nadie los
+   * hubiera escrito sino porque no había dónde.
+   *
+   * Los máximos no son redondeos: la descripción corta también viaja en las
+   * tarjetas de la retícula, donde dos líneas es lo que cabe antes de empujar
+   * el precio fuera de la tarjeta.
+   */
+  shortDescription: optionalText(280, 'La descripción corta'),
+  origin: optionalText(120, 'El origen'),
+  presentation: optionalText(160, 'La presentación'),
+  storageInstructions: optionalText(500, 'La conservación'),
+
   description: optionalText(2000, 'La descripción'),
   /*
    * Las tres banderas de escaparate.
