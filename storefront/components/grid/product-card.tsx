@@ -100,7 +100,8 @@ export default function ProductCard({ product }: { product: Product }) {
         />
 
         {/*
-          Las dos etiquetas viven en una fila, no sueltas en sus esquinas.
+          Las dos etiquetas viven en un mismo contenedor, no sueltas en sus
+          esquinas.
 
           Estaban posicionadas por separado —una `left-3`, otra `right-3`— y
           así ninguna sabía que la otra existía. En la retícula de dos columnas
@@ -108,16 +109,23 @@ export default function ProductCard({ product }: { product: Product }) {
           no caben en esa línea: se montaban una encima de otra y la de la
           izquierda quedaba cortada por debajo.
 
-          `flex-wrap` es lo que lo arregla sin cambiar el diseño: cuando caben
-          siguen en sus dos esquinas, y cuando no, la de la derecha baja a una
-          segunda línea —`ml-auto` la mantiene pegada a su lado— en vez de
-          pisar a la otra.
+          **En móvil se apilan en columna, alineadas a la izquierda.** Es la
+          única disposición que no depende del ancho de la tarjeta: dos
+          etiquetas enfrentadas necesitan saber cuánto mide cada una para
+          decidir si caben, y una columna no necesita saberlo. Además el ojo
+          las lee en orden —lo que le pasa a esta compra primero, lo que es la
+          pieza después— en vez de a saltos entre dos esquinas.
+
+          Desde `sm` vuelven a la fila enfrentada, que es donde la tarjeta ya
+          tiene ancho de sobra. `flex-wrap` cubre los anchos intermedios: si no
+          caben, la de la derecha baja a una segunda línea —`sm:ml-auto` la
+          mantiene pegada a su lado— en vez de pisar a la otra.
 
           `pointer-events-none` porque el enlace de la tarjeta es un `::after`
           que cubre toda la superficie: cualquier cosa dibujada encima le roba
           la zona de toque, y en móvil eso es una esquina que no responde.
         */}
-        <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-wrap items-start justify-between gap-2">
+        <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col items-start gap-1.5 sm:flex-row sm:flex-wrap sm:justify-between sm:gap-2">
           {/* Availability is a word, never only a dimmed image: colour and
               desaturation alone would not survive greyscale or bright sunlight.
               The grey above is a second channel on top of this, not instead of
@@ -140,11 +148,7 @@ export default function ProductCard({ product }: { product: Product }) {
             <span className="rounded-sm bg-sun px-2 py-1 text-xs font-medium text-brand">
               De temporada
             </span>
-          ) : (
-            /* Sin etiqueta izquierda, `justify-between` dejaría a la derecha
-               pegada al borde izquierdo. El hueco vacío conserva la fila. */
-            <span />
-          )}
+          ) : null}
 
           {/*
             La otra esquina, la otra pregunta.
@@ -159,7 +163,7 @@ export default function ProductCard({ product }: { product: Product }) {
           contesta, y mantener las dos habría puesto dos etiquetas a decir
           media cosa cada una.
         */}
-          <SupplyTag supply={supply} className="ml-auto" />
+          <SupplyTag supply={supply} className="sm:ml-auto" />
         </div>
       </div>
 
