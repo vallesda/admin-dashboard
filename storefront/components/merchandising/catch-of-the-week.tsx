@@ -13,10 +13,21 @@ import SpecList, { type Spec } from '@/components/ui/spec-list';
 /**
  * Seasonal merchandising — the single green moment in the middle of the page.
  *
- * Picks a product actually flagged `seasonal` in the admin, falling back to a
- * featured one. If neither exists the section does not render — an empty
- * "Pesca de la semana" is worse than no section, and inventing a highlight the
- * shop did not choose would be worse still.
+ * ## Qué pieza sale, y por qué es una bandera propia
+ *
+ * La que el admin marque como **pesca de la semana** (`featuredItem`), y
+ * ninguna otra. Antes se elegía «la primera marcada como de temporada, o si no
+ * la primera destacada», y esa cadena tenía dos problemas: elegía sola —quien
+ * marcaba un segundo producto de temporada no cambiaba la portada y no sabía
+ * por qué— y compartía bandera con «Más vendidos», así que la misma pieza
+ * podía encabezar la página dos veces.
+ *
+ * Con una bandera exclusiva —la base impide que haya dos— la portada la decide
+ * el mostrador y se ve en el mismo sitio donde se marca.
+ *
+ * Sin ninguna marcada la sección no se dibuja. Una «Pesca de la semana» vacía
+ * es peor que no tenerla, y elegir una pieza por su cuenta sería inventar una
+ * decisión que no es del código.
  *
  * The band now names itself before it names the fish. Previously the section
  * heading *was* the product name, which meant the page's largest type said
@@ -58,8 +69,7 @@ import SpecList, { type Spec } from '@/components/ui/spec-list';
  */
 export default async function CatchOfTheWeek() {
   const { items } = await getProducts();
-  const product =
-    items.find((p) => p.seasonal) ?? items.find((p) => p.featured) ?? null;
+  const product = items.find((p) => p.featuredItem) ?? null;
 
   if (!product) return null;
 

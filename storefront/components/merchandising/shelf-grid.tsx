@@ -7,6 +7,16 @@ import ShelfCard from './shelf-card';
 /**
  * Shopping by intent rather than by taxonomy.
  *
+ * ## DESMONTADO — este componente no se renderiza hoy
+ *
+ * La zona «Para qué lo quieres» está retirada de la portada mientras los
+ * paquetes no estén decididos. El componente se conserva entero, funcionando y
+ * probado: devolverlo es volver a poner `<ShelfGrid />` en `app/page.tsx`. La
+ * nota completa —los tres sitios que hay que tocar— está allí.
+ *
+ * No se borró porque no está roto ni obsoleto: está esperando una decisión de
+ * negocio.
+ *
  * A shopper rarely arrives wanting "mariscos"; they arrive wanting to make
  * ceviche on Saturday. This shelf is where the shop answers that, and it is
  * curated from the admin now rather than hardcoded here.

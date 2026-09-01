@@ -28,14 +28,17 @@ afterAll(async () => {
 });
 
 /** Inserta lo mínimo para tener un producto vendible. */
-async function seedProduct(opts: { onHand?: number; supplyType?: string } = {}) {
+async function seedProduct(
+  opts: { onHand?: number; supplyType?: string; sku?: string } = {},
+) {
   const db = await testDb();
+  const sku = opts.sku ?? 'SKU-1';
 
   const [product] = (
     await db.execute<{ id: string }>(sql`
       INSERT INTO products (sku, name, slug, price_cents, unit_type, status, supply_type,
         preorder_cutoff_weekday, preorder_cutoff_hour, preorder_arrival_weekday)
-      VALUES ('SKU-1', 'Atún', 'atun', 20000, 'piece', 'active',
+      VALUES (${sku}, ${'Atún ' + sku}, ${'atun-' + sku.toLowerCase()}, 20000, 'piece', 'active',
         ${opts.supplyType ?? 'fresh'},
         ${opts.supplyType === 'preorder' ? 2 : null},
         ${opts.supplyType === 'preorder' ? 18 : null},
@@ -301,6 +304,58 @@ describe('CAT — un producto vive en varias estanterías', () => {
       SELECT count(*)::int AS n FROM product_categories
     `);
     expect(rows.rows[0].n).toBe(0);
+  });
+});
+
+describe('CAT — una sola pesca de la semana', () => {
+  it('rechaza un segundo producto marcado', async () => {
+    const db = await testDb();
+    const uno = await seedProduct({ sku: 'SKU-1' });
+    const dos = await seedProduct({ sku: 'SKU-2' });
+
+    await db.execute(
+      sql`UPDATE products SET featured_item = true WHERE id = ${uno}`,
+    );
+
+    // La portada enseña una pieza. Con dos marcadas alguien tendría que elegir
+    // —por nombre, o por fecha— y esa elección sería invisible: el operador
+    // marca un producto y la portada sigue enseñando otro sin decir por qué.
+    await expect(
+      db.execute(
+        sql`UPDATE products SET featured_item = true WHERE id = ${dos}`,
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('deja a todos los demás en false a la vez', async () => {
+    const db = await testDb();
+    await seedProduct({ sku: 'SKU-1' });
+    await seedProduct({ sku: 'SKU-2' });
+    await seedProduct({ sku: 'SKU-3' });
+
+    // El índice es parcial: sólo restringe las filas en `true`. Uno normal
+    // sobre un booleano dejaría existir dos productos en todo el catálogo.
+    const rows = await db.execute<{ n: number }>(sql`
+      SELECT count(*)::int AS n FROM products WHERE NOT featured_item
+    `);
+    expect(rows.rows[0].n).toBe(3);
+  });
+
+  it('permite mover la marca de un producto a otro', async () => {
+    const db = await testDb();
+    const uno = await seedProduct({ sku: 'SKU-1' });
+    const dos = await seedProduct({ sku: 'SKU-2' });
+
+    await db.execute(sql`UPDATE products SET featured_item = true WHERE id = ${uno}`);
+    // Es lo que hace el servicio: apaga el anterior y enciende el nuevo, así
+    // que desde el admin la restricción se comporta como un interruptor.
+    await db.execute(sql`UPDATE products SET featured_item = false WHERE id = ${uno}`);
+    await db.execute(sql`UPDATE products SET featured_item = true WHERE id = ${dos}`);
+
+    const rows = await db.execute<{ id: string }>(
+      sql`SELECT id FROM products WHERE featured_item`,
+    );
+    expect(rows.rows.map((r) => r.id)).toEqual([dos]);
   });
 });
 

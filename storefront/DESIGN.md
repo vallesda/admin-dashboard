@@ -241,6 +241,39 @@ intercambiable: la misma marca va sobre los cuatro. Darles nombres semánticos
 los cuatro. El manual los reparte entre aplicaciones distintas —una camiseta,
 una bolsa, un póster— no dentro de la misma.
 
+**Dónde deja de aplicar: las tres páginas estáticas.** La regla anterior protege
+las superficies donde se compra —portada, catálogo, ficha, carrito, checkout—,
+en las que el color tiene que ceder ante la fotografía de producto y el precio.
+
+Cómo funciona, Nosotros y Preguntas frecuentes no venden nada, y ahí la regla se
+cambia por otra, que es la de la lámina de paleta del manual: **un campo, un
+color, y nunca dos colores dentro del mismo campo**. La lámina usa los seis a la
+vez sin que ninguno se ensucie, porque cada uno tiene su propio rectángulo. El
+componente es `components/ui/color-field.tsx`.
+
+**Los pares de campo están medidos.** Un campo trae su tinta fijada; no se
+combinan a gusto:
+
+| campo    | tinta        | ratio     |
+|----------|--------------|-----------|
+| crema    | tinta de mar | 14.36 : 1 |
+| verde    | crema        |  9.48 : 1 |
+| menta    | verde marca  |  9.23 : 1 |
+| amarillo | verde marca  |  7.94 : 1 |
+| coral    | tinta de mar |  6.09 : 1 |
+| turquesa | tinta de mar |  5.18 : 1 |
+
+**No hay campo rojo.** El rojo (`#EF3A3A`) no sostiene texto con ningún color de
+la paleta: 3.50 con crema, 4.04 con el verde oscuro, 2.93 con el amarillo. No es
+una preferencia, es que no existe tinta legible para ese suelo. Se queda donde
+el manual lo pone: acento dentro del patrón de escamas, nunca superficie.
+
+**En un campo de color, la jerarquía la da el tamaño, no la opacidad.** Bajar la
+entradilla al 80 % es seguro sobre crema, donde sobran diez puntos de margen, y
+no lo es sobre turquesa ni coral: medido en pantalla, la entradilla caía a
+**3.79:1** sobre turquesa y a **4.49** sobre coral. El titular mide 48–60px y la
+entradilla 18–20; eso ya los separa sin tocar el contraste.
+
 ### Neutral
 
 - **Crema de Papel** (`#F7F3E1`, Cool Gray 1 U): el fondo de todo el sitio.
@@ -422,6 +455,21 @@ catálogo.
 quien llegó a comprar— y a su lado un enlace de texto discreto a «Cómo funciona»
 para quien necesita entender una tienda cuyo catálogo cambia cada día. Con un
 solo botón, esa segunda persona tenía que salir por el encabezado.
+
+**El banco de escamas cruza la cuña, y una máscara lo aparta del texto.** El
+patrón del manual va a sangre sobre el verde, al 55 %, con una máscara vertical
+que lo deja al 30 % sobre la banda de texto y lo sube al 100 % en el tercio
+inferior, que está vacío.
+
+La máscara no es un adorno técnico: es lo único que hace legible la
+composición. Medido sobre los píxeles renderizados, con el patrón a plena
+opacidad el texto crema sobre una gota amarilla cae a **2.45:1**, y al 40 % a
+**3.75:1** — el mínimo es 4.5. Bajar la opacidad hasta ser seguro en todas
+partes (25 %) dejaba el patrón sin color. Con la máscara, el titular mide
+**6.25:1**, la entradilla **5.93:1** y el enlace secundario **4.98:1**.
+
+La regla que sale de aquí: **un patrón de varios colores saturados no se hace
+seguro bajando la opacidad, se hace seguro retirándolo de donde hay texto.**
 
 **Checkout:** `1fr 22rem` desde `md`, con el resumen de pedido en `position:
 sticky; top: 1.5rem`. El resumen es la única superficie pegajosa del sitio
@@ -747,8 +795,9 @@ teclado.
 
 **Solo para etiqueta-que-es-dato, nunca para adorno.** Una etiqueta pequeña
 encima de un encabezado es decoración: el encabezado carga su propio peso. Los
-eyebrows decorativos («Amor a Mar» sobre «El mar no se apura», «Pesca de la
-semana» sobre el nombre del producto) se **borraron**, no se rediseñaron. El
+eyebrows decorativos («Amor a Mar» sobre el antiguo titular de Nosotros,
+«Pesca de la semana» sobre el nombre del producto) se **borraron**, no se
+rediseñaron. El
 componente sobrevive solo donde la etiqueta nombra un valor: los `<dt>` de las
 listas de definición del pedido, los títulos de columna del footer, el
 encabezado de grupo de la navegación de colecciones.

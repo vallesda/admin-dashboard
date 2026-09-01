@@ -1,4 +1,4 @@
-import Container from '@/components/ui/container';
+import FeatureCards, { type Feature } from './feature-cards';
 import {
   FishIcon,
   OriginIcon,
@@ -30,7 +30,7 @@ import Section from '@/components/ui/section';
  * the business has not actually established — no "el mejor de México", no
  * awards, no numbers nobody has measured.
  */
-const POINTS = [
+const POINTS: Feature[] = [
   {
     Icon: FishIcon,
     title: 'Elegido pieza por pieza',
@@ -55,31 +55,17 @@ const POINTS = [
 
 export default function ValueProps() {
   return (
-    <Section labelledBy="valor-heading" rhythm="sm">
-      <Container>
-        <h2 id="valor-heading" className="sr-only">
-          Por qué comprar en Amor a Mar
-        </h2>
-
-        <ul className="grid grid-cols-1 border-t border-border sm:grid-cols-2 lg:grid-cols-4">
-          {POINTS.map(({ Icon, title, body }) => (
-            <li
-              key={title}
-              className="border-b border-border py-7 sm:px-6 sm:first:pl-0 lg:border-l lg:border-b-0 lg:first:border-l-0"
-            >
-              <h3 className="flex items-center gap-2.5 font-sans text-sm font-medium">
-                <span className="shrink-0 text-brand">
-                  <Icon />
-                </span>
-                {title}
-              </h3>
-              <p className="mt-2.5 max-w-[34ch] text-sm leading-relaxed text-muted">
-                {body}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </Container>
-    </Section>
+    <>
+      {/*
+        El `h2` sigue siendo sólo para lectores de pantalla: el bloque es una
+        rejilla de cuatro afirmaciones, no una sección con título. Ponerle uno
+        visible obligaría a inventar un encabezado —«Por qué comprar aquí»— que
+        repite lo que las cuatro tarjetas ya dicen.
+      */}
+      <h2 id="valor-heading" className="sr-only">
+        Por qué comprar en Amor a Mar
+      </h2>
+      <FeatureCards features={POINTS} />
+    </>
   );
 }

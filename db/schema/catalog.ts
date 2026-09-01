@@ -14,6 +14,7 @@ import {
   boolean,
   timestamp,
   index,
+  uniqueIndex,
   check,
   unique,
   primaryKey,
@@ -195,6 +196,32 @@ export const products = pgTable(
     /** Merchandising flags the storefront reads; not business rules. */
     isFeatured: boolean('is_featured').notNull().default(false),
     isSeasonal: boolean('is_seasonal').notNull().default(false),
+
+    /*
+     * La pieza de «La pesca de la semana».
+     *
+     * ## Por qué no vale `isFeatured`
+     *
+     * `isFeatured` marca **varios** productos y alimenta la banda de «Más
+     * vendidos». Esta banda es **una sola pieza**, con tratamiento editorial
+     * completo: foto grande, ficha, precio y botón. Compartir la bandera
+     * habría hecho que el mismo producto saliera en las dos bandas de la
+     * portada, y que marcar un segundo destacado cambiara en silencio cuál
+     * encabeza la página.
+     *
+     * ## Por qué la exclusividad vive en la base
+     *
+     * Hay un índice único parcial sobre esta columna cuando es `true`, así que
+     * marcar un segundo producto **falla**. Sin él, la banda tendría que elegir
+     * uno de los marcados —por nombre, o por fecha— y esa elección sería
+     * invisible: el operador marcaría un producto y la portada seguiría
+     * enseñando otro sin decir por qué.
+     *
+     * El servicio desmarca el anterior antes de marcar el nuevo, así que desde
+     * el admin esto se comporta como un interruptor y nunca se ve el error. El
+     * índice está para lo otro: una escritura que no pase por ahí.
+     */
+    isFeaturedItem: boolean('featured_item').notNull().default(false),
     unitType: unitTypeEnum('unit_type').notNull(),
     netWeightGrams: integer('net_weight_grams'),
 
@@ -261,6 +288,17 @@ export const products = pgTable(
     // Plain btree for now. DOCS §12 is explicit: no pg_trgm until volume
     // justifies it.
     index('products_name_idx').on(table.name),
+
+    /**
+     * Como mucho una pesca de la semana.
+     *
+     * Índice único **parcial**: sólo restringe las filas en `true`, así que los
+     * demás productos —todos con `false`— no chocan entre sí. Un `unique`
+     * normal sobre un booleano sólo dejaría existir dos productos en total.
+     */
+    uniqueIndex('products_one_featured_item')
+      .on(table.isFeaturedItem)
+      .where(sql`${table.isFeaturedItem}`),
 
     // The invariants live in the database, not only in the service, so a bad
     // write from anywhere is rejected.

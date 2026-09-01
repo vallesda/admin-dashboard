@@ -145,7 +145,15 @@ export function categoryIcon(handle: string, title: string): IconComponent {
   // Order matters: "producto-congelado" contains neither "pescado" nor
   // "marisco", but a category named "Marisco congelado" should read as frozen.
   if (/congel|hielo/.test(text)) return FrozenIcon;
-  if (/marisc|molusc|crustace|almeja|ostion|camaron|pulpo/.test(text)) {
+  /*
+   * `especial` entra aquí y no al final.
+   *
+   * «Especiales» es la estantería del marisco —almeja, callo, camarón,
+   * ostión—, y con la lista anterior no casaba con ninguna regla y caía al
+   * `return` final, que devuelve un pez. Un pez sobre la pastilla del marisco
+   * decía lo contrario de lo que hay dentro.
+   */
+  if (/marisc|molusc|crustace|almeja|ostion|camaron|pulpo|especial|concha/.test(text)) {
     return ShellIcon;
   }
   if (/pescad|filete|lomo/.test(text)) return FishIcon;

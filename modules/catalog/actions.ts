@@ -190,6 +190,11 @@ function readProductForm(formData: FormData) {
     // mismo nombre. Con `get` sólo entraría la primera, y el producto se
     // guardaría en una sola de las estanterías que el operador marcó.
     categoryIds: formData.getAll('categoryIds'),
+    // Una casilla sin marcar no viaja en el formulario: `get` devuelve null y
+    // el `.default(false)` del esquema la apaga, que es justo lo que hace falta.
+    isFeatured: formData.get('isFeatured') === 'on',
+    isSeasonal: formData.get('isSeasonal') === 'on',
+    isFeaturedItem: formData.get('isFeaturedItem') === 'on',
     priceCents: formData.get('priceCents'),
     costCents: text('costCents'),
     imageUrl: text('imageUrl'),

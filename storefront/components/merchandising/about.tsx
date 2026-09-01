@@ -86,7 +86,7 @@ export default function About() {
               href="/search"
               className="mt-8 inline-block border-b border-brand/40 py-2 font-sans text-sm text-brand transition-colors hover:border-brand"
             >
-              Ver lo que hay hoy
+              Ver lo que hay
             </Link>
           </div>
         </div>

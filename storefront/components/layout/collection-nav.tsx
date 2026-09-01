@@ -1,12 +1,8 @@
 import Link from 'next/link';
 
-import { getNavCollections, getShelf } from '@/lib/commerce';
+import { getNavCollections } from '@/lib/commerce';
 import Eyebrow from '@/components/ui/eyebrow';
-import {
-  GridIcon,
-  PackageIcon,
-  categoryIcon,
-} from '@/components/ui/category-icons';
+import { GridIcon, categoryIcon } from '@/components/ui/category-icons';
 
 /**
  * Browsing rails for the collection pages.
@@ -35,15 +31,7 @@ export default async function CollectionNav({
 }: {
   active?: string;
 }) {
-  const [collections, shelf] = await Promise.all([
-    getNavCollections(),
-    getShelf().catch(() => []),
-  ]);
-
-  // Only packages here: the categories already have their own rail above, and
-  // listing a category twice would make the second group look like a duplicate
-  // rather than a different question.
-  const bundles = shelf.filter((item) => item.kind === 'package');
+  const collections = await getNavCollections();
 
   return (
     <nav aria-label="Colecciones" className="flex flex-col gap-4">
@@ -65,21 +53,13 @@ export default async function CollectionNav({
         ))}
       </Group>
 
-      {/* Hidden entirely when the shop has not published a package. An empty
-          labelled group reads as a rail that failed to load. */}
-      {bundles.length > 0 ? (
-        <Group title="Para qué lo quieres">
-          {bundles.map((b) => (
-            <Item
-              key={b.handle}
-              href={`/paquete/${b.handle}`}
-              label={b.title}
-              icon={PackageIcon}
-              active={active === b.handle}
-            />
-          ))}
-        </Group>
-      ) : null}
+      {/*
+        Aquí iba el grupo «Para qué lo quieres», con un enlace por paquete.
+        Desmontado mientras los paquetes no estén decididos; ver la nota en
+        `app/page.tsx`. El rail queda con un solo grupo, así que su etiqueta
+        —«Categorías»— ya no distingue nada, pero se conserva porque el día que
+        vuelva el segundo grupo tiene que volver a distinguir.
+      */}
     </nav>
   );
 }

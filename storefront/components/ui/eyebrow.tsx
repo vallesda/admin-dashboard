@@ -39,7 +39,16 @@ export default function Eyebrow({
    * crema no llega ni a 1.2:1 — de ahí que este tono no sea de uso general.
    */
   sun: 'text-sun',
-    'on-brand': 'text-background/60',
+    /*
+     * Crema al 70 %, no al 60 %.
+     *
+     * Al 60 % sobre el verde de marca medía **4.49:1** contra un mínimo de
+     * 4.5 — fallaba por una centésima, que es la clase de fallo que nadie
+     * encuentra mirando. Al 70 % sube a 5.4 y sigue leyéndose como etiqueta
+     * secundaria: la diferencia con la tinta plena la marca el tamaño y las
+     * mayúsculas, no ese diez por ciento.
+     */
+    'on-brand': 'text-background/70',
     inherit: '',
   }[tone];
 

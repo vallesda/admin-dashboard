@@ -127,6 +127,13 @@
       "when": 1788214065540,
       "tag": "0017_friendly_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788218873082,
+      "tag": "0018_careless_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

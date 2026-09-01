@@ -9,7 +9,6 @@ import ProductGrid from '@/components/grid/product-grid';
 import GridSkeleton from '@/components/grid/grid-skeleton';
 import Hero from '@/components/merchandising/hero';
 import BestSellers from '@/components/merchandising/best-sellers';
-import ShelfGrid from '@/components/merchandising/shelf-grid';
 import CatchOfTheWeek from '@/components/merchandising/catch-of-the-week';
 import LearnMore from '@/components/merchandising/learn-more';
 import { LOCALITY, REGION, SHOP_NAME } from '@/lib/shop';
@@ -96,9 +95,19 @@ export default function Page() {
         </Container>
       </Section>
 
-      <Suspense fallback={null}>
-        <ShelfGrid />
-      </Suspense>
+      {/*
+        «Para qué lo quieres» está desmontado a propósito, no borrado.
+
+        La estantería mezclaba categorías destacadas y paquetes, y los paquetes
+        todavía no están decididos. Enseñar media sección —categorías bajo un
+        título que promete platillos— habría sido peor que no enseñarla.
+
+        Para devolverla: `<ShelfGrid />` dentro de un `<Suspense>` aquí, el
+        grupo «Para qué lo quieres» en `collection-nav.tsx`, y las URLs de
+        paquete en `sitemap.ts`. Los tres sitios llevan esta misma nota. Nada
+        más se tocó: la ruta `/paquete/[handle]`, el modelo, el admin y
+        `getShelf()` siguen enteros y funcionando.
+      */}
 
       <Suspense fallback={null}>
         <CatchOfTheWeek />

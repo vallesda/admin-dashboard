@@ -116,7 +116,7 @@ export default function CartDrawer({ catalogue }: { catalogue: Product[] }) {
                 panels then present their action at the same weight and in the
                 same place, so the drawer never looks like two screens. */}
             <ButtonLink href="/search" onClick={close} fullWidth className="mt-1">
-              Ver lo que hay hoy
+              Ver lo que hay
             </ButtonLink>
           </div>
         ) : (

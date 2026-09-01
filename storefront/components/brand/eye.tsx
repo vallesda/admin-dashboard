@@ -21,7 +21,7 @@
  * antialiasing de un PNG a 40px.
  */
 
-type Palette = 'green' | 'coral' | 'sun' | 'turquoise';
+type Palette = 'green' | 'coral' | 'sun' | 'turquoise' | 'mint';
 
 /**
  * Las combinaciones del manual, no combinaciones libres.
@@ -42,6 +42,19 @@ const RINGS: Record<Palette, { outer: string; iris: string }> = {
   coral: { outer: 'rgb(var(--coral))', iris: 'rgb(var(--sun))' },
   sun: { outer: 'rgb(var(--sun))', iris: 'rgb(var(--surface))' },
   turquoise: { outer: 'rgb(var(--turquoise))', iris: 'rgb(var(--brand-soft))' },
+  /*
+   * El ojo para fondo verde.
+   *
+   * Los otros cuatro pares se leen sobre crema; sobre el verde de marca, el
+   * `green` desaparece —su anillo exterior *es* el fondo— y hacían falta tres
+   * ojos distintos para los tres pasos de «Cómo funciona».
+   *
+   * Menta y no un quinto color: la regla de escasez del sistema permite dos de
+   * los cuatro suelos por pantalla, y esa banda ya gasta turquesa y coral. El
+   * menta es un tinte del propio verde, no un quinto suelo, así que el trío
+   * cabe sin romperla.
+   */
+  mint: { outer: 'rgb(var(--brand-soft))', iris: 'rgb(var(--brand))' },
 };
 
 export default function Eye({

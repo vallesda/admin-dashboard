@@ -255,6 +255,15 @@ export async function createProduct(
 
   try {
     return await db.transaction(async (tx) => {
+      // Antes del INSERT: el índice único rechazaría la fila nueva si otro
+      // producto sigue marcado.
+      if (input.isFeaturedItem) {
+        await tx
+          .update(products)
+          .set({ isFeaturedItem: false, updatedAt: new Date() })
+          .where(eq(products.isFeaturedItem, true));
+      }
+
       const [row] = await tx
         .insert(products)
         .values({
@@ -262,6 +271,9 @@ export async function createProduct(
           name: input.name,
           slug,
           description: input.description,
+          isFeatured: input.isFeatured,
+          isSeasonal: input.isSeasonal,
+          isFeaturedItem: input.isFeaturedItem,
           priceCents: input.priceCents,
           costCents: input.costCents,
           imageUrl: input.imageUrl,
@@ -311,6 +323,27 @@ async function setProductCategories(
     .values([...new Set(categoryIds)].map((categoryId) => ({ productId, categoryId })));
 }
 
+/**
+ * Deja a este producto como la única pesca de la semana.
+ *
+ * La base tiene un índice único parcial que impide dos, así que sin esto
+ * marcar un segundo producto fallaría con un error de restricción —correcto,
+ * pero ilegible para quien sólo quería cambiar la pieza de la portada—. Apagar
+ * el anterior primero convierte la restricción en un interruptor.
+ *
+ * `<> id` en el WHERE: reguardar el producto que ya estaba marcado no debe
+ * apagarlo a él mismo un instante para volver a encenderlo.
+ */
+async function clearOtherFeaturedItem(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  id: string,
+): Promise<void> {
+  await tx
+    .update(products)
+    .set({ isFeaturedItem: false, updatedAt: new Date() })
+    .where(and(eq(products.isFeaturedItem, true), ne(products.id, id)));
+}
+
 export async function updateProduct(
   id: string,
   input: UpdateProductInput,
@@ -329,6 +362,8 @@ export async function updateProduct(
 
   try {
     const row = await db.transaction(async (tx) => {
+      if (input.isFeaturedItem) await clearOtherFeaturedItem(tx, id);
+
       const [updated] = await tx
         .update(products)
         .set({
@@ -336,6 +371,9 @@ export async function updateProduct(
           name: input.name,
           slug: input.slug,
           description: input.description,
+          isFeatured: input.isFeatured,
+          isSeasonal: input.isSeasonal,
+          isFeaturedItem: input.isFeaturedItem,
           priceCents: input.priceCents,
           costCents: input.costCents,
           imageUrl: input.imageUrl,

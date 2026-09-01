@@ -71,6 +71,7 @@ const productColumns = {
   preparationSuggestions: products.preparationSuggestions,
   isFeatured: products.isFeatured,
   isSeasonal: products.isSeasonal,
+  isFeaturedItem: products.isFeaturedItem,
   // De dónde sale el producto: la captura del día, el congelador, o un encargo
   // que la tienda va a ir a comprar. Decide si hay existencia que consultar.
   supplyType: products.supplyType,

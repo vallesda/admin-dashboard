@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-import { getCollections, getProducts, getShelf } from '@/lib/commerce';
+import { getCollections, getProducts } from '@/lib/commerce';
 import { SITE_URL } from '@/lib/shop';
 
 /**
@@ -34,10 +34,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    * sitemap con las cinco páginas fijas es infinitamente mejor que un 500, que
    * Google interpreta como «este sitio no tiene mapa».
    */
-  const [products, collections, shelf] = await Promise.all([
+  const [products, collections] = await Promise.all([
     getProducts().then((page) => page.items).catch(() => []),
     getCollections().catch(() => []),
-    getShelf().catch(() => []),
   ]);
 
   return [
@@ -54,13 +53,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily' as const,
       priority: 0.8,
     })),
-    ...shelf
-      .filter((item) => item.kind === 'package')
-      .map((bundle) => ({
-        url: `${SITE_URL}/paquete/${bundle.handle}`,
-        lastModified: now,
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      })),
+    /*
+      Los paquetes salen del mapa mientras su zona esté desmontada.
+
+      La ruta `/paquete/[handle]` sigue abriendo, pero ya no hay ningún enlace
+      hacia ella desde el sitio. Publicar en el sitemap una página a la que
+      nadie puede llegar navegando es exactamente lo que un buscador lee como
+      página huérfana, y no ayuda a posicionar la que sí importa.
+
+      Para devolverlos, ver la nota en `app/page.tsx`.
+    */
   ];
 }

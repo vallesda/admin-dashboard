@@ -23,7 +23,7 @@ export default function Heading({
   className = '',
 }: {
   as?: 'h1' | 'h2' | 'h3';
-  size?: 'hero' | 'section' | 'sub';
+  size?: 'hero' | 'editorial' | 'section' | 'sub';
   /** For sections labelled with `aria-labelledby`. */
   id?: string;
   children: React.ReactNode;
@@ -34,6 +34,18 @@ export default function Heading({
     // tracking to hold together, and this still clears the -0.04em floor.
     hero: 'text-[3.25rem] font-light leading-[0.95] tracking-[-0.03em] sm:text-6xl md:text-7xl lg:text-[5.25rem]',
     section: 'text-3xl md:text-[2.75rem] md:leading-[1.05]',
+    /*
+     * El paso de las páginas estáticas.
+     *
+     * Entre `section` y `hero`. Existe porque Cómo funciona, Nosotros y
+     * Preguntas frecuentes no compiten con una fotografía de producto: ahí el
+     * titular *es* la imagen de la página, y al tamaño de `section` los tres
+     * bloques de cada página pesaban lo mismo que un encabezado de banda del
+     * catálogo. Baja a 300 como `hero` —Newsreader a 400 engorda de tallo a
+     * partir de ~48px— y aprieta el tracking en la misma proporción.
+     */
+    editorial:
+      'text-[2.5rem] font-light leading-[1] tracking-[-0.025em] sm:text-5xl md:text-6xl',
     sub: 'text-xl md:text-2xl',
   }[size];
 

@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import Container from '@/components/ui/container';
-import Section from '@/components/ui/section';
-import SectionHeader from '@/components/ui/section-header';
+import ColorField from '@/components/ui/color-field';
+import Heading from '@/components/ui/heading';
 import { ButtonLink } from '@/components/ui/button';
 
 export const metadata: Metadata = {
@@ -311,95 +310,106 @@ export default function Page() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd()) }}
       />
 
-      <Section rhythm="sm" labelledBy="faq-intro" className="pb-0">
-        <Container>
-          <SectionHeader
-            id="faq-intro"
-            as="h1"
-            title={
-              <>
-                Preguntas <em>frecuentes</em>
-              </>
-            }
-            lede="Cómo funciona el catálogo, cómo preparamos tu pedido y cómo se entrega y se paga. Si algo no está aquí, escríbenos."
-          />
-        </Container>
-      </Section>
+      <ColorField
+        tone="coral"
+        id="faq-intro"
+        as="h1"
+        title={
+          <>
+            Preguntas <em>frecuentes</em>
+          </>
+        }
+        lede="Cómo funciona el catálogo, cómo preparamos tu pedido y cómo se entrega y se paga. Si algo no está aquí, escríbenos."
+      />
 
       {/*
         One band for all three groups, not one band each. Three stacked
-        `Section`s put their own vertical rhythm end to end and opened ~130px of
+        sections put their own vertical rhythm end to end and opened ~130px of
         empty cream between "El catálogo" and "Tu pedido" — the page read as
         three unrelated screens rather than one list of answers.
+
+        ## Por qué las respuestas se quedan sobre crema
+
+        Los campos de color de esta página son la entrada y la salida; el centro
+        no. Coral y turquesa sostienen texto —6.09 y 5.18— pero eso es el
+        mínimo para leer una etiqueta, no para leer treinta respuestas seguidas.
+        El color aquí marca los grupos, no los fondos: una barra de 3px por
+        grupo, que es información —dónde empieza cada tema— y no decoración.
       */}
-      <Section rhythm="sm">
-        <Container>
-          <div className="flex flex-col gap-12">
-            {GROUPS.map((group) => (
-              <section key={group.id} aria-labelledby={`${group.id}-heading`}>
-                <SectionHeader
-                  id={`${group.id}-heading`}
-                  size="sub"
-                  title={group.title}
-                  className="mb-6"
-                />
+      <ColorField tone="cream">
+        <div className="flex flex-col gap-16">
+          {GROUPS.map((group, i) => (
+            <section key={group.id} aria-labelledby={`${group.id}-heading`}>
+              {/*
+                La barra, no un filete gris. Tres colores para tres temas, y a
+                3px de alto es una superficie, no texto: no le aplica el mínimo
+                de 4.5 que sí descarta al coral como tinta.
+              */}
+              <div
+                aria-hidden="true"
+                className={`h-[3px] w-16 ${GROUP_BARS[i % GROUP_BARS.length]}`}
+              />
 
-                <div className="max-w-[68ch] border-t border-border">
-                  {group.items.map((item) => (
-                    <details key={item.q} className="group border-b border-border">
-                      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-4 font-sans text-base font-medium marker:content-[''] hover:text-brand">
-                        {item.q}
-                        <span
-                          aria-hidden="true"
-                          className="mt-1 shrink-0 text-muted transition-transform duration-200 ease-board group-open:rotate-180"
-                        >
-                          <ChevronIcon />
-                        </span>
-                      </summary>
-                      <div className="pb-5 leading-relaxed text-muted">
-                        {item.a}
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        </Container>
-      </Section>
+              <Heading
+                id={`${group.id}-heading`}
+                size="section"
+                className="mb-8 mt-5"
+              >
+                {group.title}
+              </Heading>
 
-      <Section rhythm="sm" labelledBy="faq-cta">
-        <Container>
-          <div className="border-t border-border pt-8">
-            <h2 id="faq-cta" className="text-2xl md:text-3xl">
-              ¿No encontraste tu respuesta?
-            </h2>
-            <p className="mt-3 max-w-[52ch] text-muted">
-              Escríbenos por WhatsApp al{' '}
-              <a
-                href="https://wa.me/528129162142"
-                className="tabular-nums text-brand underline underline-offset-4"
-              >
-                (81) 2916 2142
-              </a>{' '}
-              o revisa{' '}
-              <Link
-                href="/como-funciona"
-                className="text-brand underline underline-offset-4"
-              >
-                cómo funciona
-              </Link>
-              .
-            </p>
-            <ButtonLink href="/search" className="mt-6">
-              Ver lo que hay hoy
-            </ButtonLink>
-          </div>
-        </Container>
-      </Section>
+              <div className="max-w-[68ch] border-t border-border">
+                {group.items.map((item) => (
+                  <details key={item.q} className="group border-b border-border">
+                    <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-4 font-sans text-base font-medium marker:content-[''] hover:text-brand">
+                      {item.q}
+                      <span
+                        aria-hidden="true"
+                        className="mt-1 shrink-0 text-muted transition-transform duration-200 ease-board group-open:rotate-180"
+                      >
+                        <ChevronIcon />
+                      </span>
+                    </summary>
+                    <div className="pb-5 leading-relaxed text-muted">
+                      {item.a}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </ColorField>
+
+      <ColorField
+        tone="mint"
+        id="faq-cta"
+        title="¿No encontraste tu respuesta?"
+      >
+        <p className="max-w-[54ch] text-lg leading-relaxed">
+          Escríbenos por WhatsApp al{' '}
+          <a
+            href="https://wa.me/528129162142"
+            className="tabular-nums underline underline-offset-4"
+          >
+            (81) 2916 2142
+          </a>{' '}
+          o revisa{' '}
+          <Link href="/como-funciona" className="underline underline-offset-4">
+            cómo funciona
+          </Link>
+          .
+        </p>
+        <ButtonLink href="/search" className="mt-8">
+          Ver lo que hay
+        </ButtonLink>
+      </ColorField>
     </>
   );
 }
+
+/** Un color por grupo, fijo. Ver la nota sobre por qué son barras y no fondos. */
+const GROUP_BARS = ['bg-brand', 'bg-turquoise', 'bg-coral'] as const;
 
 function ChevronIcon() {
   return (

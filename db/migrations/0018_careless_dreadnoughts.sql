@@ -1,0 +1,2 @@
+ALTER TABLE "products" ADD COLUMN "featured_item" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "products_one_featured_item" ON "products" USING btree ("featured_item") WHERE "products"."featured_item";

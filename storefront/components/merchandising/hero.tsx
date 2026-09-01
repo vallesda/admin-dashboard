@@ -75,10 +75,61 @@ export default function Hero() {
       */}
       <div className="relative bg-brand text-background edge-top md:w-[62%] md:edge-right lg:w-[56%]">
         {/*
+          El banco de escamas, a tamaño completo sobre la cuña.
+
+          Es el segundo elemento gráfico del manual —gotas en los cinco colores
+          describiendo una curva— y aquí cruza el verde entero, como en la
+          camiseta y el póster del manual. El PNG venía sobre menta pálido
+          (#E4F3EC) y se le recortó el alfa por distancia a ese color; sobre
+          verde, un fondo opaco habría sido un recuadro.
+
+          ## El problema, medido
+
+          A sangre y a plena opacidad el patrón es ilegible debajo del texto:
+          la gota amarilla sobre verde deja el texto crema en **2.45:1** al
+          60 % y en **3.75:1** al 40 %. El mínimo es 4.5. Bajar la opacidad
+          hasta que fuera seguro en todas partes —un 25 %, que mide 5.29—
+          habría convertido el patrón en una mancha sin color.
+
+          ## La solución: una máscara, no menos opacidad
+
+          El patrón va al 55 % y una máscara vertical decide **dónde** está.
+          Sobre la banda de texto la máscara lo deja al 30 %, o sea un 16 %
+          efectivo: 6.6:1, con margen de sobra. De ahí abajo sube hasta el
+          100 %, y en el tercio inferior —que no tiene texto— el banco se ve
+          entero, con sus cinco colores separados.
+
+          Es la misma idea que un impresor aclarando una tinta bajo un bloque
+          de texto: el dibujo no se encoge, se retira de donde estorba.
+
+          `mask-image` con `-webkit-` porque Safari todavía lo pide con
+          prefijo, y sin él la máscara no se aplica: el patrón saldría al 55 %
+          bajo el titular, que es exactamente el caso que esto evita.
+        */}
+        <Image
+          src="/brand/ola.png"
+          alt=""
+          aria-hidden="true"
+          width={1100}
+          height={1340}
+          sizes="(min-width: 768px) 62vw, 100vw"
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full select-none object-cover object-bottom opacity-55"
+          style={{
+            maskImage:
+              'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 68%, #000 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 68%, #000 100%)',
+          }}
+        />
+
+        {/*
           `pr-[8vw]` on the wedge clears the 4vw slant with room to spare, so a
           long line of copy never runs into the cut edge.
+
+          `relative z-10` lo levanta sobre el banco de escamas: sin eso el
+          patrón, que es un hermano posicionado, se pintaría encima del texto.
         */}
-        <div className="flex flex-col justify-center px-5 py-14 md:min-h-[34rem] md:py-20 md:pl-8 md:pr-[8vw] lg:min-h-[40rem] lg:pl-[max(2rem,calc((100vw-var(--container))/2+2rem))]">
+        <div className="relative z-10 flex flex-col justify-center px-5 py-14 md:min-h-[34rem] md:py-20 md:pl-8 md:pr-[8vw] lg:min-h-[40rem] lg:pl-[max(2rem,calc((100vw-var(--container))/2+2rem))]">
           <CatalogueDate />
 
           <div className="mt-8 set-down" style={{ animationDelay: '90ms' }}>
@@ -113,7 +164,7 @@ export default function Hero() {
             style={{ animationDelay: '270ms' }}
           >
             <ButtonLink href="/search" variant="onBrand">
-              Ver lo que hay hoy
+              Ver lo que hay
             </ButtonLink>
 
             {/* Quiet on purpose: findable without competing with the one button

@@ -9,11 +9,15 @@
  * They are deliberately separate from the catalogue links. A category answers
  * "what do you sell"; these answer "how does this work" and "who are you", and
  * a shopper is never looking for both at the same moment.
+ *
+ * El orden va de quiénes somos a cómo se compra y termina en las dudas
+ * sueltas: quien llega a este grupo suele estar decidiendo si confía en la
+ * pescadería antes de mirar la mecánica del pedido.
  */
 export const INFO_LINKS = [
+  { href: '/nosotros', label: 'Nosotros' },
   { href: '/como-funciona', label: 'Cómo funciona' },
   { href: '/preguntas-frecuentes', label: 'Preguntas frecuentes' },
-  { href: '/nosotros', label: 'Nosotros' },
 ] as const;
 
 /** The shop's real public channels. */

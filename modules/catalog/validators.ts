@@ -265,6 +265,19 @@ const baseProduct = z.object({
   name: productName,
   slug: productSlug.optional(),
   description: optionalText(2000, 'La descripción'),
+  /*
+   * Las tres banderas de escaparate.
+   *
+   * No son reglas de negocio —no cambian precio, existencia ni entrega—, sólo
+   * dicen dónde aparece el producto en la portada. Estaban en la base desde el
+   * principio y no había manera de tocarlas: `is_featured` e `is_seasonal` se
+   * podían escribir por SQL y por nada más, así que la banda de «Más vendidos»
+   * y la de «La pesca de la semana» llevaban vacías desde que se cargó el
+   * catálogo real.
+   */
+  isFeatured: z.coerce.boolean().default(false),
+  isSeasonal: z.coerce.boolean().default(false),
+  isFeaturedItem: z.coerce.boolean().default(false),
   categoryIds,
   priceCents,
   costCents,

@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 
-import Container from '@/components/ui/container';
+import ColorField from '@/components/ui/color-field';
+import FeatureCards, { type Feature } from '@/components/merchandising/feature-cards';
 import { EyeCluster } from '@/components/brand/eye';
-import Section from '@/components/ui/section';
-import SectionHeader from '@/components/ui/section-header';
 import Eyebrow from '@/components/ui/eyebrow';
 import { ButtonLink } from '@/components/ui/button';
 import {
@@ -32,20 +31,30 @@ export const metadata: Metadata = {
  * - The four practices are PRODUCT.md's documented positioning — the four
  *   claims the business states and a supermarket shelf could not copy.
  * - The video is embedded and titled with its own YouTube title, verbatim.
+ * - La misión es el texto del manual de marca, literal. Sólo se unieron las
+ *   palabras que allí van partidas por guión al final de línea.
  *
  * What is deliberately NOT here: a synopsis of the video. Its description and
  * transcript were not retrievable, and writing "en este video conocerás…" from a
  * thumbnail would be exactly the invented copy the brand voice rule exists to
  * prevent.
  *
- * The shop's own Instagram bio and the video title both say "el mejor". That
- * superlative is not repeated here: PRODUCT.md's voice rule is explicit that no
- * copy claims something the business has not established, "sin superlativos".
- * The rule is the shop's, and marketing written elsewhere does not lift it.
+ * ## Sobre «la mejor calidad»
+ *
+ * La regla de voz de PRODUCT.md prohíbe los superlativos, y por eso el «el
+ * mejor» de la biografía de Instagram y del título del vídeo no se repite en
+ * ningún texto escrito aquí.
+ *
+ * La misión sí lo dice —«el producto fresco de la mejor calidad de Baja
+ * California»— y se conserva porque no es copy escrito para esta página: es la
+ * declaración de intenciones del propio manual de marca, citada. La regla
+ * existe para impedir que el sitio invente afirmaciones, no para censurar lo
+ * que el negocio ya declaró sobre sí mismo. Si el texto del manual cambia,
+ * cambia aquí.
  */
 
 /** The practices, in the shop's own framing. See PRODUCT.md § Positioning. */
-const PRACTICES = [
+const PRACTICES: Feature[] = [
   {
     Icon: FishIcon,
     title: 'Curaduría por pieza',
@@ -71,209 +80,164 @@ const PRACTICES = [
 export default function Page() {
   return (
     <>
-      {/* --- Quiénes somos ------------------------------------------------ */}
-      <Section rhythm="sm" labelledBy="nosotros-intro" className="pb-0">
-        <Container>
-          <SectionHeader
-            id="nosotros-intro"
-            as="h1"
-            title={
-              <>
-                El mar no se <em>apura</em>
-              </>
-            }
-            lede="Amamos el mar y todo lo que viene de él. Somos una pescadería y marisquería en San Pedro Garza García, y trabajamos con lo que el mar da ese día, no con lo que un catálogo dice que debería haber."
-          />
-
-          <div className="mt-10 grid gap-10 md:grid-cols-[1.15fr_1fr] md:gap-16">
-            <div className="space-y-5 leading-relaxed text-muted">
-              <p>
-                Nos presentamos como <em>Honest Seafood</em>, y eso es menos un
-                lema que una restricción: si una pieza no llegó como la
-                queremos, no la ponemos; si no sabemos de dónde viene, no lo
-                escribimos; y si algo se agota, desaparece del catálogo en vez
-                de aceptarte un pedido que no podríamos cumplir.
-              </p>
-              <p>
-                Cada producto pasa por las mismas manos desde que baja del barco
-                hasta que llega a tu cocina — limpio, cortado como lo pediste y
-                en frío todo el camino. Es un oficio lento y no intentamos
-                acelerarlo.
-              </p>
-            </div>
-
-            <div className="border-t border-border pt-6 md:border-l md:border-t-0 md:pl-10 md:pt-0">
-              <Eyebrow as="h2" className="mb-4">
-                Nuestra misión
-              </Eyebrow>
-              <p className="font-display text-2xl font-light leading-snug md:text-3xl">
-                Que el pescado que llega a tu mesa sea tan bueno como el que
-                elegiríamos para la nuestra, y que sepas exactamente qué estás
-                comprando.
-              </p>
-            </div>
-          </div>
-        </Container>
-      </Section>
-
-      {/* --- Tesoro --------------------------------------------------------- */}
+      {/* --- Nuestra misión ------------------------------------------------ */}
       {/*
-        El concepto de la marca, que nunca había estado en el sitio.
+        La misión abre la página, y lo hace con el tratamiento más fuerte del
+        sitio: amarillo pleno, el ojo de la marca y el texto del manual.
 
-        El manual (§2) lo llama «Tesoro»: siglos de gente saliendo a explorar el
-        mar, y lo que se trae de vuelta. El ojo —el elemento gráfico de la
-        identidad— es a la vez la moneda y lo primero que se mira en una pieza
-        para saber si está fresca.
+        Antes esto era la segunda sección, bajo un «El mar no se apura» que
+        parafraseaba lo mismo con otras palabras. Dos declaraciones de
+        intenciones seguidas se debilitan entre sí; la que se queda es la que
+        el negocio ya tenía escrita.
 
-        Va sobre amarillo pleno, como aparece impreso en el manual, y es el
-        único uso de amarillo a página completa del sitio: encima de él, el
+        El `h1` vive aquí porque ahora es lo primero que dice la página, y una
+        página sin `h1` no tiene título para un lector de pantalla ni para un
+        buscador.
+
+        Único uso de amarillo a página completa del sitio: encima de él el
         verde mide 7.94:1.
       */}
-      <Section rhythm="sm" labelledBy="tesoro-heading">
-        <Container>
-          <div className="grid items-center gap-8 bg-sun px-6 py-10 text-brand sm:grid-cols-[auto_1fr] sm:gap-12 sm:px-12 sm:py-14">
-            <EyeCluster size={128} />
-
-            <div>
-              <h2
-                id="tesoro-heading"
-                className="font-display text-4xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl"
-              >
-                Tesoro
-              </h2>
-              <p className="mt-4 max-w-[46ch] text-base leading-relaxed">
-                Desde hace siglos hemos trabajado por navegar y explorar
-                nuestros mares. Nos hemos embarcado hacia lo desconocido, tal
-                vez buscando nuevas tierras, pero siempre descubriendo más
-                sobre él y sobre nuestra relación con él.
-              </p>
-              <p className="mt-3 max-w-[46ch] text-base leading-relaxed">
-                Peces, crustáceos y moluscos, sacados del mar especialmente
-                para quien los ha pedido.
-              </p>
-            </div>
-          </div>
-        </Container>
-      </Section>
-
-      {/* --- Video --------------------------------------------------------- */}
-      <Section rhythm="sm" labelledBy="video-heading">
-        <Container>
-          <SectionHeader
-            id="video-heading"
-            title={
-              <>
-                Conoce la <em>pescadería</em>
-              </>
-            }
-            lede="Un recorrido por el mostrador, grabado en Monterrey."
-            className="mb-8"
-          />
+      <ColorField
+        tone="sun"
+        id="mision-heading"
+        as="h1"
+        title="Nuestra Misión"
+      >
+        <div className="grid gap-8 sm:grid-cols-[auto_1fr] sm:gap-12">
+          <EyeCluster size={128} />
 
           {/*
-            `youtube-nocookie.com` rather than the standard embed: it is the
-            same player without the tracking cookie set on arrival, which is the
-            right default for a page nobody came here to be measured on.
-
-            The wrapper owns the 16:9 ratio so the iframe cannot letterbox
-            itself, and the plate hairline matches every other framed image in
-            the shop.
+            El texto del manual, literal. Las palabras que allí aparecen
+            partidas —«sacados-/del», «fres-/co»— van unidas: eran cortes de
+            composición de la lámina, no del texto.
           */}
-          <div className="relative aspect-video w-full overflow-hidden rounded-sm bg-sand">
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src="https://www.youtube-nocookie.com/embed/QInCuVl2jXM"
-              title="El Mejor Pescado Fresco Sustentable - Pescaderia Amor a Mar Seafood Market en Monterrey"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 rounded-sm plate"
-            />
+          <div className="space-y-4 text-lg leading-relaxed md:text-xl">
+            <p className="max-w-[46ch]">
+              Amamos el mar y todo lo que viene de él.
+            </p>
+            <p className="max-w-[46ch]">
+              Estamos preparados para entregar el verdadero tesoro en el mar.
+              Peces, crustáceos, moluscos, que son sacados del mar
+              especialmente para quien los ha pedido.
+            </p>
+            <p className="max-w-[46ch]">
+              En Amor A Mar creemos en llevar el producto fresco de la mejor
+              calidad de Baja California a todos los lugares, en la frescura
+              óptima.
+            </p>
           </div>
-        </Container>
-      </Section>
+        </div>
+      </ColorField>
+
+      {/* --- Video --------------------------------------------------------- */}
+      <ColorField
+        tone="cream"
+        id="video-heading"
+        title={
+          <>
+            Conoce la <em>pescadería</em>
+          </>
+        }
+        lede="Un recorrido por el mostrador, grabado en Monterrey."
+      >
+        {/*
+          `youtube-nocookie.com` rather than the standard embed: it is the same
+          player without the tracking cookie set on arrival, which is the right
+          default for a page nobody came here to be measured on.
+
+          The wrapper owns the 16:9 ratio so the iframe cannot letterbox itself,
+          and the plate hairline matches every other framed image in the shop.
+        */}
+        <div className="relative aspect-video w-full overflow-hidden rounded-sm bg-sand">
+          <iframe
+            className="absolute inset-0 h-full w-full"
+            src="https://www.youtube-nocookie.com/embed/QInCuVl2jXM"
+            title="El Mejor Pescado Fresco Sustentable - Pescaderia Amor a Mar Seafood Market en Monterrey"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-sm plate"
+          />
+        </div>
+      </ColorField>
 
       {/* --- Las cuatro prácticas ------------------------------------------ */}
-      <Section labelledBy="practicas-heading" className="bg-sand/40">
-        <Container>
-          <SectionHeader
-            id="practicas-heading"
-            title={
-              <>
-                Cuatro cosas que <em>sostenemos</em>
-              </>
-            }
-            lede="Son prácticas, no certificaciones. Cada una se puede comprobar en el producto que recibes."
-            className="mb-10"
-          />
-
-          <ul className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
-            {PRACTICES.map(({ Icon, title, body }) => (
-              <li key={title} className="border-t border-border pt-5">
-                <h3 className="flex items-center gap-2.5 font-sans text-sm font-medium">
-                  <span className="shrink-0 text-brand">
-                    <Icon />
-                  </span>
-                  {title}
-                </h3>
-                <p className="mt-2.5 max-w-[46ch] text-sm leading-relaxed text-muted">
-                  {body}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Container>
-      </Section>
+      <ColorField
+        tone="cream"
+        id="practicas-heading"
+        title={
+          <>
+            Cuatro cosas que <em>sostenemos</em>
+          </>
+        }
+        lede="Son prácticas, no certificaciones. Cada una se puede comprobar en el producto que recibes."
+      >
+        {/*
+          El mismo mosaico que «Cómo funciona», y a propósito: las dos páginas
+          contestan la misma pregunta desde lados distintos —qué hacemos y por
+          qué—, así que la forma de la respuesta debe ser reconocible. Dos
+          rejillas distintas para dos listas de cuatro habrían sido dos
+          invenciones donde bastaba una.
+        */}
+        <FeatureCards features={PRACTICES} />
+      </ColorField>
 
       {/* --- Contacto ------------------------------------------------------ */}
-      <Section rhythm="sm" labelledBy="contacto-heading">
-        <Container>
-          <SectionHeader
-            id="contacto-heading"
-            title={
-              <>
-                Habla con <em>nosotros</em>
-              </>
-            }
-            lede="Para pedidos especiales, cortes que no ves en el catálogo o dudas sobre una pieza."
-            className="mb-8"
-          />
+      {/*
+        Turquesa, que es el color que el manual llama «envolvente, refrescante
+        y tranquilizante». Cierra la página en color en vez de en crema porque
+        aquí sí hay algo que hacer —escribir— y el campo lo separa del resto
+        como lo que es: la salida.
+      */}
+      <ColorField
+        tone="turquoise"
+        id="contacto-heading"
+        title={
+          <>
+            Habla con <em>nosotros</em>
+          </>
+        }
+        lede="Para pedidos especiales, cortes que no ves en el catálogo o dudas sobre una pieza."
+      >
+        <dl className="grid gap-8 sm:grid-cols-2 md:max-w-2xl">
+          <div>
+            <Eyebrow as="dt" tone="inherit">
+              WhatsApp de tienda
+            </Eyebrow>
+            <dd className="mt-2 text-2xl tabular-nums">
+              <a
+                href="https://wa.me/528129162142"
+                className="underline-offset-4 hover:underline"
+              >
+                (81) 2916 2142
+              </a>
+            </dd>
+          </div>
+          <div>
+            <Eyebrow as="dt" tone="inherit">
+              Instagram
+            </Eyebrow>
+            <dd className="mt-2 text-2xl">
+              <a
+                href="https://www.instagram.com/amoramarmx/"
+                target="_blank"
+                rel="noreferrer"
+                className="underline-offset-4 hover:underline"
+              >
+                @amoramarmx
+              </a>
+            </dd>
+          </div>
+        </dl>
 
-          <dl className="grid gap-6 border-t border-border pt-6 sm:grid-cols-2 md:max-w-2xl">
-            <div>
-              <Eyebrow as="dt">WhatsApp de tienda</Eyebrow>
-              <dd className="mt-1">
-                <a
-                  href="https://wa.me/528129162142"
-                  className="tabular-nums text-brand underline-offset-4 hover:underline"
-                >
-                  (81) 2916 2142
-                </a>
-              </dd>
-            </div>
-            <div>
-              <Eyebrow as="dt">Instagram</Eyebrow>
-              <dd className="mt-1">
-                <a
-                  href="https://www.instagram.com/amoramarmx/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand underline-offset-4 hover:underline"
-                >
-                  @amoramarmx
-                </a>
-              </dd>
-            </div>
-          </dl>
+        <ButtonLink href="/search" className="mt-10">
+          Ver lo que hay
+        </ButtonLink>
+      </ColorField>
 
-          <ButtonLink href="/search" className="mt-8">
-            Ver lo que hay hoy
-          </ButtonLink>
-        </Container>
-      </Section>
     </>
   );
 }

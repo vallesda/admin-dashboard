@@ -37,6 +37,34 @@ const UNIT_CHOICES = [
   { value: 'piece', label: 'Por pieza', hint: 'Se cobra la pieza, pese lo que pese.' },
 ] as const;
 
+/** Una casilla con su etiqueta y la línea que dice qué hace. */
+function Flag({
+  name,
+  label,
+  hint,
+  defaultChecked,
+}: {
+  name: string;
+  label: string;
+  hint: string;
+  defaultChecked: boolean;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-2.5 text-sm text-ink">
+      <input
+        name={name}
+        type="checkbox"
+        defaultChecked={defaultChecked}
+        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-line-strong text-brand-600 focus:ring-brand-600"
+      />
+      <span>
+        {label}
+        <span className="block text-xs text-ink-muted">{hint}</span>
+      </span>
+    </label>
+  );
+}
+
 type Props = {
   categories: CategoryOption[];
   /** Present when editing; absent when creating. */
@@ -269,6 +297,44 @@ export default function ProductForm({
               />
             )}
           </Field>
+        </FormSection>
+
+        {/*
+          Las tres banderas de escaparate, juntas y con su efecto explicado.
+
+          Vivían sólo en la base: se podían escribir por SQL y por nada más, así
+          que las dos bandas de la portada que dependen de ellas llevaban vacías
+          desde que se cargó el catálogo real. Un campo que la interfaz no
+          ofrece es un campo que en la práctica no existe.
+
+          El texto de cada casilla dice **dónde** sale el producto, no cómo se
+          llama la columna: quien marca esto está decidiendo el aspecto de la
+          portada, no rellenando un formulario.
+        */}
+        <FormSection
+          title="En la portada"
+          description="Dónde aparece este producto en la página principal de la tienda. No cambia precio, existencia ni entrega."
+        >
+          <div className="flex flex-col gap-3">
+            <Flag
+              name="isFeaturedItem"
+              label="La pesca de la semana"
+              hint="Encabeza la portada con foto grande, ficha y precio. Sólo puede haber uno: al marcar éste se desmarca el anterior."
+              defaultChecked={product?.isFeaturedItem ?? false}
+            />
+            <Flag
+              name="isFeatured"
+              label="Destacado"
+              hint="Entra en la banda «Más vendidos». Pueden ser varios."
+              defaultChecked={product?.isFeatured ?? false}
+            />
+            <Flag
+              name="isSeasonal"
+              label="De temporada"
+              hint="Añade la etiqueta amarilla «De temporada» en la tarjeta: no siempre lo vamos a tener."
+              defaultChecked={product?.isSeasonal ?? false}
+            />
+          </div>
         </FormSection>
 
         <FormSection title="Cómo se vende">

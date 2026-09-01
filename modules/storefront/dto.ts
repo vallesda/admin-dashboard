@@ -73,6 +73,14 @@ export type PublicProduct = {
 
   featured: boolean;
   seasonal: boolean;
+  /**
+   * La pieza de «La pesca de la semana».
+   *
+   * Separada de `featured` a propósito: `featured` marca varios productos y
+   * alimenta «Más vendidos»; esto marca **uno** y encabeza la portada con
+   * tratamiento editorial. La base garantiza que no haya dos.
+   */
+  featuredItem: boolean;
 
   /**
    * De dónde sale el producto, y qué implica para quien lo compra.
@@ -178,6 +186,8 @@ export function toPublicProduct(row: ProductSource): PublicProduct {
 
     featured: row.isFeatured,
     seasonal: row.isSeasonal,
+    /** La pieza que encabeza la portada. Como mucho una en todo el catálogo. */
+    featuredItem: row.isFeaturedItem,
     supply: describeSupply(row),
 
     preparationSuggestions: row.preparationSuggestions ?? [],

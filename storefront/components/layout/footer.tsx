@@ -21,12 +21,21 @@ import {
  * Links point only at pages that exist or are imminent. A footer full of dead
  * links is the fastest way to make a storefront feel unfinished.
  */
+/*
+ * Sin `mt-24`.
+ *
+ * El margen superior sumaba veinticuatro de crema al relleno inferior que cada
+ * sección ya trae. En las páginas que terminan en crema no se notaba —era más
+ * de lo mismo—, pero desde que las estáticas cierran en un campo de color,
+ * dejaba una franja clara entre el color y el pie que se leía como un hueco de
+ * maquetación en vez de como aire.
+ */
 export default async function Footer() {
   const collections = await getNavCollections();
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-24 overflow-hidden bg-brand-dark text-background">
+    <footer className="relative overflow-hidden bg-brand-dark text-background">
       {/*
         El banco de escamas cruza el pie, que es donde el manual lo pone en sus
         aplicaciones grandes: la camiseta, el póster, la portada. Aquí cierra la
