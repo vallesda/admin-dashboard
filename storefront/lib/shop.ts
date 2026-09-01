@@ -19,10 +19,50 @@
  * valor por defecto nunca entraba y `new URL('')` tumbaba el build entero en
  * `app/layout.tsx`. Se comprueba que haya contenido, no que exista.
  */
+/**
+ * Normaliza un origen escrito a mano.
+ *
+ * Un valor de configuración que se teclea en un panel web llega como llega:
+ * `amoramar.vercel.app` sin esquema, con comillas alrededor, con un espacio
+ * pegado. `new URL()` rechaza los tres, y como `metadataBase` se evalúa al
+ * cargar el módulo del layout, el error no degrada una página: **impide
+ * recolectar la configuración de todas** y tumba el `next build` entero.
+ *
+ * Devuelve `null` en vez de lanzar para que quien llama pueda seguir bajando
+ * por sus alternativas: un origen mal escrito no debe ser más fatal que uno
+ * ausente.
+ */
+function normalizeOrigin(raw: string | undefined): string | null {
+  const value = raw?.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
+  if (!value) return null;
+
+  // Sin esquema no hay URL válida. Se asume `https` salvo en desarrollo, donde
+  // el puerto local no habla TLS y forzarlo daría un error más confuso todavía.
+  const withScheme = /^https?:\/\//.test(value)
+    ? value
+    : `${/^(localhost|127\.0\.0\.1)(:|$)/.test(value) ? 'http' : 'https'}://${value}`;
+
+  try {
+    return new URL(withScheme).origin;
+  } catch {
+    console.error(
+      `[shop] NEXT_PUBLIC_STORE_URL no es una URL válida: ${JSON.stringify(raw)}. ` +
+        'Se ignora y se usa el origen por defecto.',
+    );
+    return null;
+  }
+}
+
 function resolveSiteUrl(): string {
+  /*
+   * `??` no bastaba. Una variable **definida y vacía** —que es lo que produce un
+   * campo en blanco en el panel de Vercel— vale `''`, no `undefined`, así que el
+   * valor por defecto nunca entraba.
+   */
   const explicit =
-    process.env.NEXT_PUBLIC_STORE_URL?.trim() || process.env.STORE_URL?.trim();
-  if (explicit) return explicit.replace(/\/$/, '');
+    normalizeOrigin(process.env.NEXT_PUBLIC_STORE_URL) ??
+    normalizeOrigin(process.env.STORE_URL);
+  if (explicit) return explicit;
 
   /*
    * El huevo y la gallina del primer despliegue: la URL pública no se conoce
@@ -34,8 +74,10 @@ function resolveSiteUrl(): string {
    * protege `storeOrigin()` en el checkout —que un preview no pueda convencer
    * al admin de rebotar clientes a otro sitio— se mantiene intacta.
    */
-  const vercel = process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  if (vercel) return `https://${vercel}`;
+  const vercel = normalizeOrigin(
+    process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL,
+  );
+  if (vercel) return vercel;
 
   return 'http://localhost:3001';
 }
