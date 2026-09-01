@@ -62,9 +62,25 @@ export function handleError(error: unknown): NextResponse {
    * cacería en una lectura.
    */
   if (isDatabaseUnreachable(error)) {
+    /*
+     * El diagnóstico va en el log, nunca en la respuesta.
+     *
+     * Se informa de si la variable **tiene valor**, no de cuál es: una cadena
+     * de conexión lleva la contraseña dentro. Y se comprueba que no esté
+     * vacía, no que exista: una variable declarada sin valor vale `''`, que es
+     * falsa para `postgres()` —asume `127.0.0.1:5432`— pero aparece
+     * perfectamente listada en el panel de Vercel. Distinguir «no está» de
+     * «está vacía» de «apunta a otro sitio» es lo que convierte esta línea en
+     * la respuesta en vez de en otra pista.
+     */
+    const url = process.env.POSTGRES_URL?.trim();
     console.error(
-      'API v1: base de datos inalcanzable. Revisa POSTGRES_URL en el entorno ' +
-        'de este despliegue; sin ella la conexión se intenta contra localhost.',
+      `API v1: no se pudo conectar a la base de datos. POSTGRES_URL ${
+        url
+          ? `apunta a ${hostOf(url)}`
+          : 'está vacía o ausente en este despliegue, así que la conexión se ' +
+            'intentó contra localhost'
+      }.`,
       error,
     );
     return fail(503, 'database_unavailable', 'Servicio no disponible.');
@@ -74,6 +90,15 @@ export function handleError(error: unknown): NextResponse {
   return fail(500, 'internal_error', 'Algo salió mal.');
 }
 
+/** El host de una cadena de conexión, sin credenciales. Para el log. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return '(no es una URL válida)';
+  }
+}
+
 /**
  * Distingue «no se pudo llegar a la base» de «la base contestó un error».
  *
@@ -81,21 +106,41 @@ export function handleError(error: unknown): NextResponse {
  * que falta porque no se migró, una credencial rechazada— llega con un código
  * de PostgreSQL y no entra aquí: eso sí es un 500, porque la base contestó.
  *
- * `postgres` agrupa los intentos en un `AggregateError` cuando el host
- * resuelve a varias direcciones, así que hay que mirar también dentro.
+ * Hay que recorrer **dos** anidamientos, y saltarse cualquiera de los dos hace
+ * que esto no detecte nada:
+ *
+ * - `cause`: Drizzle envuelve el fallo en un `Error: Failed query: select …` y
+ *   deja el original debajo. Ésta es la forma que llega de verdad desde un
+ *   route handler; el error crudo de `postgres` sólo se ve llamando al driver
+ *   a pelo, que es como se escribió la primera versión de esta función — pasaba
+ *   sus pruebas y no reconocía ni un caso en producción.
+ * - `errors[]`: `postgres` agrupa los intentos en un `AggregateError` cuando el
+ *   host resuelve a varias direcciones.
+ *
+ * El límite de profundidad no es paranoia gratuita: `cause` es un campo que
+ * cualquiera puede rellenar, y una cadena cíclica colgaría la petición que
+ * intenta explicar por qué falló.
  */
-function isDatabaseUnreachable(error: unknown): boolean {
+function isDatabaseUnreachable(error: unknown, depth = 0): boolean {
+  if (depth > 5 || error === null || typeof error !== 'object') return false;
+
   const NETWORK = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'EAI_AGAIN'];
 
-  const code = (error as { code?: unknown } | null)?.code;
+  const { code, errors, cause } = error as {
+    code?: unknown;
+    errors?: unknown;
+    cause?: unknown;
+  };
+
   if (typeof code === 'string' && NETWORK.includes(code)) return true;
 
-  const nested = (error as { errors?: unknown } | null)?.errors;
-  return (
-    Array.isArray(nested) &&
-    nested.some((e) => {
-      const c = (e as { code?: unknown } | null)?.code;
-      return typeof c === 'string' && NETWORK.includes(c);
-    })
-  );
+  if (
+    Array.isArray(errors) &&
+    errors.some((e) => isDatabaseUnreachable(e, depth + 1))
+  ) {
+    return true;
+  }
+
+  return cause !== undefined && isDatabaseUnreachable(cause, depth + 1);
 }
+

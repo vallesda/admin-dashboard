@@ -16,6 +16,7 @@ import { isDomainError } from '@/lib/errors';
 import { redirectWithFlash } from '@/lib/flash';
 import { failed, ok, type ActionResult } from '@/lib/action-result';
 import * as service from './service';
+import { readProductForm } from './product-form-data';
 import {
   createCategorySchema,
   updateCategorySchema,
@@ -168,45 +169,6 @@ function toProductFormState(
   return { errors: {}, message: error.message ?? fallback };
 }
 
-/**
- * Reads the product form.
- *
- * Empty strings become `undefined` for the optional fields so the schema can
- * tell "not provided" from "provided as blank" — the difference between leaving
- * cost unrecorded and recording a cost of zero.
- */
-function readProductForm(formData: FormData) {
-  const text = (key: string) => {
-    const value = String(formData.get(key) ?? '').trim();
-    return value === '' ? undefined : value;
-  };
-
-  return {
-    sku: formData.get('sku'),
-    name: formData.get('name'),
-    slug: text('slug'),
-    description: text('description'),
-    // `getAll`, no `get`: las categorías son casillas y llegan varias con el
-    // mismo nombre. Con `get` sólo entraría la primera, y el producto se
-    // guardaría en una sola de las estanterías que el operador marcó.
-    categoryIds: formData.getAll('categoryIds'),
-    // Una casilla sin marcar no viaja en el formulario: `get` devuelve null y
-    // el `.default(false)` del esquema la apaga, que es justo lo que hace falta.
-    isFeatured: formData.get('isFeatured') === 'on',
-    isSeasonal: formData.get('isSeasonal') === 'on',
-    isFeaturedItem: formData.get('isFeaturedItem') === 'on',
-    priceCents: formData.get('priceCents'),
-    costCents: text('costCents'),
-    imageUrl: text('imageUrl'),
-    unitType: formData.get('unitType'),
-    netWeightGrams: text('netWeightGrams'),
-    supplyType: formData.get('supplyType') ?? 'fresh',
-    preorderCutoffWeekday: text('preorderCutoffWeekday') ?? null,
-    preorderCutoffHour: text('preorderCutoffHour') ?? null,
-    preorderArrivalWeekday: text('preorderArrivalWeekday') ?? null,
-    preorderNote: text('preorderNote') ?? null,
-  };
-}
 
 export async function createProduct(
   _prevState: ProductFormState,
