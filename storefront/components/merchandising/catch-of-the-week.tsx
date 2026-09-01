@@ -149,8 +149,14 @@ export default async function CatchOfTheWeek() {
                 anclada arriba a la derecha, hace de sello sin disputarle la
                 atención a la pieza.
 
-                `hidden lg:block`: en móvil la columna se apila bajo la foto y
-                una ilustración a sangre detrás del texto lo volvería ilegible.
+                También en móvil, que antes estaba oculta con `hidden lg:block`.
+                Aquélla era la decisión correcta mientras la ilustración iba
+                opaca y colgada de una esquina: apilada bajo la foto, a sangre
+                detrás del texto, lo volvía ilegible. Convertida en marca de
+                agua deja de ser un estorbo, así que la escala es lo único que
+                queda por resolver — de `w-40` en móvil a `w-72` en escritorio,
+                porque la columna que la contiene cambia de ancho pero el texto
+                que lleva encima no cambia de tamaño en la misma proporción.
 
                 SVG, no PNG: el dibujo es línea plana de cuatro tintas, que es
                 justamente lo que un vector describe mejor que un mapa de bits.
@@ -169,6 +175,20 @@ export default async function CatchOfTheWeek() {
                 se dibuja sobre los hermanos que no lo están, así que la
                 ilustración tapaba las filas de la ficha —presentación, origen,
                 peso— aunque en el código vaya antes que ellas.
+
+                Centrada en la columna, no colgada de la esquina superior
+                derecha como estaba. Y con eso viene una consecuencia que no es
+                opcional: ahí sí queda **debajo del texto**, y el círculo
+                amarillo es opaco. Blanco sobre ese amarillo mide ~1.07:1, o
+                sea ilegible, justo el problema que la nota de arriba describe
+                para el amarillo sobre crema.
+
+                `opacity-20` es lo que lo convierte de dibujo en marca de agua:
+                el amarillo se funde con el verde de la banda y el texto
+                conserva su contraste sobre el fondo, no sobre la ilustración.
+                Por eso también crece —de `w-36` a `w-64`—: un sello tenue
+                necesita tamaño para leerse, mientras que uno opaco necesitaba
+                quedarse pequeño para no estorbar.
               */}
               {semanal ? (
                 <Image
@@ -178,7 +198,7 @@ export default async function CatchOfTheWeek() {
                   width={551}
                   height={847}
                   unoptimized
-                  className="pointer-events-none absolute -top-16 -right-1 z-0 hidden h-auto w-36 lg:block xl:-top-24 xl:w-44"
+                  className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-auto w-40 -translate-x-1/2 -translate-y-1/2 select-none opacity-20 sm:w-52 lg:w-64 xl:w-72"
                 />
               ) : null}
 

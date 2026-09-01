@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { getProducts } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Section from '@/components/ui/section';
+import WaveBackdrop from '@/components/ui/wave-backdrop';
 import SectionHeader from '@/components/ui/section-header';
 import ProductGrid from '@/components/grid/product-grid';
 import GridSkeleton from '@/components/grid/grid-skeleton';
@@ -72,8 +73,20 @@ export default function Page() {
     <>
       <Hero />
 
-      <Section id="producto-fresco" labelledBy="catalogo-heading">
-        <Container>
+      <Section
+        id="producto-fresco"
+        labelledBy="catalogo-heading"
+        className="relative overflow-hidden"
+      >
+        {/*
+          La ola de marca como fondo de la banda del catálogo, espejada para
+          que la cresta corra al contrario que la del hero. Los porqués de la
+          opacidad y del degradado viven en el componente, que es también quien
+          los comparte con las páginas de categoría.
+        */}
+        <WaveBackdrop flip />
+
+        <Container className="relative z-10">
           <SectionHeader
             id="catalogo-heading"
             title={

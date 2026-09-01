@@ -11,6 +11,7 @@ import ResultRule from '@/components/grid/result-rule';
 import CollectionNav from '@/components/layout/collection-nav';
 import GridSkeleton from '@/components/grid/grid-skeleton';
 import { RHYTHM } from '@/components/ui/section';
+import WaveBackdrop from '@/components/ui/wave-backdrop';
 
 type Props = { params: Promise<{ collection: string }> };
 
@@ -78,19 +79,39 @@ export default async function Page({ params }: Props) {
   }
 
   return (
-    <Container className={RHYTHM.sm}>
-      <SectionHeader as="h1" title={found.title} className="mb-10" />
+    /*
+      La ola de fondo, en su orientación original.
+      
+      Sin espejar a propósito: la portada usa la espejada porque tiene el hero
+      justo encima y dos olas iguales seguidas leen como una repetición. Aquí
+      no hay nada antes con lo que competir, así que vale la del manual.
 
-      <div className="mb-10">
-        <Suspense fallback={null}>
-          <CollectionNav active={handle} />
+      `relative overflow-hidden` en el envoltorio y `relative z-10` en el
+      contenido son requisito del componente, no adorno: sin lo primero la ola
+      se sale de la sección, sin lo segundo tapa el catálogo.
+
+      El envoltorio es un `div` y no un `Section`: esta página ya es una
+      sección entera —su `h1` es el título de la categoría— y anidar un
+      `<section>` dentro no añade estructura, sólo un nivel de landmark que un
+      lector de pantalla tendría que anunciar sin que signifique nada.
+    */
+    <div className="relative overflow-hidden">
+      <WaveBackdrop />
+
+      <Container className={`relative z-10 ${RHYTHM.sm}`}>
+        <SectionHeader as="h1" title={found.title} className="mb-10" />
+
+        <div className="mb-10">
+          <Suspense fallback={null}>
+            <CollectionNav active={handle} />
+          </Suspense>
+        </div>
+
+        <Suspense key={handle} fallback={<GridSkeleton />}>
+          <CollectionProducts handle={handle} />
         </Suspense>
-      </div>
-
-      <Suspense key={handle} fallback={<GridSkeleton />}>
-        <CollectionProducts handle={handle} />
-      </Suspense>
-    </Container>
+      </Container>
+    </div>
   );
 }
 

@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { getNavCollections } from '@/lib/commerce';
 import Container from '@/components/ui/container';
 import Logo from '@/components/layout/logo';
-import Scales from '@/components/brand/scales';
 import Eyebrow from '@/components/ui/eyebrow';
 import {
   INFO_LINKS,
@@ -35,22 +34,20 @@ export default async function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative overflow-hidden bg-brand-dark text-background">
+    <footer className="relative bg-brand-dark text-background">
       {/*
-        El banco de escamas cruza el pie, que es donde el manual lo pone en sus
-        aplicaciones grandes: la camiseta, el póster, la portada. Aquí cierra la
-        página con el único gesto de color pleno del sitio.
+        Sin banco de escamas.
 
-        Sobre el verde oscuro y a baja opacidad: el elemento es una textura, no
-        una ilustración, y compitiendo con el texto dejaría de ser ninguna de
-        las dos cosas.
+        Cruzaba la parte alta del pie como textura de marca. Se retiró a
+        propósito: el pie es el cierre de la página y el verde oscuro pleno ya
+        hace ese trabajo solo. La textura le añadía ruido justo detrás de las
+        cuatro columnas de enlaces, que es donde menos falta hacía.
+
+        El `relative` del `<footer>` se queda —lo sigue necesitando el
+        `<Container>` de abajo—, pero el `overflow-hidden` se fue con las
+        escamas: estaba ahí sólo para recortarlas y ya no hay ningún hijo
+        posicionado que recortar.
       */}
-      <Scales
-        count={72}
-        amplitude={30}
-        className="pointer-events-none absolute inset-x-0 top-0 h-40 w-full opacity-35"
-      />
-
       <Container className="relative">
         <div className="grid grid-cols-2 gap-10 py-14 md:grid-cols-4 md:py-20">
           <div className="col-span-2 md:col-span-1">
@@ -85,10 +82,21 @@ export default async function Footer() {
             business actually answers on, taken from its own profile.
           */}
           <FooterColumn title="Contacto">
+            {/*
+              El número y el usuario no se parten.
+
+              En la columna estrecha del móvil «WhatsApp (81) 2916 2142» partía
+              por el último espacio y dejaba «2142» solo en la línea siguiente,
+              que es un teléfono que ya no se puede leer de un vistazo ni
+              copiar de una pasada. El salto se permite después de la palabra
+              —ahí no molesta— y se prohíbe dentro del dato.
+            */}
             <FooterLink href={WHATSAPP_URL}>
-              WhatsApp {WHATSAPP_LABEL}
+              WhatsApp <span className="whitespace-nowrap">{WHATSAPP_LABEL}</span>
             </FooterLink>
-            <FooterLink href={INSTAGRAM_URL}>Instagram @amoramarmx</FooterLink>
+            <FooterLink href={INSTAGRAM_URL}>
+              Instagram <span className="whitespace-nowrap">@amoramarmx</span>
+            </FooterLink>
             <li className="text-sm text-background/70">Entrega refrigerada</li>
           </FooterColumn>
         </div>

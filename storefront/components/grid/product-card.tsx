@@ -99,32 +99,55 @@ export default function ProductCard({ product }: { product: Product }) {
           className="pointer-events-none absolute inset-0 rounded-sm plate"
         />
 
-        {/* Availability is a word, never only a dimmed image: colour and
-            desaturation alone would not survive greyscale or bright sunlight.
-            The grey above is a second channel on top of this, not instead of
-            it — the two states never coexist. */}
-        {soldOut ? (
-          <span className="absolute left-3 top-3 rounded-sm bg-foreground/85 px-2 py-1 text-xs text-background backdrop-blur-[2px]">
-            Agotado
-          </span>
-        ) : supply.type === 'preorder' ? (
+        {/*
+          Las dos etiquetas viven en una fila, no sueltas en sus esquinas.
+
+          Estaban posicionadas por separado —una `left-3`, otra `right-3`— y
+          así ninguna sabía que la otra existía. En la retícula de dos columnas
+          del móvil la tarjeta mide unos 165 px y «De temporada» más «Fresco»
+          no caben en esa línea: se montaban una encima de otra y la de la
+          izquierda quedaba cortada por debajo.
+
+          `flex-wrap` es lo que lo arregla sin cambiar el diseño: cuando caben
+          siguen en sus dos esquinas, y cuando no, la de la derecha baja a una
+          segunda línea —`ml-auto` la mantiene pegada a su lado— en vez de
+          pisar a la otra.
+
+          `pointer-events-none` porque el enlace de la tarjeta es un `::after`
+          que cubre toda la superficie: cualquier cosa dibujada encima le roba
+          la zona de toque, y en móvil eso es una esquina que no responde.
+        */}
+        <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-wrap items-start justify-between gap-2">
+          {/* Availability is a word, never only a dimmed image: colour and
+              desaturation alone would not survive greyscale or bright sunlight.
+              The grey above is a second channel on top of this, not instead of
+              it — the two states never coexist. */}
+          {soldOut ? (
+            <span className="rounded-sm bg-foreground/85 px-2 py-1 text-xs text-background backdrop-blur-[2px]">
+              Agotado
+            </span>
+          ) : supply.type === 'preorder' ? (
           /*
             Por encargo gana a «de temporada» cuando coinciden, y es lo correcto:
             de temporada describe el producto, por encargo cambia lo que le pasa
             a quien lo compra. Una sola etiqueta por tarjeta, y que sea la que
             altera la decisión.
           */
-          <span className="absolute left-3 top-3 rounded-sm bg-foreground px-2 py-1 text-xs font-medium text-background">
-            {supply.shortNotice ?? 'Por encargo'}
-          </span>
-        ) : product.seasonal ? (
-          <span className="absolute left-3 top-3 rounded-sm bg-sun px-2 py-1 text-xs font-medium text-brand">
-            De temporada
-          </span>
-        ) : null}
+            <span className="rounded-sm bg-foreground px-2 py-1 text-xs font-medium text-background">
+              {supply.shortNotice ?? 'Por encargo'}
+            </span>
+          ) : product.seasonal ? (
+            <span className="rounded-sm bg-sun px-2 py-1 text-xs font-medium text-brand">
+              De temporada
+            </span>
+          ) : (
+            /* Sin etiqueta izquierda, `justify-between` dejaría a la derecha
+               pegada al borde izquierdo. El hueco vacío conserva la fila. */
+            <span />
+          )}
 
-        {/*
-          La otra esquina, la otra pregunta.
+          {/*
+            La otra esquina, la otra pregunta.
 
           A la izquierda va lo que le pasa a esta compra —agotado, por encargo,
           de temporada—; aquí, lo que es la pieza. Que no cambia con el stock
@@ -136,7 +159,8 @@ export default function ProductCard({ product }: { product: Product }) {
           contesta, y mantener las dos habría puesto dos etiquetas a decir
           media cosa cada una.
         */}
-        <SupplyTag supply={supply} className="absolute right-3 top-3" />
+          <SupplyTag supply={supply} className="ml-auto" />
+        </div>
       </div>
 
       {/* The rule is the card's affordance. It runs the full width in the
