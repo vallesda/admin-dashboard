@@ -11,8 +11,8 @@ import 'server-only';
  * storefront's server — from a Server Component or a Server Action — because a
  * token shipped to the client is a token anyone can read.
  */
-const BASE_URL = process.env.AMORAMAR_API_URL;
-const TOKEN = process.env.AMORAMAR_API_TOKEN;
+const BASE_URL = process.env.ADMIN_API_URL;
+const TOKEN = process.env.STOREFRONT_API_TOKEN;
 
 export class CommerceError extends Error {
   readonly code: string;
@@ -35,7 +35,7 @@ async function request<T>(
   if (!BASE_URL) {
     throw new CommerceError(
       'not_configured',
-      'AMORAMAR_API_URL no está configurado.',
+      'ADMIN_API_URL no está configurado.',
       500,
     );
   }
@@ -49,7 +49,7 @@ async function request<T>(
     if (!TOKEN) {
       throw new CommerceError(
         'not_configured',
-        'AMORAMAR_API_TOKEN no está configurado.',
+        'STOREFRONT_API_TOKEN no está configurado.',
         500,
       );
     }

@@ -10,11 +10,37 @@
  * Ver DOCS/SEO.md §4.
  */
 
-/** El origen público. Sin esto, Next resuelve las URLs de Open Graph como
- *  relativas y un enlace compartido en WhatsApp sale sin imagen. */
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_STORE_URL?.replace(/\/$/, '') ??
-  'http://localhost:3001';
+/**
+ * El origen público. Sin esto, Next resuelve las URLs de Open Graph como
+ * relativas y un enlace compartido en WhatsApp sale sin imagen.
+ *
+ * `??` no bastaba. Una variable **definida y vacía** —que es lo que produce un
+ * campo en blanco en el panel de Vercel— vale `''`, no `undefined`, así que el
+ * valor por defecto nunca entraba y `new URL('')` tumbaba el build entero en
+ * `app/layout.tsx`. Se comprueba que haya contenido, no que exista.
+ */
+function resolveSiteUrl(): string {
+  const explicit =
+    process.env.NEXT_PUBLIC_STORE_URL?.trim() || process.env.STORE_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, '');
+
+  /*
+   * El huevo y la gallina del primer despliegue: la URL pública no se conoce
+   * hasta que el proyecto existe, y sin ella no hay despliegue que la revele.
+   * El dominio de producción que asigna Vercel rompe el ciclo y es estable
+   * entre despliegues, a diferencia de `VERCEL_URL`, que cambia en cada uno.
+   *
+   * Sigue leyéndose del entorno y nunca de la petición: la propiedad que
+   * protege `storeOrigin()` en el checkout —que un preview no pueda convencer
+   * al admin de rebotar clientes a otro sitio— se mantiene intacta.
+   */
+  const vercel = process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercel) return `https://${vercel}`;
+
+  return 'http://localhost:3001';
+}
+
+export const SITE_URL = resolveSiteUrl();
 
 export const SHOP_NAME = 'Amor a Mar';
 

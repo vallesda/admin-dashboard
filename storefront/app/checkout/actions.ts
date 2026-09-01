@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createOrder, quoteDelivery } from '@/lib/commerce';
 import type { DeliveryQuote } from '@/lib/commerce/types';
 import { CommerceError } from '@/lib/commerce/api-client';
+import { SITE_URL } from '@/lib/shop';
 import type { CheckoutState } from './form-state';
 
 /**
@@ -197,11 +198,11 @@ export async function placeOrder(
  * so the value is one the admin's allow-list can actually be configured with.
  */
 function storeOrigin(): string {
-  return (
-    process.env.NEXT_PUBLIC_STORE_URL ??
-    process.env.STORE_URL ??
-    'http://localhost:3001'
-  );
+  // Una sola resolución del origen, en `lib/shop`. Esta copia repetía el mismo
+  // `??` que dejaba pasar la cadena vacía, y dos lugares que calculan el mismo
+  // origen acaban discrepando justo cuando importa: el que el admin valida
+  // contra su lista blanca tiene que ser el mismo que sale en las etiquetas.
+  return SITE_URL;
 }
 
 /**
