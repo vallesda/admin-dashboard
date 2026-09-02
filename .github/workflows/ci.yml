@@ -68,5 +68,11 @@ jobs:
       - name: Build del panel
         run: pnpm build
 
+      # La tienda tiene su propia suite y su propia configuración: son dos
+      # despliegues y esta carpeta va a mudarse a su repositorio. Corre aparte,
+      # y es barata —no toca base de datos— así que va antes que el build.
+      - name: Tests de la tienda
+        run: pnpm --filter ./storefront test
+
       - name: Build de la tienda
         run: pnpm --filter ./storefront build

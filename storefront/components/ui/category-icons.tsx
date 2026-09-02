@@ -1,3 +1,5 @@
+import { normalizeForSearch } from '@/lib/slug';
+
 /**
  * Icons for the catalogue rails.
  *
@@ -137,10 +139,7 @@ type IconComponent = (props?: IconProps) => React.ReactElement;
  * plausible thing.
  */
 export function categoryIcon(handle: string, title: string): IconComponent {
-  const text = `${handle} ${title}`
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+  const text = normalizeForSearch(`${handle} ${title}`);
 
   // Order matters: "producto-congelado" contains neither "pescado" nor
   // "marisco", but a category named "Marisco congelado" should read as frozen.

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { getNavCollections } from '@/lib/commerce';
+import type { Collection } from '@/lib/commerce/types';
 import Eyebrow from '@/components/ui/eyebrow';
 import { GridIcon, categoryIcon } from '@/components/ui/category-icons';
 
@@ -31,8 +32,28 @@ export default async function CollectionNav({
 }: {
   active?: string;
 }) {
-  const collections = await getNavCollections();
+  return <CollectionNavList collections={await getNavCollections()} active={active} />;
+}
 
+/**
+ * El rail, ya con sus categorías.
+ *
+ * Separado del de arriba por una razón práctica: aquél es un componente
+ * asíncrono que pide datos, y para probar cuál pastilla queda marcada hay que
+ * poder pasarle una lista en la mano. Mezclar la carga con el dibujo hacía que
+ * la única forma de comprobarlo fuera levantar la API entera.
+ *
+ * También lo vuelve reutilizable: cualquier pantalla que ya tenga las
+ * categorías puede pintar el rail sin volver a pedirlas.
+ */
+export function CollectionNavList({
+  collections,
+  active,
+}: {
+  collections: Collection[];
+  /** El handle de la categoría abierta. Ausente en «Todo el catálogo». */
+  active?: string;
+}) {
   return (
     <nav aria-label="Colecciones" className="flex flex-col gap-4">
       <Group title="Categorías">

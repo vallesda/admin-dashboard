@@ -1,10 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { supplyOf, type Product } from '@/lib/commerce/types';
+import type { Product } from '@/lib/commerce/types';
 import { formatMoney, formatUnit } from '@/lib/format';
 import ProductCartControl from '@/components/cart/product-cart-control';
-import SupplyTag from '@/components/ui/supply-tag';
+import ProductBadges from '@/components/product/product-badges';
 
 /**
  * ProductCard — the component the storefront lives or dies by.
@@ -58,7 +58,6 @@ export default function ProductCard({ product }: { product: Product }) {
     .join(' · ');
 
   const soldOut = !product.availableForSale;
-  const supply = supplyOf(product);
 
   /*
    * A product with real presentations cannot be added from a grid: the shopper
@@ -100,71 +99,13 @@ export default function ProductCard({ product }: { product: Product }) {
         />
 
         {/*
-          Las dos etiquetas viven en un mismo contenedor, no sueltas en sus
-          esquinas.
+          Las dos etiquetas viven en `ProductBadges`, no aquí.
 
-          Estaban posicionadas por separado —una `left-3`, otra `right-3`— y
-          así ninguna sabía que la otra existía. En la retícula de dos columnas
-          del móvil la tarjeta mide unos 165 px y «De temporada» más «Fresco»
-          no caben en esa línea: se montaban una encima de otra y la de la
-          izquierda quedaba cortada por debajo.
-
-          **En móvil se apilan en columna, alineadas a la izquierda.** Es la
-          única disposición que no depende del ancho de la tarjeta: dos
-          etiquetas enfrentadas necesitan saber cuánto mide cada una para
-          decidir si caben, y una columna no necesita saberlo. Además el ojo
-          las lee en orden —lo que le pasa a esta compra primero, lo que es la
-          pieza después— en vez de a saltos entre dos esquinas.
-
-          Desde `sm` vuelven a la fila enfrentada, que es donde la tarjeta ya
-          tiene ancho de sobra. `flex-wrap` cubre los anchos intermedios: si no
-          caben, la de la derecha baja a una segunda línea —`sm:ml-auto` la
-          mantiene pegada a su lado— en vez de pisar a la otra.
-
-          `pointer-events-none` porque el enlace de la tarjeta es un `::after`
-          que cubre toda la superficie: cualquier cosa dibujada encima le roba
-          la zona de toque, y en móvil eso es una esquina que no responde.
+          Concentraban una regla —cuál gana cuando coinciden— enterrada entre el
+          precio y la imagen, y hubo que tocarlas dos veces sin poder probarlas
+          sin montar la tarjeta entera.
         */}
-        <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col items-start gap-1.5 sm:flex-row sm:flex-wrap sm:justify-between sm:gap-2">
-          {/* Availability is a word, never only a dimmed image: colour and
-              desaturation alone would not survive greyscale or bright sunlight.
-              The grey above is a second channel on top of this, not instead of
-              it — the two states never coexist. */}
-          {soldOut ? (
-            <span className="rounded-sm bg-foreground/85 px-2 py-1 text-xs text-background backdrop-blur-[2px]">
-              Agotado
-            </span>
-          ) : supply.type === 'preorder' ? (
-          /*
-            Por encargo gana a «de temporada» cuando coinciden, y es lo correcto:
-            de temporada describe el producto, por encargo cambia lo que le pasa
-            a quien lo compra. Una sola etiqueta por tarjeta, y que sea la que
-            altera la decisión.
-          */
-            <span className="rounded-sm bg-foreground px-2 py-1 text-xs font-medium text-background">
-              {supply.shortNotice ?? 'Por encargo'}
-            </span>
-          ) : product.seasonal ? (
-            <span className="rounded-sm bg-sun px-2 py-1 text-xs font-medium text-brand">
-              De temporada
-            </span>
-          ) : null}
-
-          {/*
-            La otra esquina, la otra pregunta.
-
-          A la izquierda va lo que le pasa a esta compra —agotado, por encargo,
-          de temporada—; aquí, lo que es la pieza. Que no cambia con el stock
-          del día, así que se muestra también cuando está agotada: seguirá
-          siendo congelado mañana.
-
-          Aquí vivía «Siempre disponible», que hablaba de existencias cuando lo
-          que el cliente pregunta es si el pescado es fresco. `SupplyTag` lo
-          contesta, y mantener las dos habría puesto dos etiquetas a decir
-          media cosa cada una.
-        */}
-          <SupplyTag supply={supply} className="sm:ml-auto" />
-        </div>
+        <ProductBadges product={product} />
       </div>
 
       {/* The rule is the card's affordance. It runs the full width in the

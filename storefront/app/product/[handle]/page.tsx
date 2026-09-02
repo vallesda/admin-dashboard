@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { getProduct, supplyOf, type Product } from '@/lib/commerce';
 import { SHOP_NAME, SITE_URL, breadcrumbJsonLd } from '@/lib/shop';
+import { slugify } from '@/lib/slug';
 import Gallery from '@/components/product/gallery';
 import ProductDescription from '@/components/product/product-description';
 import ProductDetails from '@/components/product/product-details';
@@ -98,7 +99,7 @@ export default async function Page({ params }: Props) {
         {product.category ? (
           <>
             <Link
-              href={`/search/${categoryHandle(product.category)}`}
+              href={`/search/${slugify(product.category)}`}
               className="-my-2 py-2 hover:text-brand"
             >
               {product.category}
@@ -150,15 +151,6 @@ export default async function Page({ params }: Props) {
  * Mariscos" and an accented category resolve the same way the admin slugged
  * them. An unknown handle still lands on a real 404 rather than an empty grid.
  */
-function categoryHandle(category: string): string {
-  return category
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 /**
  * Product structured data.
