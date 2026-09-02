@@ -63,7 +63,7 @@ clase de contorsión que hace que un dominio deje de leerse.
 
 ## 2. Qué se prueba hoy
 
-### 2.1 Dominio — 106 pruebas
+### 2.1 Dominio — 119 pruebas
 
 | Archivo | Qué cubre |
 |---|---|
@@ -82,19 +82,29 @@ puertas **nunca amplían** la máquina operativa — para las 36 combinaciones d
 estados × 5 de pago × 2 de modo. Un caso suelto no habría cazado un `||` mal
 puesto.
 
-### 2.2 Base de datos — 33 pruebas
+### 2.2 Base de datos — 68 pruebas
 
 | Archivo | Qué cubre |
 |---|---|
 | `test/schema.test.ts` | las invariantes que viven en la base: `reserved <= on_hand`, libro inmodificable, forma de cada movimiento, ciclo de encargo completo, un CP por zona |
 | `modules/sales/order-flow.test.ts` | el flujo entero: apartar, no vender de más, completar, cancelar, y el caso por encargo |
 | `modules/delivery/zone-flow.test.ts` | servicio y consultas de zonas, choque de códigos, desactivar sin borrar, borrado impedido |
+| `modules/inventory/stock-flow.test.ts` | recibir y ajustar: no bajar de lo reservado, no dejar negativo, el libro que queda |
+| `modules/catalog/product-flow.test.ts` | alta y edición: nace borrador con inventario en cero, SKU y URL repetidos, categorías que se reemplazan |
+| `modules/storefront/checkout.test.ts` | un cobro que no abre cancela el pedido y devuelve la reserva |
 
-### 2.3 Componentes — 5 pruebas
+### 2.3 Componentes — 10 pruebas
 
 | Archivo | Qué cubre |
 |---|---|
 | `modules/sales/components/order-badges.component.test.tsx` | que el estado se diga **con palabras** y no sólo con color, en los 11 estados |
+| `modules/catalog/components/product-form/selling-section.component.test.tsx` | el ciclo de encargo aparece y desaparece con el tipo de abastecimiento |
+
+La segunda no se podía escribir hasta hace poco: vivía dentro de un formulario
+de 688 líneas que había que montar entero —con su acción de servidor— para
+llegar a tres campos. Partirlo en secciones fue lo que la hizo posible, y de
+paso destapó una duplicación real: los radios se marcaban desde `product` y el
+ciclo se mostraba desde `supply`, dos fuentes para el mismo hecho.
 
 El DOM se pide por archivo con `@vitest-environment happy-dom` en la cabecera,
 no por patrón en la configuración: `environmentMatchGlobs` dejó de aplicarse en
@@ -134,7 +144,7 @@ completar un pedido sin cobro (puerta P3) y registrar un cobro manual sin autor
 |---|---|---|
 | `modules/payments/service` — cobro, reembolso parcial, proyección **contra base** | base | la proyección se prueba pura; que *escriba* bien, no |
 | `modules/payments/webhook` — dedup de eventos, fulfilment idempotente | base | ~330 líneas que **nunca se han ejecutado** |
-| `modules/inventory/service` — recibir, ajustar, no bajar de lo reservado | base | el ajuste negativo es la operación más peligrosa del panel |
+| ~~`modules/inventory/service`~~ — **hecho**, `stock-flow.test.ts` | base | era la operación más peligrosa del panel y ya no está desnuda |
 | Concurrencia: dos pedidos por la última pieza | base | el `FOR UPDATE` existe y nadie lo ha comprobado |
 | `modules/identity/service` — auto-bloqueo y último owner | base | por diseño la UI los hace inalcanzables; sólo una prueba los ejercita |
 
@@ -143,7 +153,7 @@ completar un pedido sin cobro (puerta P3) y registrar un cobro manual sin autor
 | Qué | Capa |
 |---|---|
 | Acciones con autorización: que un `staff` no pueda cobrar ni cancelar | base |
-| `product-form` — el ciclo de encargo aparece y desaparece con el tipo | componente |
+| ~~`product-form`~~ — **hecho** tras partir el formulario en secciones | componente |
 | `checkout-form` — domicilio deja una sola forma de pago | componente |
 | `money-panel` — el libro se lee en orden y el reembolso fallido sale rojo | componente |
 | `stale-holds-list` — el estado vacío dice lo que significa | componente |
