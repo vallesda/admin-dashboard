@@ -98,11 +98,33 @@ export async function placeOrder(
     }
   }
 
+  /*
+   * Las líneas se **reconstruyen**, no se reenvían.
+   *
+   * Antes el array recorrido salía tal cual del `JSON.parse`, así que cualquier
+   * campo colado en el campo oculto —`unitPriceCents`, por ejemplo— viajaba
+   * hasta el panel. No era explotable: el panel pone los precios desde su
+   * catálogo y su esquema descarta lo que no conoce. Pero el tipo de arriba
+   * prometía dos campos y en ejecución podían llegar cinco, y la defensa
+   * dependía de que el otro servicio siguiera haciendo su parte.
+   *
+   * Quedarse sólo con lo que se declara cuesta tres líneas y hace verdadera la
+   * firma. Una entrada con forma inservible se descarta aquí; si no queda
+   * ninguna, la comprobación de carrito vacío de abajo lo cuenta.
+   */
   let lines: { productId: string; quantity: number }[] = [];
 
   try {
-    const parsed = JSON.parse(String(formData.get('lines') ?? '[]'));
-    if (Array.isArray(parsed)) lines = parsed;
+    const parsed: unknown = JSON.parse(String(formData.get('lines') ?? '[]'));
+
+    if (Array.isArray(parsed)) {
+      lines = parsed
+        .map((line) => ({
+          productId: String((line as { productId?: unknown })?.productId ?? ''),
+          quantity: Number((line as { quantity?: unknown })?.quantity ?? 0),
+        }))
+        .filter((l) => l.productId !== '' && Number.isInteger(l.quantity) && l.quantity > 0);
+    }
   } catch {
     // Falls through to the empty-cart check below.
   }

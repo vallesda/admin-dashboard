@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -8,31 +8,39 @@ import { useCart } from '@/components/cart/cart-context';
 import { formatMoney } from '@/lib/format';
 import { CURRENCY } from '@/lib/commerce/constants';
 import Button, { ButtonLink } from '@/components/ui/button';
-import { placeOrder, quoteDeliveryAction } from './actions';
+import { useDeliveryQuote } from './use-delivery-quote';
+import { placeOrder } from './actions';
 import type { CartLine, DeliveryQuote } from '@/lib/commerce/types';
 import { EMPTY_STATE } from './form-state';
+import CustomerFields from './customer-fields';
+import FulfillmentFields from './fulfillment-fields';
+import OrderSummary from './order-summary';
 
 /**
  * Checkout.
  *
- * A Client Component because the cart it is checking out lives in localStorage:
- * the server has no way to read it, so the lines travel in a hidden field.
- * Only ids and quantities go — the admin prices the order from its own
- * catalogue, so this payload cannot change what is charged.
+ * Este archivo es el índice del formulario, no su contenido. Cada zona vive en
+ * su propio archivo con el nombre de lo que pregunta:
  *
- * Two axes, and one rule between them. How the order is handed over — pickup or
- * delivery — is one question; how it is paid is another. The shop offers cash
- * only across its own counter, so choosing delivery leaves paying online as the
- * only option. The form enforces that by *changing the choice for you* and
- * saying why, rather than letting you pick something it will reject on submit.
- */
-/**
- * El único estado al que la tienda entrega hoy.
+ * - `customer-fields`  … quién es y cómo se le llama
+ * - `fulfillment-fields` … cómo lo recibe y a dónde
+ * - `order-summary`    … qué se lleva, cuánto suma y el botón que confirma
+ * - `use-delivery-quote` … cuánto cuesta el envío a ese código postal
  *
- * Escrito como lo escribe INEGI, que es contra lo que valida el servidor.
+ * Es un Componente de Cliente porque el carrito que está pagando vive en
+ * `localStorage`: el servidor no puede leerlo, así que las líneas viajan en un
+ * campo oculto. Van sólo identificadores y cantidades — el panel pone los
+ * precios desde su propio catálogo, así que este contenido no puede cambiar lo
+ * que se cobra.
+ *
+ * Aquí queda únicamente lo que ninguna zona puede resolver sola: la elección de
+ * entrega, que la zona de dirección usa para destaparse y el panel lateral para
+ * cotizar, y el código postal, que sale de su zona por la misma razón.
+ *
+ * El modo de pago **no** está aquí ni en ninguna zona. Lo fija el servidor en
+ * `placeOrder`: una regla que decide si se cobra no puede depender de un campo
+ * que el navegador puede editar.
  */
-const FIXED_STATE = 'Nuevo León';
-
 export default function CheckoutForm() {
   const { cart, subtotalCents } = useCart();
   const [state, formAction, pending] = useActionState(placeOrder, EMPTY_STATE);
@@ -50,44 +58,16 @@ export default function CheckoutForm() {
 
   const [postalCode, setPostalCode] = useState('');
 
-  /**
-   * La última cotización, **etiquetada con el código postal que la produjo**.
-   *
-   * Guardar sólo la cotización obligaba a borrarla a mano cada vez que el
-   * código postal cambiaba, y borrarla desde el cuerpo de un efecto es una
-   * cascada de renders (`react-hooks/set-state-in-effect`, que lo cazó).
-   *
-   * Con la etiqueta, «¿esta cotización sirve para lo que hay escrito ahora?» se
-   * *deriva* en vez de sincronizarse. De paso desaparece toda una clase de
-   * error: la cotización de «0650» no puede quedarse en pantalla cuando el
-   * campo ya dice «06500».
+  /*
+   * La cotización vive en su propio hook. Era la única lógica de verdad de este
+   * archivo —cuándo pedir, qué respuesta descartar, cuándo lo que hay en
+   * pantalla dejó de valer— y estaba mezclada con el marcado.
    */
-  const [fetched, setFetched] = useState<{
-    postalCode: string;
-    quote: DeliveryQuote | null;
-  } | null>(null);
-
-  const wantsQuote =
-    fulfillment === 'delivery' && /^[0-9]{5}$/.test(postalCode);
-  const quote =
-    wantsQuote && fetched?.postalCode === postalCode ? fetched.quote : null;
-  const quoteLoading = wantsQuote && fetched?.postalCode !== postalCode;
-
-  useEffect(() => {
-    if (!wantsQuote) return;
-
-    // `ignore` descarta la respuesta de una petición que quedó atrás: al
-    // escribir se disparan varias y no llegan en orden.
-    let ignore = false;
-
-    quoteDeliveryAction(postalCode, subtotalCents).then((result) => {
-      if (!ignore) setFetched({ postalCode, quote: result });
-    });
-
-    return () => {
-      ignore = true;
-    };
-  }, [wantsQuote, postalCode, subtotalCents]);
+  const { quote, loading: quoteLoading } = useDeliveryQuote({
+    enabled: fulfillment === 'delivery',
+    postalCode,
+    subtotalCents,
+  });
 
   if (cart.lines.length === 0) {
     return (
@@ -123,174 +103,15 @@ export default function CheckoutForm() {
           </p>
         ) : null}
 
-        <fieldset className="flex flex-col gap-5">
-          <legend className="mb-3 font-display text-2xl font-light">Tus datos</legend>
+        <CustomerFields errors={state.fieldErrors} />
 
-          <Field
-            name="name"
-            label="Nombre completo"
-            autoComplete="name"
-            required
-            error={state.fieldErrors.name}
-          />
-          <Field
-            name="phone"
-            label="Teléfono"
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel"
-            required
-            hint="Por aquí te confirmamos el horario de entrega."
-            error={state.fieldErrors.phone}
-          />
-          <Field
-            name="email"
-            label="Correo (opcional)"
-            type="email"
-            autoComplete="email"
-            error={state.fieldErrors.email}
-          />
-        </fieldset>
-
-        <fieldset className="flex flex-col gap-4">
-          <legend className="mb-3 font-display text-2xl font-light">
-            Cómo lo quieres recibir
-          </legend>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            {(
-              [
-                { value: 'pickup', label: 'Recoger en tienda' },
-                { value: 'delivery', label: 'Entrega a domicilio' },
-              ] as const
-            ).map((option) => (
-              <label
-                key={option.value}
-                className={`flex flex-1 cursor-pointer items-center gap-3 rounded-sm border px-4 py-3 text-sm transition-colors ${
-                  fulfillment === option.value
-                    ? 'border-brand bg-brand-soft'
-                    : 'border-border-strong hover:border-muted'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="fulfillmentType"
-                  value={option.value}
-                  checked={fulfillment === option.value}
-                  onChange={() => chooseFulfillment(option.value)}
-                  className="accent-brand"
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
-
-          {state.fieldErrors.fulfillmentType ? (
-            <p className="text-sm text-brand">
-              {state.fieldErrors.fulfillmentType}
-            </p>
-          ) : null}
-
-          {/*
-            The address in fields rather than one box.
-            
-            A sentence cannot be sorted into a route, checked against a delivery
-            zone, or handed to a courier. The layout follows how the address is
-            said out loud in Mexico — street and number, then colonia, then
-            municipio and state — so filling it feels like dictating it.
-          */}
-          {fulfillment === 'delivery' ? (
-            <div className="flex flex-col gap-4 border-t border-border pt-5">
-              <p className="text-sm text-muted">
-                Necesitamos la dirección completa para poder llegar.
-              </p>
-
-              {/*
-                Tres campos en una fila, y el tercero más estrecho.
-
-                «Interior» llevaba su «Opcional» como pista bajo la etiqueta, y
-                esa línea de más empujaba su campo un renglón por debajo de los
-                otros dos: la fila se veía rota sin que ninguno de los tres
-                estuviera mal. La palabra se movió al propio rótulo, donde no
-                ocupa altura, y la columna se estrechó porque un número interior
-                son dos o tres caracteres —«3», «B», «PH2»— y un campo ancho
-                promete un dato largo que nadie va a escribir.
-              */}
-              <div className="grid gap-4 sm:grid-cols-[2.2fr_1fr_0.8fr]">
-                <Field
-                  name="street"
-                  label="Calle"
-                  autoComplete="address-line1"
-                  required
-                  error={state.fieldErrors.street}
-                />
-                <Field
-                  name="extNumber"
-                  label="Núm. exterior"
-                  required
-                  error={state.fieldErrors.extNumber}
-                />
-                <Field
-                  name="intNumber"
-                  label="Interior (opcional)"
-                  error={state.fieldErrors.intNumber}
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  name="neighborhood"
-                  label="Colonia"
-                  autoComplete="address-level3"
-                  required
-                  error={state.fieldErrors.neighborhood}
-                />
-                <Field
-                  name="postalCode"
-                  label="Código postal"
-                  inputMode="numeric"
-                  maxLength={5}
-                  autoComplete="postal-code"
-                  required
-                  value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value.trim())}
-                  error={state.fieldErrors.postalCode}
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  name="city"
-                  label="Municipio o alcaldía"
-                  autoComplete="address-level2"
-                  required
-                  error={state.fieldErrors.city}
-                />
-                <StateField error={state.fieldErrors.state} />
-              </div>
-
-              {/*
-                Optional in the database, asked for prominently here: in much of
-                Mexico the reference is what actually gets the delivery to the
-                door.
-              */}
-              <Field
-                name="references"
-                label="Referencias"
-                hint="Entre qué calles, color de la fachada, algún negocio cerca."
-                multiline
-                error={state.fieldErrors.references}
-              />
-            </div>
-          ) : null}
-
-          <Field
-            name="notes"
-            label="Notas para tu pedido (opcional)"
-            hint="Cómo quieres el corte, limpieza, o cualquier indicación."
-            multiline
-          />
-        </fieldset>
+        <FulfillmentFields
+          fulfillment={fulfillment}
+          onFulfillmentChange={chooseFulfillment}
+          postalCode={postalCode}
+          onPostalCodeChange={setPostalCode}
+          errors={state.fieldErrors}
+        />
 
         {/*
           Un solo camino de pago, así que no hay nada que elegir.
@@ -325,381 +146,14 @@ export default function CheckoutForm() {
         </fieldset>
       </div>
 
-      <aside className="flex h-fit flex-col gap-5 rounded-sm border border-border bg-surface p-5 md:sticky md:top-6">
-        <h2 className="font-display text-xl font-light">Tu pedido</h2>
-
-        <ul className="flex flex-col gap-4">
-          {cart.lines.map((line) => (
-            <li key={line.productId} className="flex gap-3">
-              <div className="relative h-14 w-14 flex-none overflow-hidden rounded-sm bg-sand">
-                {line.image ? (
-                  <Image
-                    src={line.image.url}
-                    alt=""
-                    fill
-                    sizes="56px"
-                    className="object-cover"
-                  />
-                ) : null}
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 rounded-sm plate"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="min-w-0 truncate text-sm font-medium">
-                    {line.name}
-                  </p>
-                  {/* Same column as the subtotal below it, for the same reason
-                      the cart drawer carries one: a shopper confirming an order
-                      should not have to multiply to check it. */}
-                  <span className="shrink-0 text-sm tabular-nums">
-                    {formatMoney({
-                      amountCents: line.unitPrice.amountCents * line.quantity,
-                      currency: line.unitPrice.currency,
-                    })}
-                  </span>
-                </div>
-                <p className="mt-0.5 text-sm tabular-nums text-muted">
-                  {line.quantity} × {formatMoney(line.unitPrice)}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex items-baseline justify-between border-t border-border pt-4">
-          <span className="text-sm text-muted">Subtotal</span>
-          <span className="font-sans text-xl tabular-nums">
-            {formatMoney({ amountCents: subtotalCents, currency: CURRENCY })}
-          </span>
-        </div>
-
-        {/*
-          El envío, en cuanto hay un código postal completo.
-          
-          Se cotiza contra la API mientras se escribe, porque el costo de envío
-          es una de las dos cifras que deciden una compra y descubrirla al final
-          es cómo una tienda se gana un carrito abandonado. Lo que se muestra es
-          una vista previa: el importe que se cobra lo vuelve a calcular el
-          servidor al crear el pedido.
-        */}
-        {fulfillment === 'delivery' ? (
-          <DeliverySummary quote={quote} loading={quoteLoading} />
-        ) : null}
-
-        {/*
-          Cuándo llega el pedido completo.
-          
-          Un pedido se entrega junto, así que si lleva un encargo **todo espera
-          a la fecha más lejana** — el pescado fresco incluido. Es una
-          consecuencia incómoda y por eso se dice antes de confirmar, no
-          después: alguien que agregó mejillones sin darse cuenta de que llegan
-          el viernes tiene derecho a sacarlos del carrito.
-        */}
-        <PreorderNotice cart={cart} />
-
-        <div className="flex items-baseline justify-between border-t border-border pt-4">
-          <span className="text-sm text-muted">Total</span>
-          <span className="font-sans text-xl font-medium tabular-nums">
-            {formatMoney({
-              amountCents: subtotalCents + (quote?.covered ? quote.feeCents : 0),
-              currency: CURRENCY,
-            })}
-          </span>
-        </div>
-
-        <Button
-          fullWidth
-          type="submit"
-          // Bloquear el envío es correcto aquí: el pedido se rechazaría de
-          // todos modos y el mensaje llegaría después de un viaje al servidor.
-          disabled={pending || (fulfillment === 'delivery' && quote?.covered === false)}
-        >
-          {pending ? 'Enviando…' : 'Confirmar pedido'}
-        </Button>
-
-        <p className="text-sm text-muted">
-          Al confirmar te llevamos a pagar con tarjeta.
-        </p>
-      </aside>
-    </form>
-  );
-}
-
-/**
- * One labelled field.
- *
- * The error is tied to the input with `aria-describedby` and announced with
- * `role="alert"`, so a screen reader user hears what went wrong instead of
- * discovering it by tabbing back through the form.
- */
-function Field({
-  name,
-  label,
-  hint,
-  error,
-  multiline,
-  ...props
-}: {
-  name: string;
-  label: string;
-  hint?: string;
-  error?: string;
-  multiline?: boolean;
-} & React.InputHTMLAttributes<HTMLInputElement>) {
-  const hintId = hint ? `${name}-hint` : undefined;
-  const errorId = error ? `${name}-error` : undefined;
-  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
-
-  // No `outline-none` here. It emits `outline: 2px solid transparent` from the
-  // utilities layer, which beats the base-layer `:focus-visible` rule — and the
-  // replacement was a border swap to brand, which the error state already
-  // applies. A focused invalid field had no visible focus change at all.
-  const className = `w-full rounded-sm border bg-background px-3 py-2.5 text-sm focus-visible:border-brand ${
-    error ? 'border-brand' : 'border-border-strong'
-  }`;
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={name} className="text-sm font-medium">
-        {label}
-      </label>
-
-      {hint ? (
-        <p id={hintId} className="text-sm text-muted">
-          {hint}
-        </p>
-      ) : null}
-
-      {multiline ? (
-        <textarea
-          id={name}
-          name={name}
-          rows={3}
-          aria-describedby={describedBy}
-          aria-invalid={error ? true : undefined}
-          className={className}
-        />
-      ) : (
-        <input
-          id={name}
-          name={name}
-          aria-describedby={describedBy}
-          aria-invalid={error ? true : undefined}
-          className={className}
-          {...props}
-        />
-      )}
-
-      {error ? (
-        <p id={errorId} role="alert" className="text-sm text-brand">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * The state, as a closed list.
- *
- * Free text would give the shop "CDMX", "Ciudad de México", "D.F." and
- * "Distrito Federal" for one place, which makes a delivery zone impossible to
- * define. The list is the domain's (`modules/sales/address.ts`), reproduced
- * here because this storefront is about to become a separate deployment and
- * cannot import from the admin.
- */
-function StateField({ error }: { error?: string }) {
-  const errorId = error ? 'state-error' : undefined;
-
-  /*
-   * Nuevo León, fijo, mientras la tienda esté en alfa.
-   *
-   * El reparto sale de una sola zona y el selector de 32 estados invitaba a
-   * elegir uno al que no llegamos: el cliente descubría el problema al final,
-   * que es el peor momento. Fijarlo aquí lo dice desde el principio.
-   *
-   * Dos controles y no uno, porque un `<select>` deshabilitado **no viaja en el
-   * formulario**: el navegador omite los campos deshabilitados al enviar, así
-   * que el estado llegaría vacío a la validación y el pedido se caería con un
-   * error que nadie escribió. El campo visible está deshabilitado y el `hidden`
-   * es el que manda el valor.
-   *
-   * La ortografía tiene que ser exactamente la de INEGI —`modules/sales/address.ts`
-   * valida contra esa lista— así que el acento no es decorativo.
-   */
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor="state" className="text-sm font-medium">
-        Estado
-      </label>
-
-      <input type="hidden" name="state" value={FIXED_STATE} />
-
-      <input
-        id="state"
-        type="text"
-        value={FIXED_STATE}
-        disabled
-        readOnly
-        aria-describedby={errorId}
-        className="w-full cursor-not-allowed rounded-sm border border-border-strong bg-sand px-3 py-2.5 text-sm text-muted"
+      <OrderSummary
+        cart={cart}
+        subtotalCents={subtotalCents}
+        fulfillment={fulfillment}
+        quote={quote}
+        quoteLoading={quoteLoading}
+        pending={pending}
       />
-
-      <p className="text-xs text-muted">
-        Por ahora sólo entregamos en Nuevo León.
-      </p>
-
-      {error ? (
-        <p id={errorId} role="alert" className="text-sm text-brand">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-const MEXICAN_STATES = [
-  'Aguascalientes',
-  'Baja California',
-  'Baja California Sur',
-  'Campeche',
-  'Chiapas',
-  'Chihuahua',
-  'Ciudad de México',
-  'Coahuila',
-  'Colima',
-  'Durango',
-  'Estado de México',
-  'Guanajuato',
-  'Guerrero',
-  'Hidalgo',
-  'Jalisco',
-  'Michoacán',
-  'Morelos',
-  'Nayarit',
-  'Nuevo León',
-  'Oaxaca',
-  'Puebla',
-  'Querétaro',
-  'Quintana Roo',
-  'San Luis Potosí',
-  'Sinaloa',
-  'Sonora',
-  'Tabasco',
-  'Tamaulipas',
-  'Tlaxcala',
-  'Veracruz',
-  'Yucatán',
-  'Zacatecas',
-] as const;
-
-/**
- * El envío, dicho como lo diría un dependiente.
- *
- * Tres desenlaces y tres frases distintas. El que más importa es el tercero:
- * «no llegamos ahí» no es «el envío cuesta cero», y confundirlos haría que
- * alguien terminara el checkout para un pedido que nadie va a poder entregar.
- */
-function DeliverySummary({
-  quote,
-  loading,
-}: {
-  quote: DeliveryQuote | null;
-  loading: boolean;
-}) {
-  if (loading) {
-    return (
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm text-muted">Envío</span>
-        <span className="text-sm text-muted">calculando…</span>
-      </div>
-    );
-  }
-
-  if (!quote) {
-    return (
-      <p className="text-sm text-muted">
-        Escribe tu código postal y calculamos el envío.
-      </p>
-    );
-  }
-
-  if (!quote.covered) {
-    return (
-      <p className="border border-brand bg-brand-soft p-3 text-sm">
-        Todavía no hacemos entregas en ese código postal. Puedes recoger tu
-        pedido en la tienda.
-      </p>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm text-muted">Envío · {quote.zoneName}</span>
-        <span className="text-sm tabular-nums">
-          {quote.feeCents === 0 ? (
-            <span className="font-medium">Gratis</span>
-          ) : (
-            formatMoney({ amountCents: quote.feeCents, currency: CURRENCY })
-          )}
-        </span>
-      </div>
-
-      {/* La cifra que hace que alguien agregue otro producto. Vale la pena
-          decirla en vez de dejar que la descubra por accidente. */}
-      {quote.missingForFreeCents ? (
-        <p className="text-xs text-muted">
-          Te faltan{' '}
-          {formatMoney({
-            amountCents: quote.missingForFreeCents,
-            currency: CURRENCY,
-          })}{' '}
-          para que el envío salga gratis.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * El aviso de encargo, cuando el carrito lleva alguno.
- *
- * Distingue dos casos porque no son el mismo problema:
- *
- * - **todo el carrito es de encargo** — una fecha, sin sorpresa;
- * - **mezcla de encargo y disponible** — lo disponible espera, y eso hay que
- *   decirlo con todas sus letras.
- */
-function PreorderNotice({ cart }: { cart: { lines: CartLine[] } }) {
-  const preordered = cart.lines.filter((line) => line.arrivesOn);
-
-  if (preordered.length === 0) return null;
-
-  const latest = preordered
-    .map((line) => new Date(line.arrivesOn as string))
-    .reduce((a, b) => (a > b ? a : b));
-
-  const fecha = new Intl.DateTimeFormat('es-MX', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    timeZone: 'America/Monterrey',
-  }).format(latest);
-
-  const mixed = preordered.length < cart.lines.length;
-
-  return (
-    <div className="border border-border-strong bg-surface p-4 text-sm">
-      <p className="font-medium">Tu pedido llega el {fecha}</p>
-      <p className="mt-1 text-muted">
-        {mixed
-          ? 'Lleva productos por encargo que traemos ese día. El resto de tu pedido se entrega junto con ellos.'
-          : 'Son productos por encargo: los conseguimos y te llegan ese día.'}
-      </p>
-    </div>
+    </form>
   );
 }
