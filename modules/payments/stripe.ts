@@ -26,20 +26,59 @@ import type { PaymentRow, RefundStatus } from '@/db/schema/payments';
 export const CURRENCY = 'mxn';
 
 /**
- * Card only, on purpose.
+ * Delayed-notification methods, excluded on purpose.
  *
- * Dynamic payment methods would also surface OXXO and SPEI, and both are
- * *delayed notification* methods: the shop finds out a day later whether it was
- * paid. For perishable stock that means either freezing a kilo of fish for
- * three days against a voucher nobody may ever pay, or preparing an order that
- * has not been paid for. The shop chose neither.
+ * `payment_method_types` used to be hardcoded to `['card']` here. That is the
+ * one parameter Stripe now tells every integration not to send: it freezes the
+ * method list at deploy time, so wallets (Apple Pay, Google Pay, Link) that
+ * cost nothing to accept and measurably lift conversion never appear, and the
+ * only way to change anything is a release.
  *
- * Naming the list explicitly rather than leaving it to the Dashboard is the
- * point: enabling a method there must not silently change what this shop sells
- * on credit. Adding SPEI later — it settles in ~30 minutes, which is a very
- * different proposition — is a one-line change here plus a Dashboard toggle.
+ * The business rule underneath it was never "cards only" — it was *"nothing
+ * that pays us tomorrow"*. OXXO and SPEI are **delayed notification** methods:
+ * the shop learns a day later whether it was paid. For perishable stock that
+ * means freezing a kilo of fish against a voucher nobody may ever pay. So the
+ * rule is expressed as what it actually is — an exclusion of the delayed
+ * methods — and everything instant is left to Stripe's dynamic selection and
+ * the Dashboard.
+ *
+ * Stated in code and not only in the Dashboard for the reason the old comment
+ * gave, which still holds: enabling a method there must not silently change
+ * what this shop sells on credit. This list is the guard that survives someone
+ * clicking a toggle.
+ *
+ * Enabling SPEI later — it settles in ~30 minutes, a very different
+ * proposition — means dropping `customer_balance` from this list. The
+ * `async_payment_succeeded` / `async_payment_failed` handlers in `webhook.ts`
+ * and the voucher branches in `checkout.ts` are already written for that day.
  */
-export const PAYMENT_METHOD_TYPES = ['card'] as const;
+export const EXCLUDED_PAYMENT_METHOD_TYPES = [
+  'oxxo',
+  'customer_balance',
+] as const satisfies readonly Stripe.Checkout.SessionCreateParams.ExcludedPaymentMethodType[];
+
+/**
+ * The label Stripe groups these sessions under in the Dashboard.
+ *
+ * Required from API version `2026-03-25.dahlia` onward, and the suffix of eight
+ * random letters is Stripe's convention, not decoration: it keeps this shop's
+ * funnel distinguishable from every other integration that also called itself
+ * `checkout`. Generated once and then **constant** — a value regenerated per
+ * request would put every session in a group of one and report nothing.
+ */
+export const INTEGRATION_IDENTIFIER = 'amoramar-hosted-checkout-fqishqrr';
+
+/**
+ * An optional Payment Method Configuration id.
+ *
+ * When set, it decides which methods Checkout offers, replacing the Dashboard
+ * default. Left unset in every environment so far: the exclusion list above
+ * already encodes the only rule the shop has, and a configuration is one more
+ * object to keep in step across sandbox and production.
+ */
+function paymentMethodConfiguration(): string | undefined {
+  return process.env.STRIPE_PAYMENT_METHOD_CONFIGURATION || undefined;
+}
 
 export type CheckoutLine = {
   name: string;
@@ -121,7 +160,11 @@ export async function createCheckoutSession(
         metadata: { orderId: args.orderId, orderNumber: String(args.orderNumber) },
       },
       customer_email: args.customerEmail ?? undefined,
-      payment_method_types: [...PAYMENT_METHOD_TYPES],
+      // No `payment_method_types`. Stripe picks from what the Dashboard (or a
+      // configuration) enables, minus the delayed ones this shop cannot carry.
+      excluded_payment_method_types: [...EXCLUDED_PAYMENT_METHOD_TYPES],
+      payment_method_configuration: paymentMethodConfiguration(),
+      integration_identifier: INTEGRATION_IDENTIFIER,
       locale: 'es-419',
       success_url: `${args.successUrl}${args.successUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: args.cancelUrl,
@@ -130,6 +173,29 @@ export async function createCheckoutSession(
     // rather than opening a second one that could also be paid.
     { idempotencyKey: `order:${args.orderId}:session` },
   );
+}
+
+/**
+ * Cierra la página de cobro para que deje de poder pagarse.
+ *
+ * Sin esto, cancelar un pedido dejaba viva su sesión de Checkout hasta 24 h.
+ * `cancelIntent` no basta: una sesión que el comprador **nunca abrió** no tiene
+ * `payment_intent` todavía —comprobado contra Stripe: `payment_intent: null` en
+ * una sesión recién creada—, así que no había nada que cancelar y el enlace
+ * seguía cobrando.
+ *
+ * La consecuencia era la peor de este sistema: el barrido libera el pescado y
+ * lo vende a otro, alguien abre el enlace viejo, paga, y `fulfillCheckout`
+ * registra un cobro contra un pedido cancelado y sin existencias. Dinero
+ * recibido por algo que ya no hay.
+ *
+ * Vencer la sesión cancela además el PaymentIntent asociado si llegó a
+ * existir, así que sustituye a `cancelIntent` siempre que la sesión siga
+ * abierta. El vale de OXXO es el otro caso: ahí la sesión está `complete` y
+ * Stripe no permite vencerla, y es el intent lo que hay que cancelar.
+ */
+export async function expireSession(sessionId: string): Promise<void> {
+  await stripe().checkout.sessions.expire(sessionId);
 }
 
 /** Re-reads a session with what the handler needs to decide. */

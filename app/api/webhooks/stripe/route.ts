@@ -36,6 +36,23 @@ export async function POST(request: Request) {
     return new Response('Stripe no está configurado.', { status: 503 });
   }
 
+  const signingSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!signingSecret) {
+    /*
+     * Fails closed, and fails *retryably*.
+     *
+     * Verifying against `''` would throw and land in the 400 below, and a 400
+     * tells Stripe the event was rejected on its merits — it is never
+     * redelivered. A missing secret is not a bad event; it is our deploy being
+     * half-configured, and the payments that arrive during that window are the
+     * ones we can least afford to drop. 503 keeps them in Stripe's retry queue
+     * for three days, which is long enough for anyone to notice.
+     */
+    console.error('[stripe] falta STRIPE_WEBHOOK_SECRET; se rechaza para reintento');
+    return new Response('Webhook no configurado.', { status: 503 });
+  }
+
   const signature = (await headers()).get('stripe-signature');
 
   if (!signature) {
@@ -52,7 +69,7 @@ export async function POST(request: Request) {
     event = await stripe().webhooks.constructEventAsync(
       payload,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET ?? '',
+      signingSecret,
     );
   } catch (error) {
     // A failed signature is either a misconfigured secret or someone trying it

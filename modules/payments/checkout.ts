@@ -26,6 +26,7 @@ import { isStripeConfigured } from '@/lib/stripe';
 import {
   createCheckoutSession,
   cancelIntent,
+  expireSession,
   isCancelableIntent,
   retrieveSession,
 } from './stripe';
@@ -166,11 +167,16 @@ export async function openCheckout(
  * Called when an order is cancelled — by a person or by the sweep. Two things
  * happen and both matter:
  *
- * 1. **Stripe's side.** An uncompleted PaymentIntent is *cancelled*, not
- *    refunded. Cancelling costs no processing fee where a refund does, and it
- *    is the only correct verb for money that never moved (DOCS/PAGOS.md §12.4).
- *    Stripe only allows it while the intent is still open, which is what
- *    `isCancelableIntent` checks.
+ * 1. **Stripe's side.** El enlace deja de cobrar. Una sesión todavía abierta se
+ *    *vence*; un vale de OXXO ya emitido —sesión `complete` e impaga— se cierra
+ *    cancelando su PaymentIntent. En ninguno de los dos casos se reembolsa:
+ *    cancelar no cuesta comisión y es el único verbo correcto para dinero que
+ *    nunca se movió (DOCS/PAGOS.md §12.4).
+ *
+ *    Antes sólo se hacía lo segundo, y por eso no servía en el caso común: una
+ *    sesión que el comprador nunca abrió no tiene `payment_intent`, así que no
+ *    había nada que cancelar y la página seguía viva 24 h sobre un pedido
+ *    cancelado cuyo stock ya se había liberado.
  * 2. **Ours.** The attempt row is marked `canceled`, so `paymentStatus`
  *    recomputes to `unpaid` instead of sitting at `processing` forever on an
  *    order nobody can pay any more.
@@ -196,7 +202,20 @@ export async function voidOpenAttempts(orderId: string): Promise<void> {
 
       if (session.payment_status !== 'unpaid') return;
 
-      if (intent?.id && isCancelableIntent(intent.status)) {
+      if (session.status === 'open') {
+        /*
+         * Vencer la sesión es lo que apaga el enlace.
+         *
+         * Cancelar el intent no lo hacía: una sesión que nadie abrió todavía no
+         * tiene `payment_intent` —`null`, verificado contra Stripe—, así que no
+         * había nada que cancelar y la página seguía cobrando hasta 24 h
+         * después de que el pedido se cancelara y su pescado volviera a la
+         * venta. Vencerla cancela también el intent si llegó a existir.
+         */
+        await expireSession(session.id);
+      } else if (intent?.id && isCancelableIntent(intent.status)) {
+        // Sesión ya `complete` y aun así impaga: el vale de OXXO emitido.
+        // Stripe no deja vencer esa, y lo que sobra es el intent.
         await cancelIntent(intent.id);
       }
     } catch (error) {

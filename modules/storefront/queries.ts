@@ -14,7 +14,11 @@ import 'server-only';
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { moneySummary, findOpenAttempt } from '@/modules/payments/queries';
+import {
+  moneySummary,
+  findOpenAttempt,
+  findSettledPayment,
+} from '@/modules/payments/queries';
 import { methodLabel } from '@/modules/payments/stripe';
 import {
   categories,
@@ -312,10 +316,26 @@ export async function getOrderByToken(
    * that would tie a separate deployment to Stripe (DOCS/PAGOS.md §8.2). A new
    * payment method is added here and the storefront never notices.
    */
-  const [money, attempt] = await Promise.all([
+  const [money, attempt, settled] = await Promise.all([
     moneySummary(order.id),
     findOpenAttempt(order.id),
+    findSettledPayment(order.id),
   ]);
+
+  /*
+   * El cobro que ya se liquidó gana sobre el que sigue abierto.
+   *
+   * `findOpenAttempt` sólo mira `created`/`processing`, así que en cuanto un
+   * pago **triunfa** deja de encontrarse. Leyendo sólo de ahí, el comprador que
+   * acababa de pagar con tarjeta caía en su página de confirmación —la misma a
+   * la que Stripe lo redirige— sin ningún método de pago: `methodLabel` en
+   * `null`. Se vio la primera vez que este flujo corrió de verdad contra
+   * Stripe, no antes.
+   *
+   * El abierto sigue valiendo como respaldo: un vale de OXXO emitido tiene su
+   * método antes de que se pague nada.
+   */
+  const method = settled?.paymentMethodType ?? attempt?.paymentMethodType ?? null;
 
   return {
     orderNumber: order.orderNumber,
@@ -324,8 +344,8 @@ export async function getOrderByToken(
     paymentMode: order.paymentMode,
     payment: {
       status: order.paymentStatus,
-      methodLabel: attempt?.paymentMethodType
-        ? methodLabel(attempt.paymentMethodType)
+      methodLabel: method
+        ? methodLabel(method)
         : order.paymentMode === 'on_site'
           ? 'Al recibir'
           : null,

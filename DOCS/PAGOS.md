@@ -86,12 +86,25 @@ mano descuentos, impuestos, direcciones y conversión de moneda.
 
 Para esta tienda el argumento es más fuerte:
 
-- **Un solo método hoy, y la puerta abierta.** La tienda cobra **sólo con tarjeta**:
-  `payment_method_types: ['card']`, escrito en el código y no dejado al Dashboard, para que
-  encender un método allí no cambie en silencio lo que esta tienda fía. OXXO y SPEI son métodos de
-  *notificación diferida* —la tienda se entera al día siguiente— y sobre producto perecedero eso
-  significa congelar un kilo de pescado tres días contra un vale que quizá nadie pague. Añadir SPEI
-  más adelante, que liquida en ~30 minutos, es una línea aquí más un interruptor en el Dashboard.
+- **Nada que nos pague mañana, y la puerta abierta.** La regla no es «sólo tarjeta»: es que la
+  tienda no fía contra producto perecedero. OXXO y SPEI son métodos de *notificación diferida* —la
+  tienda se entera al día siguiente— y eso significa congelar un kilo de pescado tres días contra
+  un vale que quizá nadie pague.
+
+  Por eso el código **no** manda `payment_method_types`. Ese parámetro congela la lista de métodos
+  en el despliegue: las carteras (Apple Pay, Google Pay, Link) que liquidan al instante y no
+  cuestan nada nunca aparecerían, y cambiar cualquier cosa exigiría una release. Lo que se escribe
+  en el código es la regla real, `excluded_payment_method_types: ['oxxo', 'customer_balance']`, que
+  además conserva el motivo original de no dejarlo al Dashboard: encender un método allí no puede
+  cambiar en silencio lo que esta tienda fía. Todo lo instantáneo lo elige Stripe dinámicamente.
+
+  Añadir SPEI más adelante, que liquida en ~30 minutos, es quitar `customer_balance` de esa lista.
+  Si algún día conviene fijar el catálogo entero de métodos desde Stripe, `payment_method_configuration`
+  acepta un `pmc_…` por `STRIPE_PAYMENT_METHOD_CONFIGURATION`; hoy va sin definir.
+
+- **Las sesiones van etiquetadas.** `integration_identifier` agrupa en el Dashboard todo lo que
+  abre este checkout. Es constante a propósito: regenerarlo por petición dejaría cada pago en un
+  grupo de uno.
 - **PCI.** La página la sirve Stripe; el número de tarjeta nunca toca nuestro dominio ni nuestros
   logs.
 - **La sesión caduca sola a las 24 h.** Ese vencimiento es justo lo que necesitamos para liberar

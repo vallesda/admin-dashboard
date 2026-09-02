@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { isCancelableIntent, methodLabel, toRefundStatus } from './stripe';
+import { readFileSync } from 'node:fs';
+
+import {
+  EXCLUDED_PAYMENT_METHOD_TYPES,
+  INTEGRATION_IDENTIFIER,
+  isCancelableIntent,
+  methodLabel,
+  toRefundStatus,
+} from './stripe';
 
 /**
  * The translation layer between Stripe's vocabulary and ours.
@@ -64,5 +72,31 @@ describe('methodLabel', () => {
   it('cae en una etiqueta genérica y legible ante un método nuevo', () => {
     expect(methodLabel('metodo_que_no_existe_aun')).toBe('Pago en línea');
     expect(methodLabel(null)).toBe('Pago en línea');
+  });
+});
+
+describe('política de métodos de pago', () => {
+  it('excluye exactamente los métodos de notificación diferida', () => {
+    // No es "sólo tarjeta": es "nada que nos pague mañana". Las carteras
+    // (Apple Pay, Google Pay, Link) llegan solas por métodos dinámicos y
+    // liquidan al instante, así que no tienen por qué estar aquí.
+    expect([...EXCLUDED_PAYMENT_METHOD_TYPES].sort()).toEqual([
+      'customer_balance',
+      'oxxo',
+    ]);
+  });
+
+  it('no vuelve a fijar la lista de métodos a mano', () => {
+    // `payment_method_types` es el parámetro que congela el checkout en el
+    // deploy. Que no reaparezca en el archivo es la prueba barata de que no
+    // volvió a colarse.
+    const source = readFileSync(new URL('./stripe.ts', import.meta.url), 'utf8');
+    expect(source).not.toMatch(/(?<!excluded_)payment_method_types:/);
+  });
+
+  it('etiqueta la integración con un sufijo estable de ocho letras', () => {
+    // Estable, no aleatorio por petición: un valor nuevo en cada sesión pondría
+    // cada pago en un grupo de uno y el Dashboard no reportaría nada.
+    expect(INTEGRATION_IDENTIFIER).toMatch(/^[a-z0-9-]+-[a-z]{8}$/);
   });
 });

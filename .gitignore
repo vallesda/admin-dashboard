@@ -43,3 +43,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .env*
+
+# Playwright (E2E): reportes y trazas de cada corrida.
+/test-results
+/playwright-report
+/.playwright

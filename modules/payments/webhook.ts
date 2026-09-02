@@ -23,8 +23,10 @@ import type Stripe from 'stripe';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { isUniqueViolation } from '@/lib/errors';
 import { orders } from '@/db/schema/sales';
 import { payments, refunds, stripeEvents } from '@/db/schema/payments';
+import type { RefundStatus } from '@/db/schema/payments';
 import { changeOrderStatus } from '@/modules/sales/service';
 import { recordPayment, updateAttempt, markRefundFailed } from './service';
 import { retrieveSession, toRefundStatus } from './stripe';
@@ -235,27 +237,7 @@ async function releaseIfStillOpen(orderId: string): Promise<void> {
 export async function syncRefund(refund: Stripe.Refund): Promise<void> {
   const status = toRefundStatus(refund.status);
 
-  const [existing] = await db
-    .select({ id: refunds.id })
-    .from(refunds)
-    .where(eq(refunds.stripeRefundId, refund.id))
-    .limit(1);
-
-  if (existing) {
-    if (status === 'failed') {
-      await markRefundFailed(refund.id, refund.failure_reason ?? null);
-      return;
-    }
-
-    await db.transaction(async (tx) => {
-      await tx
-        .update(refunds)
-        .set({ status, failureReason: refund.failure_reason ?? null })
-        .where(eq(refunds.id, existing.id));
-    });
-
-    return;
-  }
+  if (await updateKnownRefund(refund, status)) return;
 
   const intentId =
     typeof refund.payment_intent === 'string'
@@ -274,14 +256,72 @@ export async function syncRefund(refund: Stripe.Refund): Promise<void> {
 
   const { refundOrder } = await import('./service');
 
-  await refundOrder({
-    orderId: payment.orderId,
-    amountCents: refund.amount,
-    reason: 'requested_by_customer',
-    note: 'Registrado desde el Dashboard de Stripe.',
-    actorId: null,
-    stripeRefundId: refund.id,
-  });
+  try {
+    await refundOrder({
+      orderId: payment.orderId,
+      amountCents: refund.amount,
+      reason: 'requested_by_customer',
+      note: 'Registrado desde el Dashboard de Stripe.',
+      actorId: null,
+      stripeRefundId: refund.id,
+    });
+  } catch (error) {
+    /*
+     * Un reembolso del Dashboard llega por varios eventos a la vez.
+     *
+     * Stripe emite `refund.created` y `refund.updated` casi simultáneamente, y
+     * los dos entran aquí. Ambos ven que no hay fila y ambos intentan crearla:
+     * es un comprobar-luego-actuar, y ninguna comprobación previa lo cierra.
+     *
+     * Quien lo cierra es la base. `refunds_stripe_refund_id_unique` hace que el
+     * segundo pierda, y **por eso el dinero salió bien**: hubo un solo
+     * reembolso de $300, no dos. Lo que no estaba bien era la consecuencia —un
+     * 500 que hacía a Stripe reintentar un evento que ya no tenía trabajo que
+     * hacer, y que en el panel se vería como un fallo del webhook.
+     *
+     * Se observó cobrando de verdad: el pedido #60 quedó correcto y aun así
+     * `refund.created` devolvió 500 (DOCS/PAGOS-VERIFICACION.md §3ter).
+     *
+     * Así que la violación se trata como lo que significa: alguien más ya
+     * registró este reembolso. Se relee y se aplica el estado, que es
+     * exactamente lo que habría hecho de haber llegado un segundo más tarde.
+     * Cualquier otro error sí sube: un 500 que merece reintento.
+     */
+    if (!isUniqueViolation(error, 'refunds_stripe_refund_id_unique')) throw error;
+
+    await updateKnownRefund(refund, status);
+  }
+}
+
+/**
+ * Aplica el estado a un reembolso que ya está en el libro.
+ *
+ * Devuelve `false` si no existe, para que quien llama sepa que le toca crearlo.
+ * Vive aparte porque se usa desde los dos lados de la carrera de arriba.
+ */
+async function updateKnownRefund(
+  refund: Stripe.Refund,
+  status: RefundStatus,
+): Promise<boolean> {
+  const [existing] = await db
+    .select({ id: refunds.id })
+    .from(refunds)
+    .where(eq(refunds.stripeRefundId, refund.id))
+    .limit(1);
+
+  if (!existing) return false;
+
+  if (status === 'failed') {
+    await markRefundFailed(refund.id, refund.failure_reason ?? null);
+    return true;
+  }
+
+  await db
+    .update(refunds)
+    .set({ status, failureReason: refund.failure_reason ?? null })
+    .where(eq(refunds.id, existing.id));
+
+  return true;
 }
 
 /**

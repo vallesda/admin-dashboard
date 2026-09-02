@@ -17,7 +17,9 @@
     "test:ui": "vitest --ui",
     "catalogo:2026": "node --env-file=.env --experimental-strip-types scripts/catalogo-2026.ts",
     "catalogo:xlsx": "node --experimental-strip-types scripts/catalogo-xlsx.ts",
-    "catalogo:fotos": "node --env-file=.env --experimental-strip-types scripts/fotos-blob.ts"
+    "catalogo:fotos": "node --env-file=.env --experimental-strip-types scripts/fotos-blob.ts",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -43,6 +45,7 @@
   "devDependencies": {
     "@auth/core": "0.41.3",
     "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.62.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.6",
     "@types/bcrypt": "^5.0.2",

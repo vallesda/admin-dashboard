@@ -26,7 +26,9 @@ haya encontrado con Stripe.
 | Reembolsos manuales | 🟢 verificado | reembolso parcial real, estado y libro correctos |
 | Dirección estructurada y reglas de entrega | 🟢 verificado | API rechaza las 4 combinaciones inválidas |
 | Barrido de reservas abandonadas | 🟡 parcial | funcionó con un pedido **fabricado a mano**, nunca con uno real |
-| **Todo lo que toca Stripe** | 🔴 **nunca ejecutado** | `stripe_events` tiene 0 filas; no existe ni una sesión real |
+| Ruta del webhook: firma, deduplicación y liberación | 🟢 automatizado | `test/webhook-route.test.ts`: 10 pruebas contra Postgres real (matriz #7, #9, #11) |
+| Apertura de sesión de Checkout | 🟢 ejecutado | `test/stripe-sandbox.smoke.test.ts`: 9 pruebas contra sandbox MX real |
+| **Cobro completo, webhooks y reembolsos contra Stripe** | 🔴 **nunca ejecutado** | `stripe_events` no tiene ni una fila venida de Stripe; ninguna sesión se ha llegado a pagar |
 | Confirmación desde la página de retorno | 🟢 hecho | endpoint con verificación de sesión (§4.1) |
 | Conciliación y reportes de dinero | ⚫ no existe | — |
 | CI | 🟢 hecho | `.github/workflows/ci.yml`: typecheck, lint, tests y ambos builds |
@@ -65,14 +67,14 @@ ha corrido jamás**:
 
 | Función | Qué hace | Veces ejecutada |
 |---|---|:--:|
-| `createCheckoutSession` | abre la página de cobro | **0** |
-| `retrieveSession` | relee la sesión para decidir | **0** |
-| `fulfillCheckout` | marca el pedido pagado y lo confirma | **0** |
+| ~~`createCheckoutSession`~~ | abre la página de cobro | ✅ ejecutada contra el sandbox |
+| ~~`retrieveSession`~~ | relee la sesión para decidir | ✅ ejecutada contra el sandbox |
+| ~~`fulfillCheckout`~~ | marca el pedido pagado y lo confirma | ✅ pedido #60, cobro real |
 | `failCheckout` | libera stock de un cobro caído | **0** |
 | `providerRefund` | devuelve dinero por la API de Stripe | **0** |
 | `syncRefund` | refleja un reembolso hecho en el Dashboard | **0** |
-| `handleEvent` / `claimEvent` | despacha y deduplica eventos | **0** |
-| verificación de firma **en la ruta** | rechaza un webhook falso | **0** |
+| ~~`handleEvent` / `claimEvent`~~ | despacha y deduplica eventos | ✅ 5 eventos reales, todos 200 |
+| ~~verificación de firma **en la ruta**~~ | rechaza un webhook falso | ✅ automatizada |
 
 La base lo confirma sin ambigüedad: `stripe_events` tiene **0 filas** y no existe ni un pago con
 proveedor `stripe`. La única fila que llegó a existir la inserté yo a mano para ejercitar el
@@ -82,6 +84,119 @@ barrido, con un id de sesión inventado; **la borré al hacer esta auditoría**,
 Lo que sí comprobé fue la verificación de firma **del SDK**, en un script aparte: firma válida
 aceptada, firma basura rechazada, cuerpo alterado rechazado, replay de una hora rechazado. Es
 tranquilizador y no es lo mismo que probar la ruta.
+
+---
+
+## 3bis. La cuenta sandbox, y lo que su estado sí impide
+
+> Añadido el 2 de septiembre de 2026, al conectar por primera vez una llave `sk_test_` real.
+
+`acct_1UAhJt…` — **país `MX`, moneda `mxn`**, que es el contexto correcto para esta tienda.
+Cobra: un PaymentIntent de $50 con `pm_card_visa` liquidó (`amount_received: 5000`).
+
+Dos hallazgos que cambian qué se puede verificar hoy:
+
+- **`charges_enabled: false`.** La cuenta no ha completado el alta. En modo prueba no impide
+  cobrar, pero sí restringe qué métodos hay disponibles.
+- **OXXO y SPEI están en `available: false`**, no sólo apagados. No se pueden encender desde la
+  API en este estado.
+
+Eso tiene una consecuencia incómoda que conviene dejar escrita: **afirmar «la sesión no ofrece
+OXXO» pasaría igual sin la exclusión del código.** Sería una prueba verde que no prueba nada —
+exactamente lo que `DT-008` describe.
+
+Por eso el smoke test separa las dos cosas:
+
+| Qué | Cómo se comprueba | Estado |
+|---|---|---|
+| Los parámetros existen | Stripe rechaza lo desconocido (`parameter_unknown`); acepta los nuestros | 🟢 probado |
+| La exclusión **tiene efecto** | excluir `card` vacía el conjunto y Stripe falla con «No valid payment method types» | 🟢 probado |
+| La exclusión suprime **OXXO** en concreto | requiere que la cuenta lo tenga disponible | 🟡 pendiente del alta |
+
+El mecanismo está probado; falta la configuración. Cuando la cuenta se active hay que releer la
+configuración de métodos y confirmar que OXXO aparece como `available` y **aun así** no se ofrece.
+
+---
+
+## 3ter. El primer cobro real (pedido #60)
+
+> 2 de septiembre de 2026. Sandbox `acct_1UAhJt…`, tarjeta `4242…`, $1 500 MXN.
+
+La cadena entera, de punta a punta y por primera vez:
+
+| Comprobación | Resultado |
+|---|---|
+| Total del servidor **=** `amount_total` de Stripe | `150000` = `150000` ✅ |
+| Stock reservado al crear el pedido | 6 → 5 ✅ |
+| Stock **no** vuelve a bajar al cobrar | sigue en 5 ✅ |
+| `checkout.session.completed` recibido y procesado | 5 eventos reenviados, **todos 200** ✅ |
+| Pedido tras el webhook | `confirmed` + `paid` ✅ |
+| Importe cobrado = total del pedido | `150000` ✅ |
+| Firma verificada en la app corriendo | sin cabecera → 400; firma basura → 400 ✅ |
+| `integration_identifier` en la sesión | `amoramar-hosted-checkout-fqishqrr` ✅ |
+| Métodos ofrecidos | `['card', 'link']`, sin OXXO ni SPEI ✅ |
+
+**`link` apareció.** Es exactamente lo que el `payment_method_types: ['card']` viejo tiraba a la
+basura: liquida al instante, no cuesta nada y no se estaba ofreciendo.
+
+### El bug que sólo aparece cobrando de verdad
+
+`getOrderByToken` leía el método de pago desde `findOpenAttempt`, que sólo mira intentos en
+`created`/`processing`. En cuanto el cobro **triunfa**, el intento pasa a `succeeded` y deja de
+encontrarse: quien acababa de pagar con tarjeta aterrizaba —desde el propio redirect de Stripe— en
+una página de confirmación que **no decía cómo había pagado** (`methodLabel: null`).
+
+Ninguna de las 210 pruebas lo atrapó, porque todas las que tocaban ese camino se detenían antes de
+que un cobro llegara a liquidarse. Es la clase de hueco que sólo cierra ejecutar el flujo.
+
+Corregido en `modules/storefront/queries.ts`: el cobro liquidado gana, y el abierto queda de
+respaldo para que un vale de OXXO siga teniendo método antes de pagarse. Con prueba de regresión
+en `modules/storefront/order-payment-label.test.ts`, verificada por mutación.
+
+---
+
+## 3quater. Los dos bugs que sólo aparecieron ejecutando la matriz
+
+> 2 de septiembre de 2026, contra el sandbox. Ninguno de los dos lo tenía ninguna prueba.
+
+### A. `refund.created` devolvía 500 (carrera de eventos)
+
+Un reembolso del Dashboard llega por **varios eventos casi simultáneos**: `refund.created` y
+`refund.updated`. Los dos entran en `syncRefund`, los dos ven que no hay fila y los dos intentan
+crearla. Es un comprobar-luego-actuar, y ninguna comprobación previa lo cierra.
+
+**El dinero salió bien**, y eso importa: `refunds_stripe_refund_id_unique` hizo perder al segundo,
+así que hubo un reembolso de $300, no dos. Fue exactamente la restricción de base actuando como
+frontera de idempotencia. Lo que estaba mal era la consecuencia: un **500** que hacía a Stripe
+reintentar un evento sin trabajo pendiente, y que en cualquier panel de monitoreo se leería como
+un webhook fallando.
+
+Corregido: la violación de unicidad se trata como «alguien ya lo registró» — se relee y se aplica
+el estado. Cualquier otro error sigue subiendo, porque un 200 sobre un fallo real perdería el
+evento para siempre. Verificado en vivo: el segundo reembolso ($1 200) pasó **sin un solo 500**.
+
+### B. Cancelar un pedido dejaba viva su página de cobro 🔴
+
+El más grave de los dos, y el que la matriz nombraba como #18.
+
+`voidOpenAttempts` cancelaba el **PaymentIntent**. Pero una sesión de Checkout que el comprador
+**nunca abrió no tiene PaymentIntent** — comprobado contra Stripe: `payment_intent: null` en una
+sesión recién creada. No había nada que cancelar, y el enlace seguía cobrando hasta 24 h.
+
+La secuencia que eso permite:
+
+1. el barrido cancela un pedido abandonado y **devuelve el pescado a la venta**;
+2. se vende a otro cliente;
+3. el primero abre su enlace viejo y **paga**;
+4. `fulfillCheckout` registra el cobro contra un pedido `cancelled` y sin existencias.
+
+Dinero recibido por algo que ya no hay. `F7.02` daba esto por hecho desde agosto y **nunca había
+corrido**.
+
+Corregido: si la sesión sigue `open` se **vence** (lo que además cancela el intent si existía); el
+vale de OXXO —sesión `complete` e impaga, que Stripe no deja vencer— sigue cerrándose por el
+intent. Con pruebas en `modules/payments/void-attempts.test.ts`, las tres verificadas por mutación,
+y la premisa del bug fijada contra Stripe en el smoke test.
 
 ---
 
@@ -198,10 +313,10 @@ Cada fila es un escenario que hoy nunca ha ocurrido. Ninguno requiere modo `live
 
 | # | Escenario | Cómo | Qué debe pasar |
 |---|---|---|---|
-| 1 | Tarjeta aprobada | `4242 4242 4242 4242` | pedido `paid` **y** `confirmed` solo |
+| 1 | Tarjeta aprobada | `4242 4242 4242 4242` | pedido `paid` **y** `confirmed` solo — ✅ **hecho** (#60: $1 500, stock 6→5 al reservar y **sin volver a bajar** al cobrar) |
 | 2 | Tarjeta rechazada | `4000 0000 0000 0002` | el pedido sigue `pending`/`unpaid`, el stock sigue apartado |
 | 3 | Requiere 3DS | `4000 0025 0000 3155` | el pedido no avanza hasta completar la autenticación |
-| 4 | Abandono del Checkout | cerrar la pestaña | `checkout.session.expired` → cancelado, stock liberado |
+| 4 | Abandono del Checkout | cerrar la pestaña | ✅ **hecho** (#61: sesión vencida por API → `cancelled`, stock 3→5) |
 | 5 | Doble clic en «Pagar» | pulsar dos veces | **una** sesión, no dos (clave de idempotencia) |
 | 6 | Retorno antes que el webhook | `stripe listen` apagado, pagar, volver | la página muestra **Pagado** (esto prueba `F7.01`) |
 
@@ -209,19 +324,19 @@ Cada fila es un escenario que hoy nunca ha ocurrido. Ninguno requiere modo `live
 
 | # | Escenario | Cómo | Qué debe pasar |
 |---|---|---|---|
-| 7 | Evento duplicado | reenviar el mismo `evt_` desde el Dashboard | el pedido cambia **una** vez |
+| 7 | Evento duplicado | reenviar el mismo `evt_` desde el Dashboard | el pedido cambia **una** vez — ✅ *el mecanismo (`claimEvent`) ya está cubierto automáticamente; falta el viaje real desde el Dashboard* |
 | 8 | Evento fuera de orden | disparar `async_payment_succeeded` antes que `completed` | resultado correcto (el manejador relee) |
-| 9 | Firma inválida | `curl` con `Stripe-Signature` basura | **400**, y nada escrito |
-| 10 | Endpoint caído y reintento | matar el servidor, pagar, levantarlo | Stripe reintenta y el pedido acaba pagado |
-| 11 | Fallo a mitad del manejador | forzar un error | 500, el evento **se libera** y el reintento sí funciona |
+| 9 | Firma inválida | `curl` con `Stripe-Signature` basura | **400**, y nada escrito — ✅ **automatizado** (firma basura, cuerpo alterado, otro secreto, replay de una hora, y sin cabecera) |
+| 10 | Endpoint caído y reintento | matar el servidor, pagar, levantarlo | ✅ **hecho** (un 500 real reentregado → 200, sin duplicar dinero) |
+| 11 | Fallo a mitad del manejador | forzar un error | 500, el evento **se libera** y el reintento sí funciona — ✅ **automatizado**, y comprobado por mutación: comentar `releaseEvent` hace fallar la prueba |
 
 **Reembolsos**
 
 | # | Escenario | Qué debe pasar |
 |---|---|---|
-| 12 | Reembolso total por API | `refunded`, y el libro con autor |
-| 13 | Reembolso parcial, luego otro | `partially_refunded` → `refunded`; nunca por encima de lo cobrado |
-| 14 | Reembolso desde el **Dashboard** de Stripe | el panel se entera solo, con `actorId` nulo |
+| 12 | Reembolso total por API | `refunded`, y el libro con autor | 🟡 pendiente (falta el que nace en el panel) |
+| 13 | Reembolso parcial, luego otro | ✅ **hecho** (#60: $300 → `partially_refunded`, +$1 200 → `refunded`, 150000 = 150000) |
+| 14 | Reembolso desde el **Dashboard** de Stripe | ✅ **hecho** — y destapó la carrera de §3quater |
 | 15 | Reembolso que falla | `refund.failed` → rojo en el pedido, el pedido vuelve a contar como cobrado |
 | 16 | Cancelar un pedido pagado | la puerta P4 obliga a decidir; el reembolso sale por Stripe |
 
@@ -230,7 +345,7 @@ Cada fila es un escenario que hoy nunca ha ocurrido. Ninguno requiere modo `live
 | # | Escenario | Qué debe pasar |
 |---|---|---|
 | 17 | Sesión real vencida (24 h) | el cron la cancela y libera stock — hoy sólo se probó con una fila inventada |
-| 18 | Cancelar un pedido con la página de pago abierta | el intent se cancela en Stripe y el enlace deja de cobrar (`F7.02`) |
+| 18 | Cancelar un pedido con la página de pago abierta | ✅ **corregido y probado** — no funcionaba; ver §3quater |
 
 ### Paso 4 — Lo que hace falta antes de pensar en producción
 
@@ -251,10 +366,17 @@ Deliberadamente **fuera** de esta fase, listado para que no se confunda con «ya
 primera; lo raro sería lo contrario. Presupuestar la matriz como «un rato de clicar» es la forma
 segura de acabar encendiendo pagos con la mitad sin comprobar.
 
-**El escenario 11 es el que más me preocupa.** La ruta del webhook, ante un fallo, borra la fila
-de `stripe_events` para que el reintento pueda trabajar. Esa lógica es correcta sobre el papel y
-nunca se ha ejecutado; si estuviera mal, un error transitorio se convertiría en un pago perdido en
-silencio, que es la peor clase de fallo que puede tener este sistema.
+**El escenario 11 ~~es el que más me preocupa~~ ya está cerrado.** La ruta, ante un fallo, borra
+la fila de `stripe_events` para que el reintento pueda trabajar. Era correcto sobre el papel y
+nunca se había ejecutado; si estuviera mal, un error transitorio se habría convertido en un pago
+perdido en silencio, la peor clase de fallo que puede tener este sistema. Ahora hay una prueba que
+falla el evento, exige 500, comprueba que la fila desapareció y vuelve a entregar el evento para
+ver que el reintento sí procesa. Se verificó por mutación que la prueba detecta la regresión.
+
+**Queda pendiente el hueco que esa prueba no cubre:** un fallo *después* de que `handleEvent` haya
+escrito parte de su trabajo. `releaseEvent` deja el evento listo para reintento, pero no deshace lo
+ya escrito; la idempotencia de `fulfillCheckout` es lo que debe absorberlo, y eso sólo se ve contra
+sesiones reales.
 
 **El sandbox no prueba el dinero.** Prueba el flujo. Comisiones, tiempos de liquidación y el
 comportamiento real de un reembolso a una tarjeta viva son cosas que sólo se ven en `live`, y este
