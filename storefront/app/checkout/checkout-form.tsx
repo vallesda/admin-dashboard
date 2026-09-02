@@ -26,25 +26,26 @@ import { EMPTY_STATE } from './form-state';
  * only option. The form enforces that by *changing the choice for you* and
  * saying why, rather than letting you pick something it will reject on submit.
  */
+/**
+ * El único estado al que la tienda entrega hoy.
+ *
+ * Escrito como lo escribe INEGI, que es contra lo que valida el servidor.
+ */
+const FIXED_STATE = 'Nuevo León';
+
 export default function CheckoutForm() {
   const { cart, subtotalCents } = useCart();
   const [state, formAction, pending] = useActionState(placeOrder, EMPTY_STATE);
   const [fulfillment, setFulfillment] = useState<'pickup' | 'delivery'>('pickup');
-  // `online` first because a paid order is one the shop can start cutting for
-  // immediately; cash at the counter stays one click away.
-  const [paymentMode, setPaymentMode] = useState<'online' | 'on_site'>('online');
 
-  /**
-   * Cash is only collected across the counter.
-   *
-   * Choosing delivery therefore forces the payment back to online. Done as a
-   * state change rather than by disabling the option, because a disabled radio
-   * that silently holds a stale value is how a form ends up submitting
-   * something the person did not choose.
+  /*
+   * Antes esto además devolvía el pago a «en línea» al elegir domicilio, porque
+   * el efectivo sólo se cobraba en el mostrador. Con un único camino de pago esa
+   * corrección ya no tiene nada que corregir: elegir cómo recibir el pedido dejó
+   * de afectar a cómo se paga.
    */
   function chooseFulfillment(next: 'pickup' | 'delivery') {
     setFulfillment(next);
-    if (next === 'delivery') setPaymentMode('online');
   }
 
   const [postalCode, setPostalCode] = useState('');
@@ -204,7 +205,18 @@ export default function CheckoutForm() {
                 Necesitamos la dirección completa para poder llegar.
               </p>
 
-              <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
+              {/*
+                Tres campos en una fila, y el tercero más estrecho.
+
+                «Interior» llevaba su «Opcional» como pista bajo la etiqueta, y
+                esa línea de más empujaba su campo un renglón por debajo de los
+                otros dos: la fila se veía rota sin que ninguno de los tres
+                estuviera mal. La palabra se movió al propio rótulo, donde no
+                ocupa altura, y la columna se estrechó porque un número interior
+                son dos o tres caracteres —«3», «B», «PH2»— y un campo ancho
+                promete un dato largo que nadie va a escribir.
+              */}
+              <div className="grid gap-4 sm:grid-cols-[2.2fr_1fr_0.8fr]">
                 <Field
                   name="street"
                   label="Calle"
@@ -220,8 +232,7 @@ export default function CheckoutForm() {
                 />
                 <Field
                   name="intNumber"
-                  label="Interior"
-                  hint="Opcional"
+                  label="Interior (opcional)"
                   error={state.fieldErrors.intNumber}
                 />
               </div>
@@ -281,80 +292,36 @@ export default function CheckoutForm() {
           />
         </fieldset>
 
-        <fieldset className="flex flex-col gap-4">
+        {/*
+          Un solo camino de pago, así que no hay nada que elegir.
+
+          Antes había dos opciones —tarjeta ahora, efectivo al recoger— y la de
+          efectivo desaparecía al elegir domicilio. Ahora todo pedido de la
+          tienda se paga en línea antes de existir, así que preguntar «cómo
+          prefieres pagar» sería ofrecer una decisión que no existe. Se sustituye
+          por la frase que sí aporta: qué va a pasar al pulsar el botón.
+
+          El modo no viaja en el formulario. Lo fija el servidor en
+          `placeOrder`, porque una regla que decide si se cobra o no no puede
+          depender de un campo que el navegador puede editar.
+
+          El mostrador conserva el cobro en efectivo: eso vive en el panel, y
+          esta pantalla no lo toca.
+        */}
+        <fieldset className="flex flex-col gap-2">
           <legend className="mb-3 font-display text-2xl font-light">
-            Cómo prefieres pagar
+            Cómo se paga
           </legend>
 
-          {/*
-            Two ways to pay, and only one of them survives a delivery.
+          <p className="text-sm text-muted">
+            {fulfillment === 'pickup'
+              ? 'Pagas ahora con tarjeta y sólo pasas por tu pedido a la tienda.'
+              : 'Pagas ahora con tarjeta y te lo llevamos a domicilio.'}
+          </p>
 
-            Cash is collected across the shop's own counter; nobody pays the
-            driver. So the second option simply is not offered once delivery is
-            chosen — hidden rather than disabled, because a greyed-out control
-            invites the shopper to argue with it, while a short line of text
-            explains the rule and moves on.
-          */}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            {(
-              [
-                {
-                  value: 'online' as const,
-                  label: 'Pagar ahora con tarjeta',
-                  detail:
-                    fulfillment === 'pickup'
-                      ? 'Pagas en línea y sólo pasas por tu pedido.'
-                      : 'Pagas en línea y te lo llevamos a domicilio.',
-                },
-                {
-                  value: 'on_site' as const,
-                  label: 'Pagar en efectivo al recoger',
-                  detail: 'Apartamos tu pedido y pagas en la tienda.',
-                },
-              ] as const
-            )
-              // Delivery leaves exactly one way to pay.
-              .filter(
-                (option) =>
-                  fulfillment === 'pickup' || option.value === 'online',
-              )
-              .map((option) => (
-                <label
-                  key={option.value}
-                  className={`flex flex-1 cursor-pointer items-start gap-3 rounded-sm border px-4 py-3 text-sm transition-colors ${
-                    paymentMode === option.value
-                      ? 'border-brand bg-brand-soft'
-                      : 'border-border-strong hover:border-muted'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMode"
-                    value={option.value}
-                    checked={paymentMode === option.value}
-                    onChange={() => setPaymentMode(option.value)}
-                    className="mt-0.5 accent-brand"
-                  />
-                  <span>
-                    <span className="block">{option.label}</span>
-                    <span className="mt-0.5 block text-xs text-muted">
-                      {option.detail}
-                    </span>
-                  </span>
-                </label>
-              ))}
-          </div>
-
-          {fulfillment === 'delivery' ? (
-            <p className="text-sm text-muted">
-              Los pedidos a domicilio se pagan en línea. El efectivo es sólo al
-              recoger en la tienda.
-            </p>
-          ) : null}
-
-          {state.fieldErrors.paymentMode ? (
-            <p className="text-sm text-brand">{state.fieldErrors.paymentMode}</p>
-          ) : null}
+          <p className="text-sm text-muted">
+            Tu pedido se aparta cuando el pago se confirma.
+          </p>
         </fieldset>
       </div>
 
@@ -454,9 +421,7 @@ export default function CheckoutForm() {
         </Button>
 
         <p className="text-sm text-muted">
-          {paymentMode === 'online'
-            ? 'Al confirmar te llevamos a pagar con tarjeta.'
-            : 'Apartamos tu pedido y pagas en efectivo al recogerlo.'}
+          Al confirmar te llevamos a pagar con tarjeta.
         </p>
       </aside>
     </form>
@@ -549,32 +514,43 @@ function Field({
 function StateField({ error }: { error?: string }) {
   const errorId = error ? 'state-error' : undefined;
 
+  /*
+   * Nuevo León, fijo, mientras la tienda esté en alfa.
+   *
+   * El reparto sale de una sola zona y el selector de 32 estados invitaba a
+   * elegir uno al que no llegamos: el cliente descubría el problema al final,
+   * que es el peor momento. Fijarlo aquí lo dice desde el principio.
+   *
+   * Dos controles y no uno, porque un `<select>` deshabilitado **no viaja en el
+   * formulario**: el navegador omite los campos deshabilitados al enviar, así
+   * que el estado llegaría vacío a la validación y el pedido se caería con un
+   * error que nadie escribió. El campo visible está deshabilitado y el `hidden`
+   * es el que manda el valor.
+   *
+   * La ortografía tiene que ser exactamente la de INEGI —`modules/sales/address.ts`
+   * valida contra esa lista— así que el acento no es decorativo.
+   */
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor="state" className="text-sm font-medium">
         Estado
       </label>
 
-      <select
+      <input type="hidden" name="state" value={FIXED_STATE} />
+
+      <input
         id="state"
-        name="state"
-        required
-        defaultValue=""
+        type="text"
+        value={FIXED_STATE}
+        disabled
+        readOnly
         aria-describedby={errorId}
-        aria-invalid={error ? true : undefined}
-        className={`w-full rounded-sm border bg-background px-3 py-2.5 text-sm focus-visible:border-brand ${
-          error ? 'border-brand' : 'border-border-strong'
-        }`}
-      >
-        <option value="" disabled>
-          Elige tu estado
-        </option>
-        {MEXICAN_STATES.map((state) => (
-          <option key={state} value={state}>
-            {state}
-          </option>
-        ))}
-      </select>
+        className="w-full cursor-not-allowed rounded-sm border border-border-strong bg-sand px-3 py-2.5 text-sm text-muted"
+      />
+
+      <p className="text-xs text-muted">
+        Por ahora sólo entregamos en Nuevo León.
+      </p>
 
       {error ? (
         <p id={errorId} role="alert" className="text-sm text-brand">

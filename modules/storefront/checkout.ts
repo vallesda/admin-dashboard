@@ -14,11 +14,11 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { orders } from '@/db/schema/sales';
-import { createOrder } from '@/modules/sales/service';
+import { changeOrderStatus, createOrder } from '@/modules/sales/service';
 import { createCustomer, findByPhone } from '@/modules/customers/service';
 import { customerSchema } from '@/modules/customers/validators';
 import { createOrderSchema } from '@/modules/sales/validators';
-import { openCheckout } from '@/modules/payments/checkout';
+import { openCheckout, voidOpenAttempts } from '@/modules/payments/checkout';
 import { ConflictError } from '@/lib/errors';
 import { deliveryAddressSchema } from '@/modules/sales/address';
 
@@ -233,47 +233,55 @@ export async function checkout(
     console.error('[checkout] no se pudo abrir el cobro en línea', error);
 
     /*
-     * The provider is down or unconfigured, and the order already exists with
-     * its stock reserved. What happens next depends on how it is handed over,
-     * because the shop only takes cash across its own counter.
+     * El proveedor está caído o sin configurar. El pedido ya existe y ya apartó
+     * inventario, así que hay que deshacerlo.
      *
-     * **Pickup** falls back to the path this shop has always had: the order
-     * becomes payable in cash when they come for it.
+     * Desde que la tienda cobra siempre por adelantado, dejar el pedido en pie
+     * es la peor de las opciones: aparta pescado que nadie pagó, en nombre de
+     * alguien que quiso pagar y no pudo. Antes esto se bifurcaba —a domicilio
+     * quedaba pendiente, a recoger se convertía en efectivo al mostrador— y
+     * ninguna de las dos ramas sigue siendo legal.
      *
-     * **Delivery** cannot. Cash from a driver is exactly the arrangement the
-     * shop declined, and writing it would violate `orders_cash_is_pickup_only`
-     * anyway. So the order stays `online` and unpaid, and the customer is told
-     * the shop will send a payment link — which is a real capability
-     * (`sendPaymentLink`), not a promise we cannot keep. The counter sees the
-     * order in its list with money still owed.
+     * Se cancela por `changeOrderStatus`, no con un `UPDATE` a mano: esa función
+     * es la que devuelve la reserva al inventario y escribe el movimiento. Un
+     * `UPDATE` aquí sería una segunda forma de cancelar un pedido, y las dos
+     * acabarían discrepando. `actorId` va en `null` porque nadie de la tienda
+     * canceló esto.
+     *
+     * `voidOpenAttempts` primero, por si el cobro alcanzó a crear un intento
+     * antes de fallar. Es el mismo orden que usa el barrido programado.
      */
-    if (input.fulfillmentType === 'delivery') {
-      return {
-        orderNumber: order.orderNumber,
-        token: row.publicToken,
-        paymentMode: 'online',
-        payment: {
-          status: 'pending',
-          checkoutUrl: null,
-          expiresAt: null,
-        },
-      };
+    try {
+      await voidOpenAttempts(order.id);
+      await changeOrderStatus(order.id, 'cancelled', null);
+    } catch (cleanupError) {
+      /*
+       * Si la limpieza también falla, el pedido queda vivo apartando producto.
+       * No se relanza este error: el que importa para el cliente es el de
+       * abajo, y taparlo con un fallo de limpieza le diría algo que no le sirve.
+       *
+       * Ese pedido huérfano no se queda ahí para siempre: el barrido de
+       * reservas abandonadas lo recoge. Esto es lo que hace que fallar aquí sea
+       * survivable — hay una segunda red debajo.
+       */
+      console.error(
+        '[checkout] el pedido quedó sin cancelar tras fallar el cobro',
+        { orderId: order.id, orderNumber: order.orderNumber },
+        cleanupError,
+      );
     }
 
-    await db
-      .update(orders)
-      .set({ paymentMode: 'on_site', updatedAt: new Date() })
-      .where(eq(orders.id, order.id));
-
-    return {
-      orderNumber: order.orderNumber,
-      token: row.publicToken,
-      paymentMode: 'on_site',
-      payment: {
-        status: 'on_delivery',
-        instructions:
-          'No pudimos abrir el pago en línea, así que tu pedido quedó apartado. Paga en efectivo al recogerlo.',
-      },
-    };
+    /*
+     * Se lanza, no se devuelve un pedido a medias.
+     *
+     * El cliente no tiene ningún pedido —acaba de cancelarse— así que enseñarle
+     * una confirmación sería mentirle. `ConflictError` llega a la tienda como un
+     * 422 con este texto, que es el que verá en el formulario.
+     */
+    throw new ConflictError(
+      'checkout.payment_unavailable',
+      'No pudimos abrir el pago en línea, así que no se generó tu pedido. ' +
+        'Vuelve a intentarlo en un momento.',
+    );
   }
 }

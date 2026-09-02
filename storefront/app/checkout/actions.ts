@@ -32,11 +32,18 @@ export async function placeOrder(
   const phone = String(formData.get('phone') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim();
   const rawFulfillment = String(formData.get('fulfillmentType') ?? '');
-  const rawPaymentMode = String(formData.get('paymentMode') ?? '');
-  const paymentMode =
-    rawPaymentMode === 'online' || rawPaymentMode === 'on_site'
-      ? rawPaymentMode
-      : null;
+  /*
+   * El modo de pago no se lee del formulario: se decide aquí.
+   *
+   * Todo pedido hecho desde la tienda se cobra en línea antes de existir, así
+   * que no hay nada que el navegador pueda elegir. Leerlo del `FormData` —como
+   * se hacía— dejaba la regla que decide si se cobra a merced de un campo que
+   * cualquiera puede editar antes de enviar.
+   *
+   * El efectivo sigue existiendo en el panel, para el mostrador. Esa puerta es
+   * otra y tiene su propia autenticación.
+   */
+  const paymentMode = 'online' as const;
   const fulfillmentType =
     rawFulfillment === 'pickup' || rawFulfillment === 'delivery'
       ? rawFulfillment
@@ -80,10 +87,6 @@ export async function placeOrder(
     fieldErrors.fulfillmentType = 'Elige cómo quieres recibirlo.';
   }
 
-  if (paymentMode === null) {
-    fieldErrors.paymentMode = 'Elige cómo quieres pagar.';
-  }
-
   if (fulfillmentType === 'delivery') {
     if (!address.street) fieldErrors.street = 'Escribe la calle.';
     if (!address.extNumber) fieldErrors.extNumber = 'Falta el número.';
@@ -93,16 +96,6 @@ export async function placeOrder(
     if (!/^[0-9]{5}$/.test(address.postalCode)) {
       fieldErrors.postalCode = 'El código postal son 5 dígitos.';
     }
-  }
-
-  /*
-   * Cash is collected across the shop's counter, never from a driver. The form
-   * already hides the option once delivery is chosen; this is the check that
-   * holds when the form is not the thing posting.
-   */
-  if (paymentMode === 'on_site' && fulfillmentType === 'delivery') {
-    fieldErrors.paymentMode =
-      'Los pedidos a domicilio se pagan en línea.';
   }
 
   let lines: { productId: string; quantity: number }[] = [];
@@ -123,11 +116,7 @@ export async function placeOrder(
 
   // `fulfillmentType === null` is already recorded in fieldErrors above; naming
   // it again here is what lets the compiler see it cannot be null below.
-  if (
-    Object.keys(fieldErrors).length > 0 ||
-    fulfillmentType === null ||
-    paymentMode === null
-  ) {
+  if (Object.keys(fieldErrors).length > 0 || fulfillmentType === null) {
     return { error: null, fieldErrors };
   }
 
@@ -149,13 +138,10 @@ export async function placeOrder(
       // The admin validates the origin against an allow-list before handing
       // either URL to the payment provider, so this cannot become an open
       // redirect (DOCS/PAGOS.md §8.2).
-      returnUrls:
-        paymentMode === 'online'
-          ? {
-              success: `${storeOrigin()}/pedido/{TOKEN}`,
-              cancel: `${storeOrigin()}/checkout?cancelado=1`,
-            }
-          : undefined,
+      returnUrls: {
+        success: `${storeOrigin()}/pedido/{TOKEN}`,
+        cancel: `${storeOrigin()}/checkout?cancelado=1`,
+      },
     });
     token = result.token;
     // Null when the order is payable online but no page could be opened. The

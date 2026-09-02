@@ -22,7 +22,7 @@ export default function Page() {
             Confirma tu <em>pedido</em>
           </>
         }
-        lede="No se cobra nada aquí. Te llamamos para confirmar horario y punto de entrega, y pagas al recibirlo o recogerlo."
+        lede="Pagas con tarjeta al confirmar. Después te llamamos para acordar el horario y el punto de entrega."
         className="mb-10"
       />
       <CheckoutForm />
