@@ -44,6 +44,9 @@ function form(over: Record<string, string> = {}) {
     lines: JSON.stringify([{ productId: 'p1', quantity: 2 }]),
     name: 'Ana López',
     phone: '8112345678',
+    // Obligatorio desde que se cobra por adelantado: es donde llega el
+    // comprobante, y lo que Stripe usa como `customer_email`.
+    email: 'ana@example.com',
     fulfillmentType: 'pickup',
     ...over,
   };
@@ -121,6 +124,36 @@ describe('lo que se le pide al cliente', () => {
     expect(state?.fieldErrors.name).toBeTruthy();
     expect(state?.fieldErrors.phone).toBeTruthy();
     expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('exige el correo, que antes era opcional', async () => {
+    /*
+     * Cambió con el cobro por adelantado. Sin correo el comprador se queda sin
+     * el comprobante de Stripe y sin nada escrito que pruebe lo que pagó: el
+     * único rastro sería una llamada.
+     */
+    const { state } = await run(form({ email: '' }));
+
+    expect(state?.fieldErrors.email).toBe(
+      'Escribe tu correo: ahí te llega el comprobante.',
+    );
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un correo con forma inservible', async () => {
+    const { state } = await run(form({ email: 'ana@' }));
+
+    expect(state?.fieldErrors.email).toBe('Ese correo no parece válido.');
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('el correo llega al pedido, no se pierde por el camino', async () => {
+    // Es lo que acaba en `customer_email` de la sesión de Checkout.
+    await run(form());
+
+    expect(vi.mocked(createOrder).mock.calls[0][0]).toMatchObject({
+      customer: expect.objectContaining({ email: 'ana@example.com' }),
+    });
   });
 
   it('a domicilio exige la dirección completa', async () => {

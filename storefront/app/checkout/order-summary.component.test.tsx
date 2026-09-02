@@ -9,11 +9,14 @@ import type { DeliveryQuote } from '@/lib/commerce/types';
 import OrderSummary from './order-summary';
 
 /**
- * El panel lateral: lo último que se lee antes de pagar.
+ * El panel lateral: cuánto va a pagar.
  *
- * Lo que se protege es que el cliente sepa **cuánto va a pagar** antes de
- * pulsar. Un total que aparece sin el envío, o un «fuera de cobertura» que no
- * frena el botón, convierten el checkout en una sorpresa.
+ * Lo que se protege es que el cliente lo sepa **antes** de pulsar. Un total que
+ * aparece sin el envío convierte el checkout en una sorpresa.
+ *
+ * El botón ya no vive aquí: con el checkout por pasos, la acción cierra el paso
+ * que se está mirando. Lo que se bloquea y por qué se prueba en
+ * `checkout-form.component.test.tsx`; este archivo se quedó con las cifras.
  *
  * Ojo con lo que este panel *no* hace: no calcula. El total que enseña es
  * informativo y el que se cobra lo vuelve a calcular el panel desde los
@@ -53,12 +56,8 @@ const sinCobertura = (): DeliveryQuote => ({ covered: false, reason: 'out_of_ran
 const base = {
   cart,
   subtotalCents: 96000,
-  pending: false,
   quoteLoading: false,
 };
-
-// Por rol y no por texto: al enviar, la etiqueta cambia a «Enviando…».
-const boton = () => screen.getByRole('button') as HTMLButtonElement;
 
 describe('lo que suma', () => {
   it('enseña el subtotal y las líneas del carrito', () => {
@@ -78,19 +77,6 @@ describe('lo que suma', () => {
 });
 
 describe('fuera de cobertura', () => {
-  it('no deja confirmar', () => {
-    render(
-      <OrderSummary
-        {...base}
-        fulfillment="delivery"
-        quote={sinCobertura()}
-      />,
-    );
-
-    // Dejarlo pulsar sería crear un pedido que nadie puede entregar.
-    expect(boton().disabled).toBe(true);
-  });
-
   it('dice por qué, con palabras del negocio', () => {
     render(
       <OrderSummary
@@ -105,19 +91,14 @@ describe('fuera de cobertura', () => {
     expect(screen.getByText(/no hacemos entregas en ese código postal/i)).not.toBeNull();
     expect(screen.getByText(/recoger tu\s+pedido en la tienda/i)).not.toBeNull();
   });
-
-  it('recoger en tienda nunca se bloquea por cobertura', () => {
-    // No hay envío que cubrir.
-    render(<OrderSummary {...base} fulfillment="pickup" quote={null} />);
-
-    expect(boton().disabled).toBe(false);
-  });
 });
 
-describe('mientras se envía', () => {
-  it('el botón se bloquea para no crear dos pedidos', () => {
-    render(<OrderSummary {...base} pending fulfillment="pickup" quote={null} />);
+describe('qué se lleva', () => {
+  it('dice cuántos productos son', () => {
+    // En «Revisar» este panel es la única prueba de qué se está pagando, y
+    // contar líneas a ojo no es prueba.
+    render(<OrderSummary {...base} fulfillment="pickup" quote={null} />);
 
-    expect(boton().disabled).toBe(true);
+    expect(screen.getByText('1 producto')).not.toBeNull();
   });
 });

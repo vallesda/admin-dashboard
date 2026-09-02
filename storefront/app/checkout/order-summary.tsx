@@ -4,18 +4,22 @@ import Image from 'next/image';
 
 import { formatMoney } from '@/lib/format';
 import { CURRENCY } from '@/lib/commerce/constants';
-import Button from '@/components/ui/button';
 import type { CartLine, DeliveryQuote } from '@/lib/commerce/types';
 import type { Cart } from '@/lib/cart';
 
 /**
- * El panel lateral: qué se lleva, cuánto suma y el botón que confirma.
+ * El panel lateral: qué se lleva y cuánto suma.
  *
- * Es lo último que el cliente lee antes de pagar, así que aquí no se calcula
- * nada: todo llega ya resuelto. El total que se enseña es informativo — el que
- * se cobra lo vuelve a calcular el panel desde los identificadores del carrito,
- * y por eso una cifra equivocada aquí no puede convertirse en un cobro
- * equivocado.
+ * Informativo de principio a fin. Aquí no se calcula nada —todo llega ya
+ * resuelto— y el total que enseña es una vista previa: el que se cobra lo
+ * vuelve a calcular el panel desde los identificadores del carrito, así que una
+ * cifra equivocada aquí no puede convertirse en un cobro equivocado.
+ *
+ * Ya no lleva el botón. Vivía aquí cuando el checkout era una sola pantalla, y
+ * con pasos la acción tiene que cerrar el paso que se está mirando: en un
+ * teléfono este panel queda por debajo de todo el formulario, y el comprador
+ * tenía que pasar el resumen entero para encontrar el botón. Ahora está en
+ * `StepNav`, siempre en el mismo sitio.
  */
 export default function OrderSummary({
   cart,
@@ -23,7 +27,6 @@ export default function OrderSummary({
   fulfillment,
   quote,
   quoteLoading,
-  pending,
 }: {
   cart: Cart;
   subtotalCents: number;
@@ -31,11 +34,16 @@ export default function OrderSummary({
   /** La cotización vigente, o `null` mientras no haya una que sirva. */
   quote: DeliveryQuote | null;
   quoteLoading: boolean;
-  pending: boolean;
 }) {
   return (
     <aside className="flex h-fit flex-col gap-5 rounded-sm border border-border bg-surface p-5 md:sticky md:top-6">
       <h2 className="font-display text-xl font-light">Tu pedido</h2>
+
+      {/* El número de piezas, arriba: en «Revisar» este panel es la única
+          prueba de qué se está pagando, y contar líneas a ojo no es prueba. */}
+      <p className="-mt-3 text-sm text-muted">
+        {cart.lines.length === 1 ? '1 producto' : `${cart.lines.length} productos`}
+      </p>
 
       <ul className="flex flex-col gap-4">
         {cart.lines.map((line) => (
@@ -119,19 +127,6 @@ export default function OrderSummary({
         </span>
       </div>
 
-      <Button
-        fullWidth
-        type="submit"
-        // Bloquear el envío es correcto aquí: el pedido se rechazaría de
-        // todos modos y el mensaje llegaría después de un viaje al servidor.
-        disabled={pending || (fulfillment === 'delivery' && quote?.covered === false)}
-      >
-        {pending ? 'Enviando…' : 'Confirmar pedido'}
-      </Button>
-
-      <p className="text-sm text-muted">
-        Al confirmar te llevamos a pagar con tarjeta.
-      </p>
     </aside>
   );
 }

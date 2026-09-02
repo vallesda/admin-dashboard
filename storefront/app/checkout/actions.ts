@@ -79,7 +79,23 @@ export async function placeOrder(
     fieldErrors.phone = 'Escribe un teléfono de 10 dígitos.';
   }
 
-  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+  /*
+   * El correo pasó a ser obligatorio.
+   *
+   * Era opcional cuando el pedido se pagaba al recibir y el teléfono bastaba
+   * para todo. Ahora se cobra por adelantado, y sin correo el comprador se
+   * queda sin el recibo de Stripe y sin nada escrito que pruebe lo que pagó:
+   * el único rastro sería una llamada. Además es lo que llega a
+   * `customer_email` de la sesión de Checkout, así que pedirlo aquí ahorra
+   * pedirlo otra vez en la página de Stripe.
+   *
+   * Sólo aquí. `customerSchema` lo sigue aceptando nulo a propósito: el
+   * mostrador levanta pedidos por teléfono y exigir un correo que el cliente
+   * no dio dejaría al panel sin poder registrar una venta que ya ocurrió.
+   */
+  if (!email) {
+    fieldErrors.email = 'Escribe tu correo: ahí te llega el comprobante.';
+  } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     fieldErrors.email = 'Ese correo no parece válido.';
   }
 

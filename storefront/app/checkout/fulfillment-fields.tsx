@@ -38,9 +38,13 @@ export default function FulfillmentFields({
 }) {
   return (
       <fieldset className="flex flex-col gap-4">
-        <legend className="mb-3 font-display text-2xl font-light">
-          Cómo lo quieres recibir
-        </legend>
+        {/*
+          Accesible pero no visible: el indicador de pasos ya pone este
+          título arriba, y repetirlo dos veces seguidas gastaba la
+          jerarquía sin añadir nada. El `fieldset` sigue necesitando su
+          `legend` para que un lector de pantalla sepa qué agrupa.
+        */}
+        <legend className="sr-only">Cómo lo quieres recibir</legend>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           {(

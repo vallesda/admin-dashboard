@@ -22,7 +22,13 @@ export default function Page() {
             Confirma tu <em>pedido</em>
           </>
         }
-        lede="Pagas con tarjeta al confirmar. Después te llamamos para acordar el horario y el punto de entrega."
+        /*
+         * Decía «Pagas con tarjeta al confirmar», y con el checkout por pasos
+         * eso dejó de ser cierto: se paga al final, después de revisar. Lo que
+         * sigue valiendo la pena decir aquí es lo que el comprador no puede
+         * deducir de la pantalla — que después hay una llamada.
+         */
+        lede="Tres pasos y te llevamos a pagar. Después te llamamos para acordar el horario y el punto de entrega."
         className="mb-10"
       />
       <CheckoutForm />

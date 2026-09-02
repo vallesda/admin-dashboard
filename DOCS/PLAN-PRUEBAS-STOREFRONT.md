@@ -40,6 +40,8 @@ Una prueba E2E que sólo verifica que un botón existe es una prueba de componen
 
 ## 2. Cómo se corre
 
+Veinte escenarios, ~2,5 min la tanda completa.
+
 ```bash
 pnpm dev                          # admin  :3000
 pnpm --filter storefront dev      # tienda :3001
@@ -108,60 +110,72 @@ entera.
 
 Verificada: cuatro corridas seguidas en verde, sin reintentos, ~19 s cada una.
 
-### 3.2 `checkout-failures.spec.ts` — cuando el cobro no sale ⬜ por escribir
+### 3.2 `checkout-failures.spec.ts` — cuando el cobro no sale ✅ escrito
 
 | # | Escenario | Afirmación | M# |
 |---|---|---|---|
-| P6 | tarjeta rechazada (`4000…0002`) | el pedido sigue `unpaid`; **el stock sigue apartado** | M2 |
-| P7 | 3DS, autenticación completada | acaba `paid` | M3 |
-| P8 | 3DS, autenticación abandonada | no avanza; el stock sigue apartado | M3 |
-| P9 | fondos insuficientes (`4000…9995`) | mensaje al cliente, pedido intacto | — |
-| P10 | cerrar la pestaña en Stripe | nada cambia hasta que vence la sesión | M4 |
+| P6 | tarjeta rechazada (`4000…0002`) | ✅ sigue `unpaid`; **el stock sigue apartado** | M2 |
+| P7 | 3DS, autenticación completada | ✅ acaba `paid` | M3 |
+| P8 | 3DS, autenticación rechazada | ✅ no avanza; el stock sigue apartado | M3 |
+| P9 | fondos insuficientes (`4000…9995`) | ✅ mensaje al cliente, pedido intacto | — |
+| P10 | sesión vencida | ✅ pedido `cancelled` y **stock devuelto** | M4 |
 
 En P6 y P8 lo que se prueba **no** es el mensaje de error: es que el pescado siga apartado. Una
 tarjeta rechazada no es un pedido abandonado, y liberar el stock ahí le quitaría el producto a
 alguien que va a reintentar con otra tarjeta.
 
-### 3.3 `checkout-confirmation.spec.ts` — la vuelta ⬜ por escribir
+P10 no espera las 24 horas que tarda una sesión en caducar: la vence por API, que emite el mismo
+`checkout.session.expired`. Lo que se ejercita es el manejador de verdad, no un atajo.
+
+### 3.3 `checkout-confirmation.spec.ts` — la vuelta ✅ escrito
 
 | # | Escenario | Afirmación | M# |
 |---|---|---|---|
-| P11 | **con `stripe listen` apagado**, pagar y volver | la página dice **Pagado** igual | M6 |
-| P12 | recargar la página del pedido varias veces | el pedido se confirma **una** vez |
-| P13 | `session_id` de **otro** pedido en la URL | 403, y nada se confirma |
-| P14 | token inventado | 404 limpio |
+| P11 | **con `stripe listen` apagado**, pagar y volver | ✅ la página dice **Pagado** igual | M6 |
+| P12 | recargar la página del pedido varias veces | ✅ se confirma **una** vez |
+| P13 | `session_id` de **otro** pedido en la URL | ✅ 403, y ninguno de los dos se mueve |
+| P14 | token inventado | ✅ 404 limpio |
 
 **P11 es la más importante de esta capa.** Es lo único que prueba `F7.01`: que la página de retorno
 concilie por su cuenta. Sin ella, el sistema depende de que el webhook llegue en los 10 s que
 Checkout espera antes de redirigir, y «casi siempre» es exactamente lo que este proyecto decidió no
 suponer.
 
+Apaga `stripe listen` y lo vuelve a encender en `afterAll` —pase lo que pase con la prueba, porque
+dejarlo apagado rompería en silencio todo lo que corriera después—. Se puede hacer sin tocar
+`.env.local` porque el `whsec_` del CLI es **estable por cuenta y dispositivo**.
+
+Y **afirma que está apagado antes de medir nada**. La primera versión no lo hacía y pasó con el
+webhook vivo: el patrón de `pkill` no encontraba el proceso. Una prueba que no puede fallar no
+prueba nada; la forma de que pueda fallar es no suponer la precondición. Ver
+[PAGOS-VERIFICACION.md](PAGOS-VERIFICACION.md) §3quinquies.
+
 P13 es la puerta contra el diputado confundido: el `session_id` viaja en una URL que el cliente
 puede editar.
 
-### 3.4 `checkout-validation.spec.ts` — el formulario ⬜ por escribir
+### 3.4 `checkout-validation.spec.ts` — el formulario ✅ escrito
 
 | # | Escenario | Afirmación |
 |---|---|---|
-| P15 | carrito vacío | no hay formulario; no se puede pedir |
-| P16 | domicilio sin dirección | error de campo, sin viaje al servidor |
-| P17 | código postal fuera de zona | el botón se bloquea y se explica |
-| P18 | domicilio dentro de zona | el envío aparece **y entra en el total cobrado** |
-| P19 | envío gratis por monto | el total refleja la exención |
-| P20 | `lines` manipulado en el DOM | el importe cobrado lo decide el servidor (RN-008) |
+| P15 | carrito vacío | ✅ no hay formulario; no se puede pedir |
+| P16 | domicilio sin dirección | ✅ error de campo, sin viaje al servidor |
+| P17 | código postal fuera de zona | ✅ el botón se bloquea y se explica |
+| P18 | domicilio dentro de zona | ✅ el envío aparece **y entra en el total** |
+| P19 | envío gratis por monto | el total refleja la exención — ⬜ *pendiente: pide 6 piezas del producto de prueba para pasar de $800* |
+| P20 | `lines` manipulado en el DOM | ✅ el importe cobrado lo decide el servidor (RN-008) |
 
 P20 es una prueba de seguridad, no de UI: el carrito vive en `localStorage` y viaja como JSON en un
 campo oculto. Manipularlo debe cambiar **qué** se pide, nunca **cuánto** cuesta.
 
-### 3.5 `catalog-browsing.spec.ts` — navegar y armar el carrito ⬜ por escribir
+### 3.5 `catalog-browsing.spec.ts` — navegar y armar el carrito ✅ escrito
 
 | # | Escenario | Afirmación |
 |---|---|---|
-| P21 | colecciones (fresco / congelado / especiales) | filtran de verdad |
-| P22 | producto agotado | no se puede agregar |
-| P23 | el carrito sobrevive a una recarga | `localStorage` |
-| P24 | cantidades desde la rejilla y desde la ficha | coinciden |
-| P25 | paquetes (`/paquete/[handle]`) | se agregan como cualquier producto |
+| P21 | colecciones (fresco / congelado / especiales) | ✅ filtran de verdad |
+| P22 | producto agotado | ✅ botón visible y deshabilitado, no escondido |
+| P23 | el carrito sobrevive a una recarga | ✅ `localStorage` |
+| P24 | cantidades desde la rejilla y desde la ficha | ✅ coinciden |
+| P25 | paquetes (`/paquete/[handle]`) | ⬜ *pendiente: la base de desarrollo no tiene ningún paquete activo* |
 
 ---
 
@@ -194,19 +208,47 @@ sobre la causa.
 `/product/[handle]` quitó la carrera sin quitar cobertura, porque la rejilla ya tiene su prueba de
 componente.
 
+**Localiza por rótulo accesible, no por marcado.** El `+` del contador no se llama «+» —es
+`Agregar uno de <producto>`— y la cifra es un `<input>`, así que se comprueba con `toHaveValue` y
+no con `toHaveText`. Buscar dentro de un `article` ataba la prueba a la forma de la tarjeta, que es
+justo lo que un rediseño cambia sin romper nada.
+
+**Abre la página de Stripe con `domcontentloaded`.** Sigue cargando recursos mucho después de ser
+usable, y en una tanda larga el `load` por defecto agota el tiempo: los dos únicos fallos de la
+primera suite completa fueron eso, y ninguno era un fallo del producto. Lo que indica que se puede
+pagar es que exista el campo de la tarjeta.
+
 **Sin reintentos.** `retries: 0` en la configuración. Una prueba que toca dinero y pasa «a la
 segunda» está escondiendo una carrera, que es justo lo que esta capa existe para encontrar.
+
+**Afirma la precondición de la que dependes.** Si una prueba sólo tiene sentido con algo apagado,
+con cierto stock o en cierto estado, compruébalo con un `expect` antes de medir. Es la diferencia
+entre una prueba y una que siempre pasa: las dos se ven igual en verde.
 
 ---
 
 ## 6. Criterio de salida
 
 ```text
-P1–P25 pasan contra el sandbox
-P11 pasa con `stripe listen` apagado
-ninguna prueba necesita reintento
-ni una clave `live` en ninguna parte
+P1–P24 pasan contra el sandbox          ✅ 20 escenarios, suite completa en verde
+P11 pasa con `stripe listen` apagado    ✅ y afirma que lo está
+ninguna prueba necesita reintento       ✅ retries: 0
+ni una clave `live` en ninguna parte    ✅
 ```
+
+**Quedan dos, las dos por falta de datos y no de código:** P19 necesita un carrito de más de $800
+para ver la exención de envío, y P25 necesita un paquete activo en la base de desarrollo. Ninguna
+de las dos se puede escribir honestamente contra datos que no existen.
+
+### Un apunte sobre la base de desarrollo
+
+Neon cierra las conexiones ociosas del pool, y a mitad de una tanda larga eso sale como un **500
+con `ECONNRESET`** debajo. No es una afirmación sobre el producto, es la infraestructura
+parpadeando, y hacía fallar pruebas correctas.
+
+`adminApi` reintenta **sólo las lecturas**, hasta tres veces. Nunca las escrituras: `POST /checkout`
+crea un pedido y aparta stock, y reintentarlo a ciegas crearía dos. Un 500 al escribir tiene que
+fallar la prueba y que alguien lo mire.
 
 Cuando eso se cumpla, el flujo de la tienda estará verificado de punta a punta en modo de prueba —
 y seguirá **sin** poder cobrarle a nadie de verdad, que es una decisión aparte.

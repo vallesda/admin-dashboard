@@ -43,25 +43,41 @@ test('comprar un producto y verlo pagado', async ({ page }) => {
     await expect(page.getByRole('button', { name: /artículo/i })).toBeVisible();
   });
 
-  await test.step('se llena el checkout', async () => {
+  await test.step('paso 1 · tus datos', async () => {
     await page.goto('/checkout');
     await page.locator('input[name="name"]').fill('Prueba Automatizada');
     await page.locator('input[name="phone"]').fill('6121234567');
+    // Obligatorio: es donde llega el comprobante y lo que Stripe usa como
+    // `customer_email`.
+    await page.locator('input[name="email"]').fill('e2e@example.com');
+    await page.getByRole('button', { name: 'Continuar' }).click();
+  });
 
-    const email = page.locator('input[name="email"]');
-    if (await email.count()) await email.fill('e2e@example.com');
-
+  await test.step('paso 2 · entrega', async () => {
     // Recoger en tienda: evita depender de que el código postal caiga dentro de
     // una zona de reparto, que es una regla de `DEL` y tiene sus propias
     // pruebas.
-    const pickup = page.locator('input[name="fulfillmentType"][value="pickup"]');
-    if (await pickup.count()) await pickup.first().check();
+    await page
+      .locator('input[name="fulfillmentType"][value="pickup"]')
+      .first()
+      .check();
+    await page.getByRole('button', { name: 'Continuar' }).click();
+  });
 
-    await page.getByRole('button', { name: 'Confirmar pedido' }).click();
+  await test.step('paso 3 · revisar', async () => {
+    // El paso existe para que el comprador relea lo que escribió; si no lo
+    // muestra, no está cumpliendo su única función.
+    await expect(page.getByText('Revisa antes de pagar')).toBeVisible();
+    await expect(page.getByText('e2e@example.com')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Ir a pagar' }).click();
   });
 
   await test.step('Stripe cobra la tarjeta', async () => {
-    await page.waitForURL(/checkout\.stripe\.com/, { timeout: 45_000 });
+    await page.waitForURL(/checkout\.stripe\.com/, {
+      timeout: 60_000,
+      waitUntil: 'domcontentloaded',
+    });
     await payWithCard(page, CARDS.ok);
   });
 

@@ -200,6 +200,38 @@ y la premisa del bug fijada contra Stripe en el smoke test.
 
 ---
 
+## 3quinquies. La prueba que pasaba sin probar nada
+
+> 2 de septiembre de 2026, escribiendo el escenario #6.
+
+Merece quedar escrito porque es el fallo más barato de cometer y el más caro de
+no ver.
+
+El escenario #6 sólo tiene sentido con el webhook **apagado**: la página de retorno y el webhook
+llaman a la misma `fulfillCheckout`, así que con los dos vivos no se puede saber cuál hizo el
+trabajo. La prueba apagaba `stripe listen` con `pkill -f "stripe listen --forward-to"`.
+
+Ese patrón **nunca encontró el proceso**: la línea real es
+`stripe listen --api-key sk_test_… --forward-to …`, con la clave entre medias. `pkill` falló en
+silencio, `pgrep` tampoco lo vio, y la función dio por apagado algo que seguía corriendo. La prueba
+pasó — midiendo el webhook, es decir, sin probar `F7.01` en absoluto.
+
+Dos correcciones, y la segunda importa más:
+
+1. El patrón pasó a ser `stripe listen`, sin banderas.
+2. **La prueba afirma el estado del que depende** antes de medir nada:
+   `expect(forwardingRunning()).toBe(false)`. Una prueba que no puede fallar no prueba nada, y la
+   forma de que pueda fallar es no suponer la precondición.
+
+Con eso, `F7.01` quedó verificado por primera vez: el comprador ve «Pagado» sin que haya llegado
+ningún webhook.
+
+**El `whsec_` del CLI es estable por cuenta y dispositivo** (`stripe listen --print-secret` devuelve
+siempre el mismo), que es lo que permite apagar y encender el reenvío sin tocar `.env.local`. No es
+obvio y conviene no volver a averiguarlo.
+
+---
+
 ## 4. Huecos reales que encontró esta auditoría
 
 Tres cosas que no sabía antes de mirar. **Las tres están cerradas**; dejo el hallazgo escrito
@@ -314,18 +346,18 @@ Cada fila es un escenario que hoy nunca ha ocurrido. Ninguno requiere modo `live
 | # | Escenario | Cómo | Qué debe pasar |
 |---|---|---|---|
 | 1 | Tarjeta aprobada | `4242 4242 4242 4242` | pedido `paid` **y** `confirmed` solo — ✅ **hecho** (#60: $1 500, stock 6→5 al reservar y **sin volver a bajar** al cobrar) |
-| 2 | Tarjeta rechazada | `4000 0000 0000 0002` | el pedido sigue `pending`/`unpaid`, el stock sigue apartado |
-| 3 | Requiere 3DS | `4000 0025 0000 3155` | el pedido no avanza hasta completar la autenticación |
+| 2 | Tarjeta rechazada | `4000 0000 0000 0002` | ✅ **automatizado** (`checkout-failures`): sigue `unpaid` y **el stock sigue apartado** |
+| 3 | Requiere 3DS | `4000 0025 0000 3155` | ✅ **automatizado**: `unpaid` ante el reto, `paid` al autenticar |
 | 4 | Abandono del Checkout | cerrar la pestaña | ✅ **hecho** (#61: sesión vencida por API → `cancelled`, stock 3→5) |
-| 5 | Doble clic en «Pagar» | pulsar dos veces | **una** sesión, no dos (clave de idempotencia) |
-| 6 | Retorno antes que el webhook | `stripe listen` apagado, pagar, volver | la página muestra **Pagado** (esto prueba `F7.01`) |
+| 5 | Doble clic en «Pagar» | pulsar dos veces | ✅ **una** sesión, no dos (smoke de Stripe, matriz #5) |
+| 6 | Retorno antes que el webhook | `stripe listen` apagado, pagar, volver | ✅ **automatizado** (`checkout-confirmation`), con el reenvío apagado de verdad — ver §3quinquies |
 
 **Webhooks**
 
 | # | Escenario | Cómo | Qué debe pasar |
 |---|---|---|---|
 | 7 | Evento duplicado | reenviar el mismo `evt_` desde el Dashboard | el pedido cambia **una** vez — ✅ *el mecanismo (`claimEvent`) ya está cubierto automáticamente; falta el viaje real desde el Dashboard* |
-| 8 | Evento fuera de orden | disparar `async_payment_succeeded` antes que `completed` | resultado correcto (el manejador relee) |
+| 8 | Evento fuera de orden | disparar `async_payment_succeeded` antes que `completed` | ⚫ **no aplica con tarjeta.** Esos eventos sólo existen en métodos de notificación diferida; se prueba el día que se encienda SPEI |
 | 9 | Firma inválida | `curl` con `Stripe-Signature` basura | **400**, y nada escrito — ✅ **automatizado** (firma basura, cuerpo alterado, otro secreto, replay de una hora, y sin cabecera) |
 | 10 | Endpoint caído y reintento | matar el servidor, pagar, levantarlo | ✅ **hecho** (un 500 real reentregado → 200, sin duplicar dinero) |
 | 11 | Fallo a mitad del manejador | forzar un error | 500, el evento **se libera** y el reintento sí funciona — ✅ **automatizado**, y comprobado por mutación: comentar `releaseEvent` hace fallar la prueba |
@@ -357,6 +389,23 @@ Deliberadamente **fuera** de esta fase, listado para que no se confunda con «ya
 - un webhook desplegado con URL pública y su propio `whsec_`;
 - `CRON_SECRET` real (hoy es un valor de desarrollo);
 - las dos restricciones `NOT VALID` validadas, tras corregir a mano el pedido histórico #42.
+
+---
+
+## 6bis. Dónde está la matriz hoy
+
+| Bloque | Estado |
+|---|---|
+| Cobro (#1–#6) | 🟢 los seis, automatizados en `e2e/` |
+| Webhooks (#7, #9, #10, #11) | 🟢 automatizados entre `test/webhook-route.test.ts` y replay firmado |
+| Webhooks (#8) | ⚫ no aplica con tarjeta; espera a SPEI |
+| Reembolsos (#13, #14) | 🟢 verificados en vivo contra el sandbox |
+| Reembolsos (#12, #15, #16) | 🟡 pendientes: nacen en el panel, que pide sesión de admin |
+| Barrido (#17) | 🟡 el vencimiento sí (#4 lo cubre); falta el cron sobre un pedido de 26 h |
+| Barrido (#18) | 🟢 corregido y probado (§3quater) |
+
+**16 de 18.** Las dos que faltan de verdad —#12, #15, #16— entran por el panel, y automatizarlas
+pide resolver antes la sesión de admin en Playwright. No es difícil; es otro trabajo.
 
 ---
 

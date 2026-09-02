@@ -18,7 +18,13 @@ export default function CustomerFields({
 }) {
   return (
       <fieldset className="flex flex-col gap-5">
-        <legend className="mb-3 font-display text-2xl font-light">Tus datos</legend>
+        {/*
+          Accesible pero no visible: el indicador de pasos ya pone este
+          título arriba, y repetirlo dos veces seguidas gastaba la
+          jerarquía sin añadir nada. El `fieldset` sigue necesitando su
+          `legend` para que un lector de pantalla sepa qué agrupa.
+        */}
+        <legend className="sr-only">Tus datos</legend>
 
         <Field
           name="name"
@@ -39,9 +45,11 @@ export default function CustomerFields({
         />
         <Field
           name="email"
-          label="Correo (opcional)"
+          label="Correo"
           type="email"
           autoComplete="email"
+          required
+          hint="Aquí te mandamos el comprobante de tu pago."
           error={errors.email}
         />
       </fieldset>
