@@ -26,7 +26,7 @@ vi.mock('@/modules/payments/checkout', () => ({
 }));
 
 const { openCheckout } = await import('@/modules/payments/checkout');
-const { checkout } = await import('./checkout');
+const { checkout, checkoutSchema } = await import('./checkout');
 
 beforeAll(async () => {
   await initTestDb();
@@ -126,5 +126,52 @@ describe('checkout · el cobro no se puede abrir', () => {
 
     expect(result.paymentMode).toBe('online');
     expect(await stockOf(productId)).toEqual({ onHand: 10, reserved: 3 });
+  });
+});
+
+describe('el pedido está acotado por arriba', () => {
+  /*
+   * `createOrder` aparta inventario antes de cobrar, y `placeOrder` es un
+   * Server Action público. Sin estos topes, una sola petición anónima apartaba
+   * 1000 unidades de cada producto del catálogo hasta el barrido del día
+   * siguiente — para una pescadería con una captura al día, eso es cerrar la
+   * tienda.
+   */
+  it('rechaza más de 50 piezas del mismo producto', () => {
+    const result = checkoutSchema.safeParse({
+      ...input('11111111-1111-4111-8111-111111111111'),
+      lines: [
+        { productId: '11111111-1111-4111-8111-111111111111', quantity: 51 },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rechaza un carrito con demasiadas líneas', () => {
+    // El catálogo tiene 13 productos activos; 41 líneas distintas no es un
+    // carrito, es un script.
+    const lines = Array.from({ length: 41 }, () => ({
+      productId: '11111111-1111-4111-8111-111111111111',
+      quantity: 1,
+    }));
+
+    const result = checkoutSchema.safeParse({
+      ...input('11111111-1111-4111-8111-111111111111'),
+      lines,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('deja pasar un pedido grande pero humano', () => {
+    const result = checkoutSchema.safeParse({
+      ...input('11111111-1111-4111-8111-111111111111'),
+      lines: [
+        { productId: '11111111-1111-4111-8111-111111111111', quantity: 50 },
+      ],
+    });
+
+    expect(result.success).toBe(true);
   });
 });

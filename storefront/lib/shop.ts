@@ -172,6 +172,29 @@ export const GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/GnTzYhSAeT6YrkMFA';
 export const GOOGLE_MAPS_EMBED_SRC =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3596.3357802774854!2d-100.36783312408205!3d25.660161612792642!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8662bd7545ca0b8f%3A0xebfc74a68a9449ea!2sAmor%20a%20Mar%20Honest%20Seafood!5e0!3m2!1ses!2smx!4v1788393086602!5m2!1ses!2smx';
 
+/**
+ * Serializa datos estructurados para meterlos en un `<script>`.
+ *
+ * `JSON.stringify` **no escapa `<`**, así que un nombre de producto que
+ * contenga `</script>` cierra el bloque y lo que venga detrás se ejecuta como
+ * HTML en la tienda pública. Y esos bloques llevan nombre, descripción y origen
+ * tal y como se escribieron en el panel.
+ *
+ * `\u003c` es JSON válido y el navegador lo lee como `<` al parsear, así que el
+ * dato llega intacto a Google y el bloque no se puede romper. Se escapan también
+ * los separadores de línea U+2028 y U+2029, que son legales en JSON y **no** en
+ * un literal de JavaScript.
+ *
+ * Existe como función y no como una llamada suelta en cada página para que
+ * añadir un bloque nuevo no sea otra oportunidad de olvidarlo.
+ */
+export function jsonLdScript(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 export const INSTAGRAM_URL = 'https://www.instagram.com/amoramarmx/';
 export const INSTAGRAM_HANDLE = '@amoramarmx';
 

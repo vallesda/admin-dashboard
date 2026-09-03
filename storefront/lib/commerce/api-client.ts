@@ -20,8 +20,18 @@ export class CommerceError extends Error {
   readonly code: string;
   readonly status: number;
 
-  constructor(code: string, message: string, status: number) {
-    super(message);
+  /*
+   * `options` para poder pasar `cause`: cuando el fallo es un tiempo agotado o
+   * una caída de red, el error original es lo único que dice *qué* pasó, y
+   * perderlo deja un registro que sólo sabe decir «no contestó».
+   */
+  constructor(
+    code: string,
+    message: string,
+    status: number,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
     this.name = 'CommerceError';
     this.code = code;
     this.status = status;
@@ -81,15 +91,63 @@ async function request<T>(
    */
   await connection();
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers,
-    // Catalogue reads are cached; anything with a body is a mutation and is not.
-    next: init?.body ? undefined : { revalidate: init?.revalidate ?? 60 },
-    cache: init?.body ? 'no-store' : undefined,
-  });
+  /*
+   * Un techo al tiempo que la tienda espera al admin.
+   *
+   * Sin `signal`, un admin lento no degradaba la tienda: la **colgaba**. La
+   * petición se quedaba esperando hasta el límite de la plataforma, y como ni la
+   * portada ni el buscador tienen `.catch`, un incidente pequeño en un servicio
+   * se convertía en la tienda entera caída y en invocaciones lentas
+   * acumulándose.
+   *
+   * Fallar en ocho segundos es peor que responder rápido y mejor que no
+   * responder: el error sí tiene manejo, la espera indefinida no. Las escrituras
+   * llevan más margen porque `POST /checkout` habla con Stripe por dentro y ese
+   * viaje no lo controlamos.
+   */
+  let response: Response;
 
-  const payload = (await response.json()) as ApiEnvelope<T>;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers,
+      signal: AbortSignal.timeout(init?.body ? 20_000 : 8_000),
+      // Catalogue reads are cached; anything with a body is a mutation and is not.
+      next: init?.body ? undefined : { revalidate: init?.revalidate ?? 60 },
+      cache: init?.body ? 'no-store' : undefined,
+    });
+  } catch (error) {
+    // `TimeoutError` y los fallos de red salen como el mismo tipo de problema
+    // para quien llama: el admin no contestó. Que sea un `CommerceError` es lo
+    // que permite que las páginas que ya lo manejan sigan manejándolo.
+    throw new CommerceError(
+      'upstream_unavailable',
+      'No pudimos contactar con la tienda. Inténtalo en un momento.',
+      503,
+      { cause: error },
+    );
+  }
+
+  /*
+   * Mirar `response.ok` **antes** de parsear.
+   *
+   * Se hacía al revés, y un 502 con la página de error HTML de la plataforma
+   * lanzaba `SyntaxError` en vez de `CommerceError` — con lo que todo el manejo
+   * de errores de arriba (`error.status === 404`, `=== 422`) dejaba de
+   * dispararse justo cuando hacía falta.
+   */
+  const payload = await response
+    .json()
+    .then((body) => body as ApiEnvelope<T>)
+    .catch(() => null);
+
+  if (!payload) {
+    throw new CommerceError(
+      'upstream_unreadable',
+      'La tienda respondió algo que no entendemos.',
+      response.status,
+    );
+  }
 
   if ('error' in payload) {
     throw new CommerceError(

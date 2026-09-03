@@ -4,6 +4,7 @@ import Link from 'next/link';
 import ColorField from '@/components/ui/color-field';
 import Heading from '@/components/ui/heading';
 import { ButtonLink } from '@/components/ui/button';
+import { jsonLdScript } from '@/lib/shop';
 
 export const metadata: Metadata = {
   title: 'Preguntas frecuentes',
@@ -307,7 +308,7 @@ export default function Page() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd()) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd()) }}
       />
 
       <ColorField

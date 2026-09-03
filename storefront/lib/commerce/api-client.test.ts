@@ -136,3 +136,57 @@ describe('el cacheo', () => {
     expect(fetchMock.mock.calls[0][1].next).toBeUndefined();
   });
 });
+
+describe('cuando el admin no coopera', () => {
+  /*
+   * Los dos fallos que este bloque fija convertían un incidente pequeño en la
+   * tienda entera caída: sin `signal`, un admin lento colgaba la petición hasta
+   * el límite de la plataforma; y parsear el JSON antes de mirar el estado
+   * hacía que un 502 con HTML saliera como `SyntaxError`, esquivando todo el
+   * manejo de errores de las páginas.
+   */
+  it('pone un tope de tiempo a la espera', async () => {
+    respond({ data: null });
+    await (await client()).get('/api/v1/catalog/products');
+
+    const init = fetchMock.mock.calls[0][1];
+    expect(init.signal, 'la petición salió sin AbortSignal').toBeDefined();
+  });
+
+  it('un tiempo agotado sale como error de la tienda, no como error de red', async () => {
+    // Que sea `CommerceError` es lo que permite que las páginas que ya lo
+    // manejan sigan manejándolo.
+    fetchMock.mockRejectedValue(
+      Object.assign(new Error('The operation was aborted'), { name: 'TimeoutError' }),
+    );
+
+    const { CommerceError } = await import('./api-client');
+    await expect((await client()).get('/x')).rejects.toBeInstanceOf(CommerceError);
+  });
+
+  it('conserva la causa original para el registro', async () => {
+    const cause = new Error('ECONNREFUSED');
+    fetchMock.mockRejectedValue(cause);
+
+    await (await client())
+      .get('/x')
+      .catch((e: Error) => expect(e.cause).toBe(cause));
+  });
+
+  it('un 502 con HTML no revienta con SyntaxError', async () => {
+    // La página de error de la plataforma no es JSON. Antes esto lanzaba
+    // `SyntaxError` y `error.status === 404` dejaba de dispararse.
+    fetchMock.mockResolvedValue({
+      status: 502,
+      json: async () => {
+        throw new SyntaxError('Unexpected token < in JSON');
+      },
+    });
+
+    const { CommerceError } = await import('./api-client');
+    const error = await (await client()).get('/x').catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(CommerceError);
+    expect((error as InstanceType<typeof CommerceError>).status).toBe(502);
+  });
+});

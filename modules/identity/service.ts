@@ -32,6 +32,15 @@ export type SessionUser = {
 };
 
 /**
+ * Coste de bcrypt, uno solo para todo el archivo.
+ *
+ * Arriba del todo porque lo usan tres sitios —el alta, el reseteo y el hash
+ * señuelo de más abajo— y `const` no se iza: declararlo a media página hacía
+ * que el señuelo no compilara.
+ */
+const BCRYPT_ROUNDS = 10;
+
+/**
  * Verifies email + password and returns the session payload, or null.
  *
  * Returns null for every failure — unknown email, wrong password, inactive
@@ -78,9 +87,30 @@ export async function verifyCredentials(
   };
 }
 
-/** A valid bcrypt hash of a value nobody uses, for constant-ish timing. */
-const DUMMY_HASH =
-  '$2b$10$abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTU';
+/**
+ * El hash contra el que se compara cuando la cuenta no existe.
+ *
+ * Iguala el tiempo de respuesta: sin esto, un correo inexistente vuelve al
+ * instante y uno real tarda lo que tarda bcrypt, y esa diferencia dice cuáles
+ * existen.
+ *
+ * **Se genera, no se escribe a mano.** El valor anterior estaba fijado en el
+ * código y llevaba 57 caracteres tras `$2b$10$` donde bcrypt usa 53 — 22 de sal
+ * y 31 de resumen. Medido, daba igual: `compare` sólo necesita el prefijo y la
+ * sal para rehacer el cálculo, así que el estiramiento se ejecutaba entero y
+ * los tiempos ya coincidían (~44 ms en ambos casos). O sea que **no había
+ * agujero**, y quien vea esto no debe ir a buscarlo.
+ *
+ * Se cambia igualmente por dos razones que sí valen: un literal escrito a mano
+ * puede degradarse hasta dejar de ser parseable en una revisión futura, y
+ * generarlo con el mismo coste que las contraseñas reales (`BCRYPT_ROUNDS`)
+ * mantiene los tiempos alineados solo si alguien sube el coste. Cuesta una vez
+ * al cargar el módulo, no por petición.
+ */
+const DUMMY_HASH = bcrypt.hashSync(
+  'contraseña que nadie usa jamás',
+  BCRYPT_ROUNDS,
+);
 
 /** Reads a user's current role and active flag — never the hash. */
 export async function getSessionUserById(
@@ -106,9 +136,6 @@ export async function getSessionUserById(
 // ---------------------------------------------------------------------------
 // Managing access
 // ---------------------------------------------------------------------------
-
-/** Cost 10, matching the bootstrap seed so every hash in the table is alike. */
-const BCRYPT_ROUNDS = 10;
 
 const EMAIL_TAKEN = () =>
   new ConflictError(

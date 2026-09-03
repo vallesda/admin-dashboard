@@ -10,6 +10,7 @@ import {
   SITE_URL,
   localBusinessJsonLd,
   websiteJsonLd,
+  jsonLdScript,
 } from '@/lib/shop';
 import { CartProvider } from '@/components/cart/cart-context';
 import CartDrawer from '@/components/cart/cart-drawer';
@@ -147,7 +148,7 @@ function JsonLd({ data }: { data: Record<string, unknown> | null }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdScript(data) }}
     />
   );
 }

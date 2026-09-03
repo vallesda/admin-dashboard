@@ -83,7 +83,7 @@ export async function getProducts(options?: {
 export async function getProduct(handle: string): Promise<Product | null> {
   try {
     return withExistingImages(
-      await api.get<Product>(`/api/v1/catalog/products/${handle}`),
+      await api.get<Product>(`/api/v1/catalog/products/${encodeURIComponent(handle)}`),
     );
   } catch (error) {
     // A missing product is a 404 page, not an error page.
@@ -168,7 +168,7 @@ export async function getShelf(): Promise<ShelfItem[]> {
 export async function getPackage(handle: string): Promise<Bundle | null> {
   try {
     const bundle = await api.get<Bundle>(
-      `/api/v1/catalog/packages/${handle}`,
+      `/api/v1/catalog/packages/${encodeURIComponent(handle)}`,
     );
     // Las líneas del paquete son productos, y la página del paquete pinta sus
     // fotos igual que la rejilla. Sin esto, un paquete sería el único sitio
@@ -190,7 +190,7 @@ export async function getProductRecommendations(
   handle: string,
 ): Promise<Product[]> {
   const items = await api.get<Product[]>(
-    `/api/v1/catalog/products/${handle}/related`,
+    `/api/v1/catalog/products/${encodeURIComponent(handle)}/related`,
   );
   return items.map(withExistingImages);
 }
@@ -271,7 +271,7 @@ export async function confirmOrder(
  */
 export async function getOrder(token: string): Promise<Order | null> {
   try {
-    return await api.get<Order>(`/api/v1/orders/${token}`, {
+    return await api.get<Order>(`/api/v1/orders/${encodeURIComponent(token)}`, {
       authenticated: true,
       // Never cached: the status changes as the shop works the order.
       revalidate: 0,

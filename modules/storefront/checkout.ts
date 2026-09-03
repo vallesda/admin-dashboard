@@ -66,14 +66,40 @@ export const checkoutSchema = z
      */
     deliveryAddress: deliveryAddressSchema.optional(),
     notes: z.string().trim().max(2000).optional(),
+    /*
+     * Acotado por arriba, y no por gusto.
+     *
+     * `createOrder` **aparta inventario antes de cobrar** — correcto para
+     * producto perecedero, y la razón de que este esquema sea la única puerta.
+     * `placeOrder` es un Server Action público: sin sesión, sin captcha. Con
+     * `.min(1)` y ningún tope, una sola petición anónima podía apartar 1000
+     * unidades de cada producto del catálogo, y quedaba apartado hasta que
+     * venciera la sesión de Stripe o corriera el barrido del día siguiente.
+     *
+     * Para una pescadería con una captura al día, eso es cerrar la tienda. Y no
+     * hace falta mala fe: basta alguien que pulse «Confirmar» cinco veces.
+     *
+     * Los dos topes son de negocio, no técnicos. 40 líneas es un carrito
+     * enorme —el catálogo tiene 13 productos— y 50 unidades de una misma pieza
+     * es un pedido de restaurante, que es exactamente lo que esta tienda dice no
+     * atender (sólo B2C). Cualquier cosa por encima es un error o un abuso, y en
+     * ambos casos la respuesta correcta es la misma.
+     *
+     * Esto **no sustituye** a un límite por IP: acota una petición, no cuántas.
+     */
     lines: z
       .array(
         z.object({
           productId: z.string().uuid(),
-          quantity: z.coerce.number().int().positive().max(1000),
+          quantity: z.coerce
+            .number()
+            .int()
+            .positive()
+            .max(50, { message: 'Máximo 50 piezas por producto en un pedido.' }),
         }),
       )
-      .min(1, { message: 'El carrito está vacío.' }),
+      .min(1, { message: 'El carrito está vacío.' })
+      .max(40, { message: 'Demasiados productos distintos en un pedido.' }),
   })
   .superRefine((data, ctx) => {
     if (data.fulfillmentType === 'delivery' && !data.deliveryAddress) {

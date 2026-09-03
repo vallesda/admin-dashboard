@@ -4,7 +4,9 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
 import { getProduct, supplyOf, type Product } from '@/lib/commerce';
-import { SHOP_NAME, SITE_URL, breadcrumbJsonLd } from '@/lib/shop';
+import { SHOP_NAME, SITE_URL, breadcrumbJsonLd,
+  jsonLdScript,
+} from '@/lib/shop';
 import { slugify } from '@/lib/slug';
 import Gallery from '@/components/product/gallery';
 import ProductDescription from '@/components/product/product-description';
@@ -215,13 +217,13 @@ function ProductJsonLd({ product }: { product: Product }) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
       />
       {/* La ruta que sale bajo el resultado de búsqueda, en lugar de la URL
           cruda. */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(trail) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(trail) }}
       />
     </>
   );
