@@ -11,6 +11,7 @@ import {
   forwardingRunning,
   orderByToken,
   payWithCard,
+  requireWebhookForwarding,
   startWebhookForwarding,
   stopWebhookForwarding,
   waitForPaymentStatus,
@@ -60,7 +61,19 @@ test.describe('sin webhook (matriz #6 · F7.01)', () => {
     await openCheckoutPage(page, order.checkoutUrl);
     await payWithCard(page, CARDS.ok);
 
-    await page.waitForURL(/\/pedido\//, { timeout: 60_000 });
+    await page.waitForURL(/\/pedido\//, {
+      timeout: 60_000,
+      /*
+       * `domcontentloaded`, no el `load` por defecto.
+       *
+       * La página del pedido arrastra recursos —fotos de producto, el
+       * mapa— y esperar a que **todos** terminen agotó el tiempo en
+       * tandas largas: la redirección de Stripe sí había llegado. Lo
+       * que hace falta saber aquí es que estamos en la página, y de
+       * los datos ya se ocupa `waitForPaymentStatus` contra la API.
+       */
+      waitUntil: 'domcontentloaded',
+    });
 
     /*
      * Lo que se mide: el comprador ve «Pagado» sin que ningún webhook haya
@@ -79,18 +92,44 @@ test.describe('sin webhook (matriz #6 · F7.01)', () => {
 });
 
 test.describe('confirmar de más', () => {
+  // Aquí sí hace falta: si P11 no consiguió reponer el reenvío, esta prueba
+  // fallaría culpando a la idempotencia de algo que nunca llegó.
+  test.beforeAll(requireWebhookForwarding);
+
   test('recargar la página no cobra ni confirma dos veces', async ({ page }) => {
     const product = await buyableProduct();
     const order = await createOnlineOrder(product.id);
 
     await openCheckoutPage(page, order.checkoutUrl);
     await payWithCard(page, CARDS.ok);
-    await page.waitForURL(/\/pedido\//, { timeout: 60_000 });
+    await page.waitForURL(/\/pedido\//, {
+      timeout: 60_000,
+      /*
+       * `domcontentloaded`, no el `load` por defecto.
+       *
+       * La página del pedido arrastra recursos —fotos de producto, el
+       * mapa— y esperar a que **todos** terminen agotó el tiempo en
+       * tandas largas: la redirección de Stripe sí había llegado. Lo
+       * que hace falta saber aquí es que estamos en la página, y de
+       * los datos ya se ocupa `waitForPaymentStatus` contra la API.
+       */
+      waitUntil: 'domcontentloaded',
+    });
 
     const paid = await waitForPaymentStatus(order.token, 'paid');
 
-    // Tres visitas más a la misma URL, con su `session_id` intacto.
-    for (let i = 0; i < 3; i++) await page.reload();
+    /*
+     * Tres visitas más a la misma URL, con su `session_id` intacto.
+     *
+     * `domcontentloaded` y no el `load` por defecto: la página del pedido
+     * arrastra recursos —imágenes de producto, el mapa si alguien lo abrió— y
+     * esperar a que **todos** terminen colgó la prueba en una tanda larga. Lo
+     * que se está midiendo es que confirmar tres veces no cobre tres veces, y
+     * para eso basta con que el servidor haya respondido.
+     */
+    for (let i = 0; i < 3; i++) {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+    }
 
     const after = await orderByToken(order.token);
 

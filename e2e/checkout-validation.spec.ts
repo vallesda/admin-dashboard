@@ -72,10 +72,12 @@ test('dentro de zona: el envío aparece y entra en el total (P18)', async ({ pag
 
   await fillCustomer(page);
   await page.locator('input[name="fulfillmentType"][value="delivery"]').first().check();
-  await page.locator('input[name="postalCode"]').fill('06500');
+  // 66220 es Del Valle, San Pedro: la zona de $50 que sembró
+  // `scripts/seed-delivery-zones.ts`. Antes esta prueba usaba 06500 —Roma, en
+  // Ciudad de México—, que venía de datos de demo de otra ciudad.
+  await page.locator('input[name="postalCode"]').fill('66220');
 
-  // La zona «Centro y Roma»: $50, gratis desde $800.
-  await expect(page.getByText(/Centro y Roma/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Valle y Campestre/i)).toBeVisible({ timeout: 15_000 });
 
   const total = ((price + 5_000) / 100).toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -115,7 +117,10 @@ test('el importe lo decide el servidor, no el navegador (P20)', async ({ page })
   }, product.id);
 
   await page.getByRole('button', { name: 'Ir a pagar' }).click();
-  await page.waitForURL(/checkout\.stripe\.com/, { timeout: 45_000 });
+  await page.waitForURL(/checkout\.stripe\.com/, {
+    timeout: 60_000,
+    waitUntil: 'domcontentloaded',
+  });
 
   const session = await stripeSession(sessionIdOf(page.url()));
 

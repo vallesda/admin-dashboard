@@ -170,10 +170,31 @@ export async function openCheckoutPage(page: Page, url: string): Promise<void> {
 }
 
 export async function payWithCard(page: Page, card: string): Promise<void> {
-  await expect(
-    page.locator('#cardNumber'),
-    'No apareció el formulario de Stripe. Si la página cargó, es que Stripe cambió sus selectores.',
-  ).toBeVisible({ timeout: 60_000 });
+  /*
+   * Una recarga si la página de Stripe no llegó a pintar el formulario.
+   *
+   * Esto **no** contradice el `retries: 0` de la configuración. Aquella regla
+   * existe para que una prueba de dinero no pase «a la segunda» escondiendo una
+   * carrera; aquí no se reintenta ninguna afirmación, se vuelve a pedir una
+   * página de un tercero que no terminó de renderizar. Las aserciones sobre
+   * pedidos, importes y stock siguen corriendo exactamente una vez.
+   *
+   * Hace falta porque pasa de verdad: en tandas largas —veinte sesiones
+   * seguidas contra el sandbox— Checkout tarda de más y `#cardNumber` no
+   * aparece. Falla una prueba que está bien, y encima falla en un sitio que
+   * sugiere que Stripe cambió sus selectores, que es lo que dice el mensaje.
+   */
+  const form = page.locator('#cardNumber');
+
+  try {
+    await expect(form).toBeVisible({ timeout: 45_000 });
+  } catch {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(
+      form,
+      'No apareció el formulario de Stripe ni tras recargar. Si la página carga, es que Stripe cambió sus selectores.',
+    ).toBeVisible({ timeout: 45_000 });
+  }
 
   await page.locator('#cardNumber').fill(card);
   await page.locator('#cardExpiry').fill('12' + String(new Date().getFullYear() + 3).slice(-2));
@@ -423,4 +444,28 @@ export async function priceOf(productId: string): Promise<number> {
   const item = page.items.find((p) => p.id === productId);
   if (!item) throw new Error(`Producto no encontrado: ${productId}`);
   return item.price.amountCents;
+}
+
+/**
+ * Falla ruidosamente si el reenvío de webhooks no está corriendo.
+ *
+ * Existe por un fallo silencioso que costó una tanda entera. El escenario P11
+ * apaga `stripe listen` a propósito y lo repone en su `afterAll`; cuando esa
+ * reposición no funcionó, **todo lo que corrió después se quedó sin webhooks** y
+ * falló con mensajes que no tenían nada que ver: «el pedido nunca llegó a
+ * cancelled», tiempos agotados esperando una redirección. Media hora buscando
+ * un bug de pagos que no existía.
+ *
+ * Comprobarlo al empezar convierte ese desconcierto en una frase. Es la misma
+ * lección que P11 ya había enseñado: **afirma la precondición de la que
+ * dependes**, porque una prueba que la supone falla mintiendo sobre la causa.
+ */
+export function requireWebhookForwarding(): void {
+  if (forwardingRunning()) return;
+
+  throw new Error(
+    'stripe listen no está corriendo, así que ningún webhook va a llegar y ' +
+      'estas pruebas fallarían por la razón equivocada. Levántalo con:\n' +
+      '  stripe listen --forward-to localhost:3000/api/webhooks/stripe',
+  );
 }

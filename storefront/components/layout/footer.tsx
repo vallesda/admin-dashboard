@@ -9,7 +9,9 @@ import {
   INSTAGRAM_URL,
   WHATSAPP_URL,
   WHATSAPP_LABEL,
+  INSTAGRAM_HANDLE,
 } from '@/components/layout/nav-links';
+import { WhatsAppIcon, InstagramIcon } from '@/components/ui/social-icons';
 
 /**
  * Footer.
@@ -91,13 +93,14 @@ export default async function Footer() {
               copiar de una pasada. El salto se permite después de la palabra
               —ahí no molesta— y se prohíbe dentro del dato.
             */}
-            <FooterLink href={WHATSAPP_URL}>
-              WhatsApp <span className="whitespace-nowrap">{WHATSAPP_LABEL}</span>
+            <FooterLink href={WHATSAPP_URL} icon={<WhatsAppIcon />}>
+              WhatsApp{' '}
+              <span className="whitespace-nowrap">{WHATSAPP_LABEL}</span>
             </FooterLink>
-            <FooterLink href={INSTAGRAM_URL}>
-              Instagram <span className="whitespace-nowrap">@amoramarmx</span>
+            <FooterLink href={INSTAGRAM_URL} icon={<InstagramIcon />}>
+              Instagram{' '}
+              <span className="whitespace-nowrap">{INSTAGRAM_HANDLE}</span>
             </FooterLink>
-            <li className="text-sm text-background/70">Entrega refrigerada</li>
           </FooterColumn>
         </div>
 
@@ -137,29 +140,52 @@ function FooterColumn({
  */
 function FooterLink({
   href,
+  icon,
   children,
 }: {
   href: string;
+  /** Marca de la red, a la izquierda del texto. Decorativa. */
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const external = href.startsWith('http');
+
+  /*
+   * `inline-flex` con `items-start`, no `items-center`.
+   *
+   * «WhatsApp (81) 2916 2142» pasa a dos líneas en la columna del móvil, y
+   * centrado verticalmente el icono quedaba flotando entre ambas. Alineado
+   * arriba se queda junto a la primera línea, que es donde está la palabra que
+   * nombra.
+   *
+   * El subrayado se limita al texto (`[&>span]:hover:underline`) porque un
+   * subrayado que cruza por debajo del glifo lo ensucia.
+   */
   const className =
-    '-my-1.5 inline-block py-1.5 text-sm text-background/85 underline-offset-4 hover:underline';
+    '-my-1.5 inline-flex items-start gap-2 py-1.5 text-sm text-background/85 underline-offset-4 [&>span]:hover:underline';
+
+  const content = icon ? (
+    <>
+      {/* `mt-[0.2em]`: la caja del glifo es cuadrada y la de la línea no, así
+          que sin este empujón el icono se ve un pelo alto. */}
+      <span aria-hidden="true" className="mt-[0.2em] text-base">
+        {icon}
+      </span>
+      <span>{children}</span>
+    </>
+  ) : (
+    <span>{children}</span>
+  );
 
   return (
     <li>
       {external ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          className={className}
-        >
-          {children}
+        <a href={href} target="_blank" rel="noreferrer" className={className}>
+          {content}
         </a>
       ) : (
         <Link href={href} className={className}>
-          {children}
+          {content}
         </Link>
       )}
     </li>

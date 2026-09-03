@@ -6,6 +6,7 @@ import {
   complete3ds,
   createOnlineOrder,
   openCheckoutPage,
+  requireWebhookForwarding,
   expireSession,
   fail3ds,
   orderByToken,
@@ -26,6 +27,8 @@ import {
  * tiene que devolverlo, o `reserved` sólo crece.
  */
 
+test.beforeAll(requireWebhookForwarding);
+
 test('tarjeta rechazada: el pedido no avanza y el stock sigue apartado (matriz #2)', async ({
   page,
 }) => {
@@ -40,11 +43,23 @@ test('tarjeta rechazada: el pedido no avanza y el stock sigue apartado (matriz #
   await openCheckoutPage(page, order.checkoutUrl);
   await payWithCard(page, CARDS.declined);
 
-  // Stripe se queda en su página y lo dice ahí mismo.
-  await expect(
-    page.getByText(/declin|rechaz/i).first(),
-    'Stripe no mostró el rechazo en su propia página',
-  ).toBeVisible({ timeout: 30_000 });
+  /*
+   * Que **no** salga de la página de Stripe, en vez de buscar su mensaje.
+   *
+   * La primera versión afirmaba sobre el texto del error —`/declin|rechaz/`— y
+   * eso es la copia de un tercero: cambia sin avisar, cambia por idioma y
+   * cambia entre tipos de rechazo. Se rompió con la tarjeta de fondos
+   * insuficientes, que redacta distinto, y habría vuelto a romperse.
+   *
+   * Lo que le importa a la tienda es que el cobro no prosperó, y eso se lee en
+   * la URL —seguimos en Checkout, no se redirigió al pedido— y en las tres
+   * afirmaciones de abajo, que son sobre nuestros propios datos.
+   */
+  await page.waitForTimeout(6_000);
+  expect(
+    page.url(),
+    'Stripe redirigió al pedido: la tarjeta rechazada acabó cobrando',
+  ).toMatch(/checkout\.stripe\.com/);
 
   const after = await orderByToken(order.token);
   expect(after.paymentStatus).toBe('unpaid');
@@ -65,9 +80,9 @@ test('fondos insuficientes: mismo trato que un rechazo', async ({ page }) => {
   await openCheckoutPage(page, order.checkoutUrl);
   await payWithCard(page, CARDS.insufficientFunds);
 
-  await expect(page.getByText(/declin|rechaz|fondos/i).first()).toBeVisible({
-    timeout: 30_000,
-  });
+  // Mismo criterio que arriba: la URL y nuestros datos, no la copia de Stripe.
+  await page.waitForTimeout(6_000);
+  expect(page.url()).toMatch(/checkout\.stripe\.com/);
 
   expect((await orderByToken(order.token)).paymentStatus).toBe('unpaid');
   expect(await stockOf(product.id)).toBe(reserved);
@@ -88,7 +103,19 @@ test('3DS: sin autenticar no se cobra; autenticando sí (matriz #3)', async ({
   expect((await orderByToken(order.token)).paymentStatus).toBe('unpaid');
 
   await complete3ds(page);
-  await page.waitForURL(/\/pedido\//, { timeout: 60_000 });
+  await page.waitForURL(/\/pedido\//, {
+    timeout: 60_000,
+    /*
+     * `domcontentloaded`, no el `load` por defecto.
+     *
+     * La página del pedido arrastra recursos —fotos de producto, el
+     * mapa— y esperar a que **todos** terminen agotó el tiempo en
+     * tandas largas: la redirección de Stripe sí había llegado. Lo
+     * que hace falta saber aquí es que estamos en la página, y de
+     * los datos ya se ocupa `waitForPaymentStatus` contra la API.
+     */
+    waitUntil: 'domcontentloaded',
+  });
 
   const paid = await waitForPaymentStatus(order.token, 'paid');
   expect(paid.status).toBe('confirmed');

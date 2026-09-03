@@ -38,7 +38,8 @@ export default defineConfig({
    */
   retries: 0,
   // Stripe redirige despacio y el webhook tarda; el defecto de 30 s no basta.
-  timeout: 90_000,
+  // 120s: una recarga de la página de Stripe cabe dentro del presupuesto.
+  timeout: 120_000,
   expect: { timeout: 15_000 },
   reporter: [['list']],
   use: {

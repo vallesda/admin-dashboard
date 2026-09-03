@@ -4,7 +4,14 @@ import ColorField from '@/components/ui/color-field';
 import FeatureCards, { type Feature } from '@/components/merchandising/feature-cards';
 import { EyeCluster } from '@/components/brand/eye';
 import Eyebrow from '@/components/ui/eyebrow';
-import { ButtonLink } from '@/components/ui/button';
+import StoreMap from '@/components/shop/store-map';
+import { WhatsAppIcon, InstagramIcon } from '@/components/ui/social-icons';
+import {
+  WHATSAPP_URL,
+  WHATSAPP_LABEL,
+  INSTAGRAM_URL,
+  INSTAGRAM_HANDLE,
+} from '@/lib/shop';
 import {
   FishIcon,
   OriginIcon,
@@ -202,17 +209,33 @@ export default function Page() {
         }
         lede="Para pedidos especiales, cortes que no ves en el catálogo o dudas sobre una pieza."
       >
+        {/*
+          Los dos canales, cada uno con su marca.
+
+          El icono va en `currentColor`: sobre turquesa el par medido es
+          `text-foreground` (DESIGN.md), así que heredando el color no puede
+          caer por debajo del contraste que la superficie ya garantiza. Un
+          verde de WhatsApp o el degradado de Instagram meterían dos paletas
+          ajenas en una página que limita los suelos a dos por pantalla.
+
+          Los enlaces salen de `lib/shop.ts`. Estaban escritos a mano aquí, que
+          es la tercera copia del mismo número — y la que se habría quedado
+          vieja.
+        */}
         <dl className="grid gap-8 sm:grid-cols-2 md:max-w-2xl">
           <div>
             <Eyebrow as="dt" tone="inherit">
               WhatsApp de tienda
             </Eyebrow>
-            <dd className="mt-2 text-2xl tabular-nums">
+            <dd className="mt-2">
               <a
-                href="https://wa.me/528129162142"
-                className="underline-offset-4 hover:underline"
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="group inline-flex items-center gap-3 text-2xl tabular-nums underline-offset-4"
               >
-                (81) 2916 2142
+                <WhatsAppIcon className="text-[1.4rem]" />
+                <span className="group-hover:underline">{WHATSAPP_LABEL}</span>
               </a>
             </dd>
           </div>
@@ -220,22 +243,34 @@ export default function Page() {
             <Eyebrow as="dt" tone="inherit">
               Instagram
             </Eyebrow>
-            <dd className="mt-2 text-2xl">
+            <dd className="mt-2">
               <a
-                href="https://www.instagram.com/amoramarmx/"
+                href={INSTAGRAM_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="underline-offset-4 hover:underline"
+                className="group inline-flex items-center gap-3 text-2xl underline-offset-4"
               >
-                @amoramarmx
+                <InstagramIcon className="text-[1.4rem]" />
+                <span className="group-hover:underline">
+                  {INSTAGRAM_HANDLE}
+                </span>
               </a>
             </dd>
           </div>
         </dl>
 
-        <ButtonLink href="/search" className="mt-10">
-          Ver lo que hay
-        </ButtonLink>
+        {/*
+          El mapa cierra el bloque de contacto, junto al WhatsApp y el
+          Instagram: quien baja hasta aquí está buscando cómo dar con la tienda,
+          y la dirección es parte de la misma respuesta.
+
+          Se carga como fachada —dirección visible, iframe sólo al pedirlo—
+          porque el mapa de Google trae ~1 MB y cookies de terceros, y la
+          mayoría de quien lee esta página venía por otra cosa.
+        */}
+        <div className="mt-10">
+          <StoreMap />
+        </div>
       </ColorField>
 
     </>

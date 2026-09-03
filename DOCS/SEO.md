@@ -79,13 +79,18 @@ El curso lo dice con todas sus letras: sitemap dinámico, no estático. Aquí es
 Y sin `robots.ts` no hay declaración de qué no rastrear. `/pedido/[token]` ya trae su propio
 `robots: { index: false }` —bien puesto—, pero `/checkout` y `/api` andan sueltos.
 
-### 3.3 El sitio no dice dónde está 🔴
+### 3.3 ~~El sitio no dice dónde está~~ 🟢 — **cerrado el 2 de septiembre de 2026**
 
-Este es el que importa para lo que pediste. Busqué «San Pedro» en todo el storefront: **cero
-resultados.** «Monterrey» aparece en la página *Nosotros* y en la zona horaria. No hay dirección,
-no hay teléfono con formato, no hay horario, no hay coordenadas, no hay `LocalBusiness`.
+Era el que más importaba. Busqué «San Pedro» en todo el storefront: **cero resultados.** No había
+dirección, ni teléfono con formato, ni coordenadas, ni `LocalBusiness`.
 
-Google no puede posicionarte en San Pedro Garza García por una ciudad que no nombras.
+**Ya los hay.** El negocio compartió su ficha de Google y con ella se llenó `ADDRESS` en
+`lib/shop.ts`, que es lo único que separaba a `localBusinessJsonLd()` de emitir: la función estaba
+escrita desde el principio y devolvía `null` a propósito mientras faltaran calle y CP. Ver §4bis.
+
+Sigue faltando el **horario**, que el negocio no ha confirmado. `openingHoursSpecification` se
+omite mientras tanto: un horario inventado lo enseña Google en el resultado y alguien se planta en
+la puerta un domingo.
 
 ---
 
@@ -119,6 +124,69 @@ Así que el plan tiene dos carriles, y el primero no es mío:
   cualquier directorio.
 
 **Carril del código** — el resto de este documento.
+
+---
+
+## 4bis. El mapa, la ficha y las reseñas
+
+> Añadido el 2 de septiembre de 2026.
+
+### Lo que se publicó
+
+`ADDRESS` en `storefront/lib/shop.ts` — la fuente única del NAP — quedó completa:
+
+| Campo | Valor | De dónde |
+|---|---|---|
+| Calle | Río Amazonas 132 Ote., Local 1A, Col. Del Valle | ficha de Google |
+| CP | 66220 | ficha de Google |
+| Teléfono | (81) 8244 0518 · `+528182440518` | página del negocio |
+| Coordenadas | 25.6601568, −100.3652582 | marcador de su enlace de Maps |
+| Horario | **vacío** | sin confirmar |
+
+Escrito **como lo escribe Google, no como suena mejor** —incluido el «Local 1A»—: el NAP se
+compara contra el Perfil de Empresa y una variante «más limpia» es justo la discrepancia que le
+dice a Google que son dos negocios distintos.
+
+Un detalle que cuesta un rato descubrir: el `embed` de Maps lleva **dos** pares de coordenadas, el
+encuadre de la cámara (`!2d…!3d…`) y el lugar (`!8m2!3d…!4d…`). Están a ~250 m una de otra y la que
+vale para `geo` es la del lugar.
+
+Con eso, `localBusinessJsonLd()` emite por fin un `Store` con dirección, `geo`, teléfono y `sameAs`
+apuntando a Instagram **y** a la ficha de Google — que es la señal más directa de que ese perfil y
+este sitio son la misma entidad.
+
+### El mapa se carga sólo si alguien lo pide
+
+`components/shop/store-map.tsx` no pone el iframe de entrada. El de Google trae cerca de un
+megabyte de JavaScript y **pone cookies de Google antes de que nadie haya pedido un mapa**: en una
+página que la mayoría abre para leer otra cosa, eso se paga en cada visita.
+
+Primero se ve la dirección —que es el dato que la mayoría venía a buscar— y el iframe entra al
+pulsar. «Cómo llegar» es un ancla normal a la ficha, así que funciona sin JavaScript y en el
+teléfono de quien prefiere su propia app de mapas.
+
+### Las reseñas: qué se puede y qué no
+
+La ficha tiene **4.9 con 45 reseñas**. Es un activo real y la tentación evidente es enseñarlo. Tres
+cosas antes de hacerlo:
+
+1. **Raspar Google Maps viola sus términos.** No es una zona gris.
+2. **La Places API es el camino legítimo**, y da menos de lo que parece: devuelve **hasta 5**
+   reseñas que **elige Google**, no las que uno escoja. «Las mejores» no es una opción. Pide clave,
+   facturación, atribución visible y respeta límites de caché.
+3. **No marcar `aggregateRating` con la calificación de Google.** La política de datos
+   estructurados prohíbe las reseñas *self-serving* en `LocalBusiness` y las agregadas de terceros.
+   Poner «4.9 ★» en el JSON-LD para que salgan estrellas en el buscador es exactamente el caso que
+   sanciona, y el castigo es una acción manual sobre todo el dominio.
+
+**La recomendación es no duplicarlas en el sitio.** Las reseñas trabajan donde ya están: son de las
+señales que más pesan en el bloque del mapa, y §4 ya dice que ése es el carril del negocio. Lo que
+el sitio aporta es el enlace a la ficha —ya está, en el mapa y en `sameAs`— que manda tráfico a
+reseñar.
+
+Si aun así se quieren en el sitio, el orden correcto es: Places API → 5 reseñas con atribución →
+sin `aggregateRating`. Y conviene saber que sube el coste y añade un tercero al render de una
+página que hoy no depende de nadie.
 
 ---
 

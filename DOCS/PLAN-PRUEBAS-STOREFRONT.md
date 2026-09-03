@@ -213,6 +213,12 @@ componente.
 no con `toHaveText`. Buscar dentro de un `article` ataba la prueba a la forma de la tarjeta, que es
 justo lo que un rediseño cambia sin romper nada.
 
+**Una recarga de la página de Stripe no viola `retries: 0`.** Si `#cardNumber` no aparece, se
+recarga una vez. Aquella regla existe para que una prueba de dinero no pase «a la segunda»
+escondiendo una carrera; aquí no se reintenta ninguna afirmación, se vuelve a pedir una página de
+un tercero que no terminó de pintar. Las aserciones sobre pedidos, importes y stock siguen
+corriendo exactamente una vez.
+
 **Abre la página de Stripe con `domcontentloaded`.** Sigue cargando recursos mucho después de ser
 usable, y en una tanda larga el `load` por defecto agota el tiempo: los dos únicos fallos de la
 primera suite completa fueron eso, y ninguno era un fallo del producto. Lo que indica que se puede
@@ -220,6 +226,13 @@ pagar es que exista el campo de la tarjeta.
 
 **Sin reintentos.** `retries: 0` en la configuración. Una prueba que toca dinero y pasa «a la
 segunda» está escondiendo una carrera, que es justo lo que esta capa existe para encontrar.
+
+**Si apagas algo compartido, comprueba que volvió.** P11 mata `stripe listen` y lo repone en su
+`afterAll`. Una vez la reposición falló y **todo lo posterior corrió sin webhooks**, fallando con
+mensajes que no tenían nada que ver: «el pedido nunca llegó a cancelled», tiempos agotados
+esperando una redirección. Media hora buscando un bug de pagos inexistente. Por eso los specs que
+dependen del webhook llaman a `requireWebhookForwarding()` en su `beforeAll`: convierte ese
+desconcierto en una frase.
 
 **Afirma la precondición de la que dependes.** Si una prueba sólo tiene sentido con algo apagado,
 con cierto stock o en cierto estado, compruébalo con un `expect` antes de medir. Es la diferencia

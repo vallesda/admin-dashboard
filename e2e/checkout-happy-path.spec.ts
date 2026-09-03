@@ -4,6 +4,7 @@ import {
   CARDS,
   buyableProduct,
   payWithCard,
+  requireWebhookForwarding,
   stockOf,
   waitForPaymentStatus,
 } from './helpers';
@@ -15,6 +16,8 @@ import {
  * única prueba que ejercita la cadena entera; todo lo demás la corta por algún
  * sitio para poder ser rápido o determinista.
  */
+test.beforeAll(requireWebhookForwarding);
+
 test('comprar un producto y verlo pagado', async ({ page }) => {
   const product = await buyableProduct();
   const stockBefore = await stockOf(product.id);
@@ -82,7 +85,19 @@ test('comprar un producto y verlo pagado', async ({ page }) => {
   });
 
   const token = await test.step('vuelve a la página del pedido', async () => {
-    await page.waitForURL(/\/pedido\//, { timeout: 60_000 });
+    await page.waitForURL(/\/pedido\//, {
+      timeout: 60_000,
+      /*
+       * `domcontentloaded`, no el `load` por defecto.
+       *
+       * La página del pedido arrastra recursos —fotos de producto, el
+       * mapa— y esperar a que **todos** terminen agotó el tiempo en
+       * tandas largas: la redirección de Stripe sí había llegado. Lo
+       * que hace falta saber aquí es que estamos en la página, y de
+       * los datos ya se ocupa `waitForPaymentStatus` contra la API.
+       */
+      waitUntil: 'domcontentloaded',
+    });
     const match = /\/pedido\/([0-9a-f-]{36})/.exec(page.url());
     expect(match, 'La vuelta de Stripe no trajo el token del pedido').toBeTruthy();
     return match![1];

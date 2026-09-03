@@ -96,14 +96,18 @@ export const TIME_ZONE = 'America/Monterrey';
 /**
  * El domicilio verificable del mostrador.
  *
- * **Deliberadamente incompleto.** Inventar una calle o un teléfono sería peor
- * que dejarlo vacío: Google los contrasta con la ficha del negocio y una
- * dirección falsa daña el posicionamiento local en lugar de ayudarlo.
+ * **Completado el 2 de septiembre de 2026**, con la ficha de Google que
+ * compartió el negocio. Hasta entonces estuvo entero en `null` a propósito:
+ * inventar una calle o un teléfono es peor que dejarlo vacío, porque Google los
+ * contrasta con el Perfil de Empresa y una discrepancia daña el posicionamiento
+ * local en lugar de ayudarlo.
  *
- * Mientras estos campos sigan en `null`, `localBusinessJsonLd()` devuelve
- * `null` y no se emite ningún dato estructurado de negocio local. Es una
- * ausencia consciente, no un olvido: completarlos es lo único que separa a este
- * sitio de tener la señal local que le falta.
+ * Esto es lo que enciende `localBusinessJsonLd()`, que devolvía `null` mientras
+ * faltaran calle y código postal. Era la señal local que le faltaba al sitio.
+ *
+ * Los tipos siguen admitiendo `null` en cada campo, y eso se queda: la
+ * degradación elegante que había —sin dirección, sin dato estructurado— es la
+ * que impide que un valor borrado emita un negocio a medias.
  */
 export const ADDRESS: {
   streetAddress: string | null;
@@ -116,16 +120,71 @@ export const ADDRESS: {
   /** Día y horas, en el formato de schema.org. */
   openingHours: { days: string[]; opens: string; closes: string }[];
 } = {
-  streetAddress: null,
-  postalCode: null,
-  phone: null,
-  phoneE164: null,
-  latitude: null,
-  longitude: null,
+  /*
+   * Escrito como lo escribe Google, no como suena mejor.
+   *
+   * La ficha dice «Rio Amazonas 132 Oriente, Plaza Amazonas 132-Local 1A, Del
+   * Valle, 66220 San Pedro Garza García». Aquí se sigue esa forma —incluido el
+   * local— porque el NAP se compara contra el Perfil de Empresa y una variante
+   * «más limpia» es exactamente la discrepancia que le dice a Google que son
+   * dos negocios distintos.
+   */
+  streetAddress: 'Río Amazonas 132 Ote., Local 1A, Col. Del Valle',
+  postalCode: '66220',
+  phone: '(81) 8244 0518',
+  phoneE164: '+528182440518',
+  /*
+   * Del marcador de su propio enlace de Maps, no del centro del mapa.
+   *
+   * El `embed` que compartió el negocio lleva dos pares de coordenadas: el
+   * encuadre de la cámara (`!2d…!3d…`, que depende del zoom) y el lugar
+   * (`!8m2!3d…!4d…`). Son distintas —el centro cae ~250 m al poniente— y la
+   * que vale para `geo` es la del lugar.
+   */
+  latitude: 25.6601568,
+  longitude: -100.3652582,
+  /*
+   * Vacío a propósito: el horario no está confirmado por el negocio.
+   *
+   * `localBusinessJsonLd()` omite `openingHoursSpecification` cuando esto está
+   * vacío, y un horario inventado es peor que ninguno — Google lo enseña en el
+   * resultado y alguien se planta en la puerta un domingo.
+   */
   openingHours: [],
 };
 
+/**
+ * La ficha del negocio en Google, tal y como la compartió.
+ *
+ * Vive aquí y no en el componente del mapa porque la usan tres sitios: el
+ * mapa, el enlace de «cómo llegar» y `sameAs` de los datos estructurados, que
+ * es lo que le dice a Google que esta ficha y este sitio son la misma entidad.
+ */
+export const GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/GnTzYhSAeT6YrkMFA';
+
+/**
+ * El `src` del iframe de Google Maps, tal cual lo entrega el propio Google.
+ *
+ * No se construye a mano. Ese `pb=` codifica encuadre, zoom e identificador del
+ * lugar en un formato que Google no documenta, así que la única forma correcta
+ * de cambiarlo es volver a copiar el «insertar mapa» desde la ficha.
+ */
+export const GOOGLE_MAPS_EMBED_SRC =
+  'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3596.3357802774854!2d-100.36783312408205!3d25.660161612792642!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8662bd7545ca0b8f%3A0xebfc74a68a9449ea!2sAmor%20a%20Mar%20Honest%20Seafood!5e0!3m2!1ses!2smx!4v1788393086602!5m2!1ses!2smx';
+
 export const INSTAGRAM_URL = 'https://www.instagram.com/amoramarmx/';
+export const INSTAGRAM_HANDLE = '@amoramarmx';
+
+/**
+ * El WhatsApp de la tienda, que **no** es el mismo número que el fijo.
+ *
+ * Vive aquí y no en `nav-links.ts` porque es NAP: sale en el pie, en la página
+ * de contacto y en la ficha de Google, y la cabecera de este archivo dice que
+ * hay una sola fuente. Estaba duplicado en dos sitios y con el enlace escrito a
+ * mano en un tercero — que es exactamente cómo un número acaba desincronizado.
+ */
+export const WHATSAPP_LABEL = '(81) 2916 2142';
+export const WHATSAPP_URL = 'https://wa.me/528129162142';
 
 /**
  * Los municipios a los que llega el reparto.
@@ -199,7 +258,9 @@ export function localBusinessJsonLd(): Record<string, unknown> | null {
     // `sameAs` es cómo se le dice a Google que esta cuenta de Instagram y este
     // sitio son el mismo negocio. Es barato y es de las señales que más
     // consolidan una entidad local.
-    sameAs: [INSTAGRAM_URL],
+    // `sameAs` incluye la ficha de Google: es la señal más directa de que este
+    // sitio y ese Perfil de Empresa son el mismo negocio.
+    sameAs: [INSTAGRAM_URL, GOOGLE_MAPS_URL],
   };
 }
 
