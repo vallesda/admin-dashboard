@@ -196,6 +196,19 @@ La interfaz refleja permisos, pero el enforcement autoritativo es servidor.
 | `RNF-SEG-002` | Password hash nunca sale en session/read models. | Inspección de sesión y selects. |
 | `RNF-SEG-003` | Input externo se valida con Zod en servidor. | Payload inválido no llega al servicio. |
 | `RNF-SEG-004` | Reglas de stock, precio y transición no dependen del cliente. | Alterar HTML/payload no permite violarlas. |
+| `RNF-SEG-005` | Crear pedidos y entrar al panel están limitados por IP. | Superar el límite responde sin mutar. |
+
+`RNF-SEG-005` se añadió el 3 de septiembre de 2026, tras la auditoría previa a
+producción. Cubre dos superficies sin autenticar: `placeOrder` —que aparta
+inventario antes de cobrar— y el login del panel, cuyo endpoint queda fuera del
+matcher de `proxy.ts`.
+
+**El contador vive en memoria, por instancia.** Es una decisión con un límite
+conocido: resuelve por completo el caso accidental —alguien que pulsa
+«Confirmar» cinco veces— y sólo a medias el deliberado, porque cada instancia de
+Vercel lleva su propia cuenta. Se eligió por coste cero y ninguna dependencia en
+el camino del checkout; la firma de `hit()` es la de un contador en Redis, así
+que cambiarlo no toca a quien lo llama.
 
 ### 5.2 Integridad y transacciones (`DAT`)
 

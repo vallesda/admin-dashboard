@@ -23,11 +23,29 @@ vi.mock('@/lib/commerce', () => ({
 }));
 vi.mock('@/lib/shop', () => ({ SITE_URL: 'https://amoramar.mx' }));
 
+/*
+ * La IP se simula; el limitador es el real.
+ *
+ * Simular el limitador probaría el simulacro. Lo que hace falta saber es que
+ * `placeOrder` deja de crear pedidos cuando el de verdad dice basta.
+ */
+const ip = vi.fn(async () => '203.0.113.7');
+vi.mock('@/lib/client-ip', () => ({ clientIp: () => ip() }));
+
 const { placeOrder } = await import('./actions');
 const { EMPTY_STATE } = await import('./form-state');
+const { resetRateLimits } = await import('@/lib/rate-limit');
 
 beforeEach(() => {
   vi.clearAllMocks();
+  /*
+   * El limitador vive en el módulo, así que su contador sobrevive entre
+   * pruebas. Sin esto, la sexta llamada de cualquier archivo empieza a fallar
+   * por cuota y el error no se parece en nada a su causa — que es exactamente
+   * lo que pasó al añadirlo.
+   */
+  resetRateLimits();
+  ip.mockResolvedValue('203.0.113.7');
   createOrder.mockResolvedValue({
     token: 'tok-123',
     paymentMode: 'online',
@@ -236,5 +254,55 @@ describe('cuando el panel dice que no', () => {
     const { state } = await run(form());
 
     expect(state?.error).toMatch(/carrito sigue intacto/i);
+  });
+});
+
+describe('el freno contra apartar el catálogo', () => {
+  /*
+   * `createOrder` reserva inventario **antes** de cobrar y esta acción es
+   * pública. Sin freno, repetirla aparta el pescado del día hasta el barrido de
+   * la mañana siguiente — y no hace falta mala fe: basta pulsar «Confirmar»
+   * cinco veces.
+   */
+  it('corta al sexto pedido seguido desde la misma IP', async () => {
+    for (let i = 0; i < 5; i++) await run(form());
+
+    expect(vi.mocked(createOrder)).toHaveBeenCalledTimes(5);
+
+    const { state } = await run(form());
+
+    expect(state?.error).toMatch(/muy seguido/i);
+    // Lo que de verdad importa: el sexto no llegó a apartar nada.
+    expect(vi.mocked(createOrder)).toHaveBeenCalledTimes(5);
+  });
+
+  it('no castiga a otro visitante', async () => {
+    for (let i = 0; i < 6; i++) await run(form());
+
+    ip.mockResolvedValue('198.51.100.4');
+    const { redirectedTo } = await run(form());
+
+    // Si esto falla, el primer cliente impaciente del día bloquea la tienda.
+    expect(redirectedTo).toBeTruthy();
+  });
+
+  it('un formulario inválido no gasta cuota', async () => {
+    // El freno va después de validar: quien se equivoca escribiendo el teléfono
+    // no debe quedarse sin poder pedir.
+    for (let i = 0; i < 8; i++) await run(form({ name: '', phone: '' }));
+
+    const { redirectedTo } = await run(form());
+
+    expect(redirectedTo).toBeTruthy();
+  });
+
+  it('sin IP no bloquea a nadie', async () => {
+    // En local no hay proxy y no hay cabecera. Fallar cerrado ahí dejaría la
+    // tienda inservible en desarrollo sin avisar de por qué.
+    ip.mockResolvedValue(null as unknown as string);
+
+    for (let i = 0; i < 8; i++) await run(form());
+
+    expect(vi.mocked(createOrder)).toHaveBeenCalledTimes(8);
   });
 });

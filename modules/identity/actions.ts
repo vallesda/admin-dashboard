@@ -22,12 +22,45 @@ import {
   updateAdminUserSchema,
   resetPasswordSchema,
 } from './validators';
+import { clientIp } from '@/lib/client-ip';
+import { hit } from '@/lib/rate-limit';
 import type { AdminUserFormState } from './form-state';
+
+/**
+ * Diez intentos de entrada cada quince minutos por IP.
+ *
+ * El panel lo usan tres personas y entran una vez al día: diez intentos cubre
+ * de sobra a quien se equivoca escribiendo, y deja un ataque de diccionario en
+ * 960 pruebas al día — inservible contra cualquier contraseña que no esté ya en
+ * una lista.
+ *
+ * Por IP y no por correo a propósito. Limitar por correo deja probar la misma
+ * contraseña contra mil cuentas, que es como funciona el *credential stuffing*
+ * de verdad; y además convierte el propio límite en un oráculo: «esta cuenta se
+ * bloqueó, luego existe».
+ */
+const LOGIN_RATE_LIMIT = { limit: 10, windowMs: 15 * 60 * 1000 };
 
 export async function authenticate(
   _prevState: string | undefined,
   formData: FormData,
 ) {
+  /*
+   * El freno va antes de `signIn`, que es lo que consulta la base y ejecuta
+   * bcrypt. Sin esto, `/api/auth/*` —que queda fuera del matcher de `proxy.ts`—
+   * se puede martillear sin coste para quien ataca y con coste para nosotros.
+   */
+  const ip = await clientIp();
+
+  if (ip) {
+    const { ok, retryAfter } = hit(`login:${ip}`, LOGIN_RATE_LIMIT);
+
+    if (!ok) {
+      const minutos = Math.ceil(retryAfter / 60);
+      return `Demasiados intentos. Espera ${minutos} minuto${minutos === 1 ? '' : 's'} e inténtalo otra vez.`;
+    }
+  }
+
   try {
     await signIn('credentials', formData);
   } catch (error) {

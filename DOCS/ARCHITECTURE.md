@@ -434,6 +434,20 @@ Dos capas:
 
 Esto es obligatorio porque una mutación se puede invocar sin utilizar la pantalla que muestra el botón.
 
+3. Las páginas que **escriben** catálogo o configuran reparto comprueban rol
+   también a nivel de página, no sólo escondiendo el botón.
+
+El punto 3 se añadió el 3 de septiembre de 2026. Los `<Can role="admin">`
+ocultaban los botones, pero un `staff` que tecleara `/dashboard/products/create`
+veía el formulario entero y sólo se enteraba al enviarlo. Las nueve pantallas de
+alta y edición de producto, categoría, paquete y zona devuelven `<Forbidden>`
+desde el principio.
+
+Las de **lectura** —pedidos, inventario, clientes, listados de catálogo y el
+panel de inicio— siguen abiertas a `staff` a propósito: es lo que dice la tabla
+de abajo, y el panel de inicio muestra pedidos abiertos, ventas del día y bajo
+stock, que son cifras operativas, no márgenes.
+
 Matriz base:
 
 | Acción | staff | admin | owner |

@@ -18,6 +18,29 @@ export const authConfig = {
    */
   trustHost: true,
 
+  /**
+   * Ocho horas, no los treinta días que Auth.js pone por defecto.
+   *
+   * Nadie había elegido esa duración: es lo que sale si no se declara nada, y
+   * para un panel que mueve dinero, inventario y datos personales es una cookie
+   * robada que sigue sirviendo un mes después.
+   *
+   * Ocho horas es una jornada. Quien abre el panel por la mañana lo tiene vivo
+   * todo el día y vuelve a entrar al siguiente, que es exactamente el ritmo de
+   * una pescadería con tres personas. `updateAge` renueva mientras se usa, así
+   * que la sesión no se cae a media tarea.
+   *
+   * Ojo con lo que esto **no** arregla: cambiar la contraseña sigue sin cerrar
+   * las sesiones abiertas, porque el token sólo se revalida contra `role` y
+   * `active`. Ante una cookie robada, el remedio es desactivar la cuenta —eso sí
+   * la mata en la siguiente petición (`auth.ts`)—. Un `tokenVersion` en el
+   * esquema lo resolvería del todo y es otro trabajo.
+   */
+  session: {
+    maxAge: 8 * 60 * 60,
+    updateAge: 60 * 60,
+  },
+
   pages: {
     signIn: '/login',
   },

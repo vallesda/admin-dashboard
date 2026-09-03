@@ -6,7 +6,23 @@ import { createOrder, quoteDelivery } from '@/lib/commerce';
 import type { DeliveryQuote } from '@/lib/commerce/types';
 import { CommerceError } from '@/lib/commerce/api-client';
 import { SITE_URL } from '@/lib/shop';
+import { clientIp } from '@/lib/client-ip';
+import { hit } from '@/lib/rate-limit';
 import type { CheckoutState } from './form-state';
+
+/**
+ * Cinco pedidos cada diez minutos desde la misma IP.
+ *
+ * Los números salen del negocio, no de una convención. Un hogar que compra
+ * pescado hace **un** pedido; cinco cubre de sobra al que se equivoca, corrige y
+ * vuelve a intentarlo, y a la familia que pide desde el mismo wifi. Diez minutos
+ * es más largo que la impaciencia de una persona y más corto que la paciencia
+ * de nadie que vuelva mañana.
+ *
+ * El coste de pasarse por corto es un cliente real bloqueado; el de pasarse por
+ * largo es que un bot aparte el catálogo. Por eso el margen se da hacia arriba.
+ */
+const ORDER_RATE_LIMIT = { limit: 5, windowMs: 10 * 60 * 1000 };
 
 /**
  * Places the order.
@@ -156,6 +172,33 @@ export async function placeOrder(
   // it again here is what lets the compiler see it cannot be null below.
   if (Object.keys(fieldErrors).length > 0 || fulfillmentType === null) {
     return { error: null, fieldErrors };
+  }
+
+  /*
+   * El freno, justo antes de que se aparte nada.
+   *
+   * Va aquí y no al principio a propósito: un formulario a medio llenar no
+   * gasta cuota. Lo que se limita es **crear pedidos**, que es lo que reserva
+   * inventario, no escribir en la pantalla.
+   *
+   * Y va en la tienda, no en la API del admin, por una razón que no es obvia:
+   * la llamada al admin la hace el servidor de la tienda, así que **el admin ve
+   * la IP de la tienda, no la del cliente**. Un límite por IP allí estrangularía
+   * a todos los visitantes como si fueran uno.
+   */
+  const ip = await clientIp();
+
+  if (ip) {
+    const { ok, retryAfter } = hit(`checkout:${ip}`, ORDER_RATE_LIMIT);
+
+    if (!ok) {
+      return {
+        error:
+          `Estás haciendo pedidos muy seguido. Espera ${retryAfter} segundos e ` +
+          'inténtalo otra vez.',
+        fieldErrors: {},
+      };
+    }
   }
 
   let token: string;
