@@ -115,6 +115,12 @@ export async function fulfillCheckout(sessionId: string): Promise<void> {
   const amountCents = session.amount_total ?? attempt?.amountCents ?? 0;
   if (amountCents <= 0) return;
 
+  /*
+   * Fuera de la transacción a propósito: es lo que sobrevive al commit y dice
+   * si esta llamada —y no la otra— fue la que confirmó el pedido.
+   */
+  let justConfirmed = false;
+
   await db.transaction(async (tx) => {
     if (attempt) {
       if (attempt.status === 'succeeded') return; // already fulfilled
@@ -172,8 +178,40 @@ export async function fulfillCheckout(sessionId: string): Promise<void> {
 
     if (order?.status === 'pending') {
       await changeOrderStatus(orderId, 'confirmed', null, { tx });
+      justConfirmed = true;
     }
   });
+
+  /*
+   * El correo va **fuera** de la transacción, y sólo si la confirmación pasó
+   * de verdad aquí.
+   *
+   * Dentro sería peor de dos maneras: una llamada de red mantendría la
+   * transacción abierta esperando a un tercero, y si hiciera rollback el correo
+   * ya habría salido diciéndole al cliente que su pedido está confirmado.
+   *
+   * `justConfirmed` es la compuerta contra el duplicado. Esta función corre dos
+   * veces por diseño —el webhook y la página de retorno llaman a la misma— y
+   * sólo una de las dos ve el pedido en `pending`. La clave de idempotencia de
+   * Resend es el segundo cinturón, para el caso de que las dos lleguen a la vez.
+   *
+   * Y nunca lanza: un pedido pagado y confirmado no puede fallar porque el
+   * correo no salió. Desde el webhook, además, un error se traduciría en 500 y
+   * Stripe reintentaría la confirmación entera.
+   */
+  if (justConfirmed) {
+    const { sendOrderConfirmation } = await import(
+      '@/modules/notifications/order-confirmed'
+    );
+
+    const result = await sendOrderConfirmation(orderId);
+
+    if (!result.sent) {
+      console.error(
+        `[notificaciones] no se envió la confirmación del pedido ${orderId}: ${result.reason}`,
+      );
+    }
+  }
 }
 
 /**

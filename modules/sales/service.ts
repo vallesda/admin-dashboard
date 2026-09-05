@@ -207,7 +207,11 @@ export async function createOrder(
     };
 
     if (input.fulfillmentType === 'delivery' && input.deliveryAddress) {
-      const zone = await findZoneForPostalCode(input.deliveryAddress.postalCode);
+      // `tx`, no el `db` global: esto corre dentro de la transacción de arriba.
+      const zone = await findZoneForPostalCode(
+        input.deliveryAddress.postalCode,
+        tx,
+      );
       const quote = quoteDelivery(zone, subtotalCents);
 
       if (!quote.covered) {

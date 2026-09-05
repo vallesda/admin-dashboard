@@ -67,12 +67,27 @@ export async function getZoneById(
  * repartir en un sitio sin borrar los códigos postales que tanto costó cargar.
  * Un pedido histórico sigue apuntando a ella por su id.
  */
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Acepta una transacción, y quien la tenga **debe** pasarla.
+ *
+ * `createOrder` llama a esto desde dentro de su transacción. Usando el `db`
+ * global, la consulta pedía una **segunda** conexión mientras la primera seguía
+ * ocupada — con PGlite, que tiene una sola, es un interbloqueo inmediato; con
+ * el pool de producción no cuelga, pero cada pedido a domicilio retiene dos
+ * conexiones a la vez y bajo carga el pool se agota con todas esperándose.
+ *
+ * Además leía fuera de la transacción: la tarifa se resolvía en una vista de la
+ * base distinta de aquella en la que se estaba escribiendo el pedido.
+ */
 export async function findZoneForPostalCode(
   postalCode: string,
+  tx?: Tx,
 ): Promise<ZoneForQuote | undefined> {
   if (!/^[0-9]{5}$/.test(postalCode)) return undefined;
 
-  const [row] = await db
+  const [row] = await (tx ?? db)
     .select({
       id: deliveryZones.id,
       name: deliveryZones.name,

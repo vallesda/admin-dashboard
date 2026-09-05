@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "modules/notifications/order-confirmed.test.tsx"
+        ],
+        "createdAt": "2026-09-03T19:36:15.195Z",
+        "reason": "Son regex de aserción (/<img[^>]*>/) que buscan etiquetas en el HTML renderizado del correo, no imágenes que se envíen: el archivo es una prueba, no una vista"
+      }
+    ]
+  }
+}
